@@ -1,21 +1,27 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import {
   Search,
   Plus,
   Filter,
-  MoreHorizontal,
   LayoutGrid,
   List as ListIcon,
   Package,
   AlertTriangle,
-  ArrowUpRight,
-  CheckCircle2,
   XCircle,
   Clock,
+  X,
+  MoreHorizontal,
+  CheckCircle2,
+  DollarSign,
+  TrendingUp,
+  ShoppingCart,
+  Calendar,
+  User,
+  ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -89,17 +95,357 @@ const PRODUCTS = [
   },
 ];
 
+// --- MOCK ORDERS GENERATOR ---
+const generateMockOrders = (productId) => {
+  return Array.from({ length: 5 }).map((_, i) => ({
+    id: `#ORD-${1000 + i + productId}`,
+    customer: [
+      "Alex Morgan",
+      "Sarah Chen",
+      "Mike Ross",
+      "Emma Watson",
+      "John Doe",
+    ][i],
+    date: `Jan ${12 + i}, 2024`,
+    amount: (Math.random() * 500 + 100).toFixed(2),
+    status: ["Completed", "Processing", "Completed", "Shipped", "Completed"][i],
+  }));
+};
+
+// --- CHART GENERATOR (SVG Sparkline) ---
+const Sparkline = ({ data, color = "#4f46e5" }) => {
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const points = data
+    .map((val, i) => {
+      const x = (i / (data.length - 1)) * 100;
+      const y = 100 - ((val - min) / (max - min)) * 100;
+      return `${x},${y}`;
+    })
+    .join(" L");
+
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      className="w-full h-full overflow-visible preserve-3d"
+    >
+      <path d={`M0,100 L${points} L100,100 Z`} fill={color} fillOpacity="0.1" />
+      <path
+        d={`M${points}`}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+};
+
+// --- COMPONENT: PRODUCT SHEET ---
+const ProductSheet = ({ product, onClose }) => {
+  const sheetRef = useRef(null);
+  const contentRef = useRef(null);
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // Mock Stats specific to opened product
+  const stats = {
+    revenue: (product.price * 142).toLocaleString(),
+    sold: 142,
+    returns: "2.4%",
+    views: "1.2k",
+  };
+
+  const orders = generateMockOrders(product.id);
+
+  useGSAP(() => {
+    // Slide In
+    gsap.fromTo(
+      sheetRef.current,
+      { x: "100%" },
+      { x: "0%", duration: 0.5, ease: "power3.out" },
+    );
+    // Content Stagger
+    gsap.fromTo(
+      ".sheet-animate",
+      { y: 20, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.4, stagger: 0.05, delay: 0.2 },
+    );
+  }, []);
+
+  const handleClose = () => {
+    gsap.to(sheetRef.current, {
+      x: "100%",
+      duration: 0.3,
+      ease: "power3.in",
+      onComplete: onClose,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      {/* Backdrop */}
+      <div
+        onClick={handleClose}
+        className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm transition-opacity opacity-100"
+      />
+
+      {/* Sheet Panel */}
+      <div
+        ref={sheetRef}
+        className="relative w-full max-w-2xl h-full bg-white shadow-2xl flex flex-col overflow-hidden border-l border-slate-200"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-white z-10">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Product Details
+              </span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${product.status === "Published" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-100 text-slate-500 border-slate-200"}`}
+              >
+                {product.status}
+              </span>
+            </div>
+            <h2 className="text-xl font-bold text-slate-900">{product.name}</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-50 rounded-lg transition-colors">
+              <MoreHorizontal className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleClose}
+              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable Content */}
+        <div
+          ref={contentRef}
+          className="flex-1 overflow-y-auto bg-slate-50/50 p-6 space-y-6"
+        >
+          {/* Hero Section */}
+          <div className="sheet-animate bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-6">
+            <div className="w-32 h-32 bg-slate-100 rounded-xl overflow-hidden shrink-0 border border-slate-100">
+              <img
+                src={product.image}
+                className="w-full h-full object-cover"
+                alt="Product"
+              />
+            </div>
+            <div className="flex-1 flex flex-col justify-center">
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">Price</p>
+                  <p className="text-2xl font-bold text-slate-900">
+                    ${product.price}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">Stock Level</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-2xl font-bold text-slate-900">
+                      {product.stock}
+                    </p>
+                    <div
+                      className={`w-2.5 h-2.5 rounded-full ${product.stock > 10 ? "bg-emerald-500" : "bg-amber-500"}`}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-sm font-bold shadow-md shadow-indigo-200 transition-colors">
+                  Edit Product
+                </button>
+                <button className="px-4 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-bold transition-colors">
+                  Preview
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="sheet-animate flex gap-6 border-b border-slate-200 px-2">
+            <button
+              onClick={() => setActiveTab("overview")}
+              className={`pb-3 text-sm font-bold transition-colors relative ${activeTab === "overview" ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"}`}
+            >
+              Overview
+              {activeTab === "overview" && (
+                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 rounded-t-full"></div>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab("orders")}
+              className={`pb-3 text-sm font-bold transition-colors relative ${activeTab === "orders" ? "text-indigo-600" : "text-slate-500 hover:text-slate-800"}`}
+            >
+              Orders History
+              {activeTab === "orders" && (
+                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 rounded-t-full"></div>
+              )}
+            </button>
+          </div>
+
+          {/* Tab Content: Overview */}
+          {activeTab === "overview" && (
+            <div className="space-y-6">
+              {/* Statistics Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="sheet-animate bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                      <DollarSign className="w-4 h-4" />
+                    </div>
+                    <span className="text-[10px] font-bold bg-green-50 text-green-700 px-1.5 py-0.5 rounded flex items-center gap-1">
+                      <TrendingUp className="w-3 h-3" /> +12%
+                    </span>
+                  </div>
+                  <p className="text-2xl font-bold text-slate-900">
+                    ${stats.revenue}
+                  </p>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Total Lifetime Revenue
+                  </p>
+                </div>
+                <div className="sheet-animate bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                      <ShoppingCart className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {stats.sold}
+                  </p>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Units Sold
+                  </p>
+                </div>
+              </div>
+
+              {/* Sales Chart */}
+              <div className="sheet-animate bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-slate-900 text-sm">
+                    Sales Trend (30 Days)
+                  </h3>
+                  <select className="text-xs bg-slate-50 border-none rounded-lg text-slate-600 font-bold outline-none cursor-pointer">
+                    <option>Last 30 Days</option>
+                    <option>Last 90 Days</option>
+                  </select>
+                </div>
+                <div className="h-32 w-full">
+                  {/* Using our SVG Sparkline Component */}
+                  <Sparkline
+                    data={[10, 25, 18, 40, 35, 50, 45, 70, 65, 80, 75, 95]}
+                  />
+                </div>
+              </div>
+
+              {/* Details Grid */}
+              <div className="sheet-animate bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+                  <h3 className="font-bold text-slate-900 text-sm">
+                    Product Specifications
+                  </h3>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  <div className="flex justify-between p-4 text-sm">
+                    <span className="text-slate-500">SKU</span>
+                    <span className="font-mono font-bold text-slate-700">
+                      {product.sku}
+                    </span>
+                  </div>
+                  <div className="flex justify-between p-4 text-sm">
+                    <span className="text-slate-500">Category</span>
+                    <span className="font-bold text-slate-700">
+                      {product.category}
+                    </span>
+                  </div>
+                  <div className="flex justify-between p-4 text-sm">
+                    <span className="text-slate-500">Supplier</span>
+                    <span className="font-bold text-slate-700">
+                      Global Tech Distributors
+                    </span>
+                  </div>
+                  <div className="flex justify-between p-4 text-sm">
+                    <span className="text-slate-500">Added On</span>
+                    <span className="font-bold text-slate-700">
+                      Oct 24, 2023
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab Content: Orders */}
+          {activeTab === "orders" && (
+            <div className="sheet-animate bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
+                  <tr>
+                    <th className="p-4 font-bold">Order ID</th>
+                    <th className="p-4 font-bold">Customer</th>
+                    <th className="p-4 font-bold text-right">Amount</th>
+                    <th className="p-4 font-bold text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {orders.map((order, i) => (
+                    <tr key={i} className="hover:bg-slate-50 transition-colors">
+                      <td className="p-4 font-mono font-bold text-indigo-600">
+                        {order.id}
+                      </td>
+                      <td className="p-4 text-slate-700">{order.customer}</td>
+                      <td className="p-4 text-right font-bold text-slate-900">
+                        ${order.amount}
+                      </td>
+                      <td className="p-4 text-right">
+                        <span
+                          className={`text-[10px] font-bold px-2 py-1 rounded-full ${
+                            order.status === "Completed"
+                              ? "bg-emerald-50 text-emerald-600"
+                              : order.status === "Processing"
+                                ? "bg-amber-50 text-amber-600"
+                                : "bg-blue-50 text-blue-600"
+                          }`}
+                        >
+                          {order.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="p-4 border-t border-slate-100 text-center">
+                <button className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center justify-center gap-1 mx-auto">
+                  View All Orders <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- MAIN PAGE COMPONENT ---
 export default function ProductsPage() {
   const containerRef = useRef(null);
-  const [viewMode, setViewMode] = useState("list"); // 'grid' | 'list'
+  const [viewMode, setViewMode] = useState("list");
   const [searchTerm, setSearchTerm] = useState("");
+
+  // NEW STATE: Selected Product for Sheet
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   // --- ANIMATIONS ---
   useGSAP(
     () => {
       const tl = gsap.timeline({ defaults: { ease: "power4.out" } });
-
-      // 1. Header & Stats staggered entry
       tl.fromTo(
         ".animate-up",
         { y: 20, opacity: 0 },
@@ -109,26 +455,7 @@ export default function ProductsPage() {
     { scope: containerRef },
   );
 
-  // View Mode Switch Animation
-  useGSAP(() => {
-    gsap.killTweensOf(".product-item");
-
-    gsap.fromTo(
-      ".product-item",
-      { y: 15, opacity: 0, scale: 0.98 },
-      {
-        y: 0,
-        opacity: 1,
-        scale: 1,
-        duration: 0.5,
-        stagger: 0.03,
-        ease: "expo.out",
-        clearProps: "all",
-      },
-    );
-  }, [viewMode, searchTerm]);
-
-  // --- HELPERS ---
+  // Helpers
   const getStatusColor = (status) => {
     switch (status) {
       case "Published":
@@ -159,10 +486,18 @@ export default function ProductsPage() {
   return (
     <div
       ref={containerRef}
-      className="min-h-screen bg-slate-50/50  font-sans text-slate-900"
+      className="min-h-screen bg-slate-50/50 font-sans text-slate-900 relative"
     >
+      {/* RENDER SHEET IF PRODUCT SELECTED */}
+      {selectedProduct && (
+        <ProductSheet
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+        />
+      )}
+
       {/* 1. HEADER SECTION */}
-      <div className="max-w-7xl mx-auto mb-10">
+      <div className="max-w-7xl mx-auto mb-10 p-6 md:p-8 pb-0">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
           <div className="animate-up">
             <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2">
@@ -172,7 +507,6 @@ export default function ProductsPage() {
               Manage inventory, pricing, and product details.
             </p>
           </div>
-
           <div className="animate-up">
             <Link
               href="/app/products/new"
@@ -245,7 +579,6 @@ export default function ProductsPage() {
               placeholder="Search by name, SKU..."
             />
           </div>
-
           <div className="flex items-center gap-2 w-full sm:w-auto p-1">
             <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
               <Filter className="w-4 h-4" /> Filters
@@ -282,7 +615,6 @@ export default function ProductsPage() {
           ) : (
             <>
               {viewMode === "list" ? (
-                // --- LIST VIEW ---
                 <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-slate-50/50 border-b border-slate-200">
@@ -309,7 +641,8 @@ export default function ProductsPage() {
                       {filteredProducts.map((product) => (
                         <tr
                           key={product.id}
-                          className="product-item group hover:bg-slate-50/80 transition-colors"
+                          onClick={() => setSelectedProduct(product)}
+                          className="product-item group hover:bg-slate-50/80 transition-colors cursor-pointer"
                         >
                           <td className="p-4 pl-6">
                             <div className="flex items-center gap-4">
@@ -321,7 +654,7 @@ export default function ProductsPage() {
                                 />
                               </div>
                               <div>
-                                <div className="font-bold text-slate-900 text-sm">
+                                <div className="font-bold text-slate-900 text-sm group-hover:text-indigo-600 transition-colors">
                                   {product.name}
                                 </div>
                                 <div className="text-xs text-slate-500">
@@ -374,12 +707,12 @@ export default function ProductsPage() {
                   </table>
                 </div>
               ) : (
-                // --- GRID VIEW ---
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {filteredProducts.map((product) => (
                     <div
                       key={product.id}
-                      className="product-item group bg-white rounded-3xl border border-slate-100 p-3 hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-900/5 transition-all duration-300"
+                      onClick={() => setSelectedProduct(product)}
+                      className="product-item group bg-white rounded-3xl border border-slate-100 p-3 hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-900/5 transition-all duration-300 cursor-pointer"
                     >
                       <div className="relative aspect-square rounded-2xl bg-slate-100 overflow-hidden mb-3">
                         <img
@@ -394,17 +727,10 @@ export default function ProductsPage() {
                             {product.status}
                           </span>
                         </div>
-                        {/* Hover Overlay */}
-                        <div className="absolute inset-0 bg-slate-900/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <button className="bg-white text-slate-900 px-4 py-2 rounded-xl text-xs font-bold shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform">
-                            View Details
-                          </button>
-                        </div>
                       </div>
-
                       <div className="px-1 pb-2">
                         <div className="flex justify-between items-start mb-1">
-                          <h3 className="font-bold text-slate-900 line-clamp-1">
+                          <h3 className="font-bold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">
                             {product.name}
                           </h3>
                           <p className="font-bold text-indigo-600">
@@ -417,7 +743,6 @@ export default function ProductsPage() {
                           </span>
                           <span>{product.category}</span>
                         </div>
-
                         <div className="flex items-center gap-2 pt-3 border-t border-slate-50">
                           <div
                             className={`w-2 h-2 rounded-full ${getStockColor(product.stock)}`}
