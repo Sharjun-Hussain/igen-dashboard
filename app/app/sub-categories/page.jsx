@@ -10,71 +10,60 @@ import {
   Edit3,
   Trash2,
   X,
-  UploadCloud,
   AlertCircle,
   LayoutGrid,
   List as ListIcon,
   CheckCircle2,
   CircleDashed,
-  Globe,
-  Image as ImageIcon,
 } from "lucide-react";
 
 // --- MOCK DATA ---
-const INITIAL_BRANDS = [
+const INITIAL_SUB_CATEGORIES = [
   {
     id: 1,
-    name: "Nike",
-    website: "nike.com",
-    products: 142,
+    name: "Running Shoes",
+    slug: "running-shoes",
+    parent: "Shoes",
+    count: 45,
     status: "Active",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Logo_NIKE.svg/1200px-Logo_NIKE.svg.png",
   },
   {
     id: 2,
-    name: "Samsung",
-    website: "samsung.com",
-    products: 89,
+    name: "Gaming Laptops",
+    slug: "gaming-laptops",
+    parent: "Laptops",
+    count: 23,
     status: "Active",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Samsung_Logo.svg/2560px-Samsung_Logo.svg.png",
   },
   {
     id: 3,
-    name: "Apple",
-    website: "apple.com",
-    products: 245,
+    name: "Wireless Earbuds",
+    slug: "wireless-earbuds",
+    parent: "Audio",
+    count: 67,
     status: "Active",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/1667px-Apple_logo_black.svg.png",
   },
   {
     id: 4,
-    name: "Sony",
-    website: "sony.com",
-    products: 56,
-    status: "Inactive",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Sony_logo.svg/2560px-Sony_logo.svg.png",
+    name: "DSLR Cameras",
+    slug: "dslr-cameras",
+    parent: "Cameras",
+    count: 12,
+    status: "Draft",
   },
   {
     id: 5,
-    name: "Adidas",
-    website: "adidas.com",
-    products: 112,
+    name: "Smart Watches",
+    slug: "smart-watches",
+    parent: "Wearables",
+    count: 89,
     status: "Active",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg",
-  },
-  {
-    id: 6,
-    name: "Puma",
-    website: "puma.com",
-    products: 34,
-    status: "Draft",
-    logo: null,
   },
 ];
 
-export default function BrandManagementPage() {
+export default function SubCategoryManagementPage() {
   const containerRef = useRef(null);
-  const [brands, setBrands] = useState(INITIAL_BRANDS);
+  const [categories, setCategories] = useState(INITIAL_SUB_CATEGORIES);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("grid"); // 'grid' | 'list'
 
@@ -82,7 +71,7 @@ export default function BrandManagementPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [formMode, setFormMode] = useState("create");
-  const [selectedBrand, setSelectedBrand] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   // --- REFS ---
   const formOverlayRef = useRef(null);
@@ -93,9 +82,10 @@ export default function BrandManagementPage() {
   // --- FORM DATA ---
   const [formData, setFormData] = useState({
     name: "",
-    website: "",
+    slug: "",
+    parent: "Shoes", // Default parent
     status: "Active",
-    logo: null,
+    description: "",
   });
 
   // ------------------------------------------------------------------
@@ -128,11 +118,11 @@ export default function BrandManagementPage() {
   // ------------------------------------------------------------------
   useGSAP(() => {
     // Kill any existing animations on these items to prevent glitches
-    gsap.killTweensOf(".brand-item");
+    gsap.killTweensOf(".category-item");
 
     // Animate items in with a satisfying "pop" and stagger
     gsap.fromTo(
-      ".brand-item",
+      ".category-item",
       {
         y: 20,
         opacity: 0,
@@ -148,7 +138,7 @@ export default function BrandManagementPage() {
         clearProps: "all",
       },
     );
-  }, [viewMode, brands, searchTerm]);
+  }, [viewMode, categories, searchTerm]);
 
   // ------------------------------------------------------------------
   // 3. FORM DRAWER ANIMATION
@@ -218,37 +208,38 @@ export default function BrandManagementPage() {
     setFormMode("create");
     setFormData({
       name: "",
-      website: "",
+      slug: "",
+      parent: "Shoes",
       status: "Active",
-      logo: null,
+      description: "",
     });
     setIsFormOpen(true);
   };
 
-  const handleOpenEdit = (brand) => {
+  const handleOpenEdit = (category) => {
     setFormMode("edit");
-    setSelectedBrand(brand);
-    setFormData({ ...brand });
+    setSelectedCategory(category);
+    setFormData({ ...category, description: "Sample description..." });
     setIsFormOpen(true);
   };
 
-  const handleOpenDelete = (brand) => {
-    setSelectedBrand(brand);
+  const handleOpenDelete = (category) => {
+    setSelectedCategory(category);
     setIsDeleteOpen(true);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (formMode === "create") {
-      const newId = Math.max(...brands.map((b) => b.id)) + 1;
-      setBrands([
-        ...brands,
-        { id: newId, products: 0, ...formData },
+      const newId = Math.max(...categories.map((c) => c.id)) + 1;
+      setCategories([
+        ...categories,
+        { id: newId, count: 0, ...formData },
       ]);
     } else {
-      setBrands(
-        brands.map((b) =>
-          b.id === selectedBrand.id ? { ...b, ...formData } : b,
+      setCategories(
+        categories.map((c) =>
+          c.id === selectedCategory.id ? { ...c, ...formData } : c,
         ),
       );
     }
@@ -256,12 +247,24 @@ export default function BrandManagementPage() {
   };
 
   const handleDeleteConfirm = () => {
-    setBrands(brands.filter((b) => b.id !== selectedBrand.id));
+    setCategories(categories.filter((c) => c.id !== selectedCategory.id));
     closeDeleteWithAnim();
   };
 
-  const filteredBrands = brands.filter((b) =>
-    b.name.toLowerCase().includes(searchTerm.toLowerCase()),
+  const handleNameChange = (e) => {
+    const val = e.target.value;
+    setFormData((prev) => ({
+      ...prev,
+      name: val,
+      slug: val
+        .toLowerCase()
+        .replace(/ /g, "-")
+        .replace(/[^\w-]+/g, ""),
+    }));
+  };
+
+  const filteredCategories = categories.filter((c) =>
+    c.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
@@ -274,10 +277,10 @@ export default function BrandManagementPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
           <div className="animate-header">
             <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-2">
-              Brand Manager
+              Sub Category Manager
             </h1>
             <p className="text-slate-500 dark:text-slate-400 font-medium">
-              Manage your product brands and partners.
+              Manage your product sub-categories and organization.
             </p>
           </div>
 
@@ -287,7 +290,7 @@ export default function BrandManagementPage() {
               className="group flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 will-change-transform"
             >
               <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-              <span>Add Brand</span>
+              <span>Add Sub Category</span>
             </button>
           </div>
         </div>
@@ -301,7 +304,7 @@ export default function BrandManagementPage() {
             <input
               type="text"
               className="block w-full pl-10 pr-3 py-2.5 bg-transparent rounded-xl text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 dark:text-white focus:outline-none focus:bg-slate-50 dark:focus:bg-slate-900 transition-all"
-              placeholder="Search brands..."
+              placeholder="Search sub categories..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -327,13 +330,13 @@ export default function BrandManagementPage() {
 
         {/* 3. CONTENT AREA */}
         <div className="mt-8 min-h-[500px]">
-          {filteredBrands.length === 0 ? (
+          {filteredCategories.length === 0 ? (
             <div className="text-center py-20 bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 rounded-3xl animate-header">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-900 mb-4">
                 <Search className="w-6 h-6 text-slate-400" />
               </div>
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                No brands found
+                No sub categories found
               </h3>
               <p className="text-slate-500 dark:text-slate-400 mt-1">
                 Try adjusting your search terms.
@@ -344,56 +347,47 @@ export default function BrandManagementPage() {
               {viewMode === "grid" ? (
                 /* GRID VIEW */
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {filteredBrands.map((brand) => (
+                  {filteredCategories.map((cat) => (
                     <div
-                      key={brand.id}
-                      className="brand-item group relative bg-white dark:bg-slate-800 rounded-3xl p-4 border border-slate-100 dark:border-slate-700 hover:border-indigo-100 dark:hover:border-indigo-900/50 shadow-sm hover:shadow-xl hover:shadow-indigo-900/5 transition-all duration-500 ease-out cursor-pointer flex flex-col h-full will-change-transform"
+                      key={cat.id}
+                      className="category-item group relative bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 hover:border-indigo-100 dark:hover:border-indigo-900/50 shadow-sm hover:shadow-xl hover:shadow-indigo-900/5 transition-all duration-500 ease-out cursor-pointer flex flex-col h-full will-change-transform"
                     >
-                      {/* Image Area */}
-                      <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-900 mb-4 flex items-center justify-center p-6">
-                        {brand.logo ? (
-                          <img
-                            src={brand.logo}
-                            alt={brand.name}
-                            className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-700 ease-out"
-                          />
-                        ) : (
-                          <div className="flex items-center justify-center w-full h-full text-slate-300">
-                            <ImageIcon className="w-10 h-10" />
-                          </div>
-                        )}
-                        <div className="absolute top-3 right-3">
-                          <span
-                            className={`backdrop-blur-md bg-white/90 dark:bg-slate-800/90 px-2.5 py-1 rounded-full text-xs font-bold border ${brand.status === "Active" ? "text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/50" : "text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-700"}`}
-                          >
-                            {brand.status}
-                          </span>
-                        </div>
-                      </div>
-
                       {/* Text Area */}
                       <div className="flex-1">
-                        <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">
-                          {brand.name}
-                        </h3>
+                        <div className="flex justify-between items-start mb-4">
+                          <h3 className="font-bold text-xl text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">
+                            {cat.name}
+                          </h3>
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-xs font-bold border ${cat.status === "Active" ? "text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/50" : "text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-700"}`}
+                          >
+                            {cat.status}
+                          </span>
+                        </div>
+
                         <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 mb-4">
-                          <Globe className="w-3 h-3" />
-                          <a href={`https://${brand.website}`} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-indigo-500 transition-colors">
-                            {brand.website}
-                          </a>
+                          <span className="bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-md text-slate-600 dark:text-slate-400">
+                            {cat.slug}
+                          </span>
+                          {cat.parent && (
+                            <span className="text-indigo-500 dark:text-indigo-400 flex items-center gap-1">
+                              <span className="w-1 h-1 rounded-full bg-indigo-400 dark:bg-indigo-500"></span>{" "}
+                              {cat.parent}
+                            </span>
+                          )}
                         </div>
                       </div>
 
                       {/* Footer / Actions */}
                       <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-700/50 mt-auto">
                         <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
-                          {brand.products} products
+                          {cat.count} products
                         </span>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleOpenEdit(brand);
+                              handleOpenEdit(cat);
                             }}
                             className="p-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors"
                           >
@@ -402,7 +396,7 @@ export default function BrandManagementPage() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleOpenDelete(brand);
+                              handleOpenDelete(cat);
                             }}
                             className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors"
                           >
@@ -420,73 +414,66 @@ export default function BrandManagementPage() {
                     <thead className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
                       <tr>
                         <th className="p-5 pl-8 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                          Brand
+                          Sub Category
                         </th>
                         <th className="p-5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                          Website
+                          Parent Category
                         </th>
                         <th className="p-5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                           Status
                         </th>
                         <th className="p-5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right">
-                          Products
+                          Items
                         </th>
                         <th className="p-5 pr-8"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                      {filteredBrands.map((brand) => (
+                      {filteredCategories.map((cat) => (
                         <tr
-                          key={brand.id}
-                          className="brand-item group hover:bg-slate-50/80 dark:hover:bg-slate-700/80 transition-colors duration-200"
+                          key={cat.id}
+                          className="category-item group hover:bg-slate-50/80 dark:hover:bg-slate-700/80 transition-colors duration-200"
                         >
                           <td className="p-4 pl-8">
                             <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-900 overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700 p-2 flex items-center justify-center">
-                                {brand.logo ? (
-                                  <img
-                                    src={brand.logo}
-                                    className="max-w-full max-h-full object-contain"
-                                  />
-                                ) : (
-                                  <ImageIcon className="w-5 h-5 text-slate-300" />
-                                )}
-                              </div>
-                              <div className="font-bold text-slate-900 dark:text-white">
-                                {brand.name}
+                              <div>
+                                <div className="font-bold text-slate-900 dark:text-white">
+                                  {cat.name}
+                                </div>
+                                <div className="text-xs text-slate-400 dark:text-slate-500 font-mono">
+                                  {cat.slug}
+                                </div>
                               </div>
                             </div>
                           </td>
                           <td className="p-4 text-sm font-medium text-slate-600 dark:text-slate-400">
-                            <a href={`https://${brand.website}`} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-500 transition-colors">
-                              {brand.website}
-                            </a>
+                            {cat.parent}
                           </td>
                           <td className="p-4">
                             <div
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${brand.status === "Active" ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50" : "bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700"}`}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${cat.status === "Active" ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50" : "bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700"}`}
                             >
-                              {brand.status === "Active" ? (
+                              {cat.status === "Active" ? (
                                 <CheckCircle2 className="w-3 h-3" />
                               ) : (
                                 <CircleDashed className="w-3 h-3" />
                               )}
-                              {brand.status}
+                              {cat.status}
                             </div>
                           </td>
                           <td className="p-4 text-right text-sm font-bold text-slate-700 dark:text-slate-300">
-                            {brand.products}
+                            {cat.count}
                           </td>
                           <td className="p-4 pr-8 text-right">
                             <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                               <button
-                                onClick={() => handleOpenEdit(brand)}
+                                onClick={() => handleOpenEdit(cat)}
                                 className="p-2 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm rounded-lg transition-all"
                               >
                                 <Edit3 className="w-4 h-4" />
                               </button>
                               <button
-                                onClick={() => handleOpenDelete(brand)}
+                                onClick={() => handleOpenDelete(cat)}
                                 className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm rounded-lg transition-all"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -523,11 +510,11 @@ export default function BrandManagementPage() {
                 <div>
                   <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                     {formMode === "create"
-                      ? "Add Brand"
-                      : "Edit Brand"}
+                      ? "Add Sub Category"
+                      : "Edit Sub Category"}
                   </h2>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    Configure brand details and assets.
+                    Configure sub category details.
                   </p>
                 </div>
                 <button
@@ -540,71 +527,87 @@ export default function BrandManagementPage() {
 
               {/* Drawer Body */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                {/* Image Uploader */}
-                <div className="group relative w-full aspect-[2/1] bg-slate-50 dark:bg-slate-900 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-all flex flex-col items-center justify-center cursor-pointer overflow-hidden">
-                  {selectedBrand?.logo ? (
-                    <img
-                      src={selectedBrand.logo}
-                      className="absolute inset-0 w-full h-full object-contain p-8"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center text-slate-400 dark:text-slate-500 group-hover:text-indigo-500 transition-colors">
-                      <div className="p-3 bg-white dark:bg-slate-800 rounded-full shadow-sm mb-2 group-hover:scale-110 transition-transform">
-                        <UploadCloud className="w-6 h-6" />
-                      </div>
-                      <span className="text-xs font-bold uppercase tracking-wider">
-                        Click to upload logo
-                      </span>
-                    </div>
-                  )}
-                </div>
-
+                
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
-                      Brand Name
+                      Sub Category Name
                     </label>
                     <input
                       required
                       type="text"
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onChange={handleNameChange}
                       className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all"
-                      placeholder="e.g. Nike"
+                      placeholder="e.g. Running Shoes"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
-                      Website
-                    </label>
-                    <div className="relative">
-                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">https://</span>
-                       <input 
-                        type="text" 
-                        value={formData.website}
-                        onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                        className="w-full pl-16 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl pr-4 py-3 text-sm focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all dark:text-white"
-                        placeholder="example.com"
-                       />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
+                        Slug
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={formData.slug}
+                        className="w-full bg-slate-100 dark:bg-slate-900 border-transparent text-slate-500 dark:text-slate-400 rounded-xl px-4 py-3 text-sm cursor-not-allowed outline-none font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
+                        Status
+                      </label>
+                      <select
+                        value={formData.status}
+                        onChange={(e) =>
+                          setFormData({ ...formData, status: e.target.value })
+                        }
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:border-indigo-500 outline-none appearance-none"
+                      >
+                        <option className="dark:bg-slate-800" value="Active">Active</option>
+                        <option className="dark:bg-slate-800" value="Draft">Draft</option>
+                        <option className="dark:bg-slate-800" value="Hidden">Hidden</option>
+                      </select>
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
-                      Status
+                      Parent Category
                     </label>
                     <select
-                      value={formData.status}
+                      value={formData.parent}
                       onChange={(e) =>
-                        setFormData({ ...formData, status: e.target.value })
+                        setFormData({ ...formData, parent: e.target.value })
                       }
-                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:border-indigo-500 outline-none appearance-none"
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:border-indigo-500 outline-none"
                     >
-                      <option className="dark:bg-slate-800" value="Active">Active</option>
-                      <option className="dark:bg-slate-800" value="Draft">Draft</option>
-                      <option className="dark:bg-slate-800" value="Inactive">Inactive</option>
+                      <option className="dark:bg-slate-800" value="Shoes">Shoes</option>
+                      <option className="dark:bg-slate-800" value="Laptops">Laptops</option>
+                      <option className="dark:bg-slate-800" value="Audio">Audio</option>
+                      <option className="dark:bg-slate-800" value="Cameras">Cameras</option>
+                      <option className="dark:bg-slate-800" value="Wearables">Wearables</option>
                     </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      rows="4"
+                      value={formData.description}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          description: e.target.value,
+                        })
+                      }
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all resize-none"
+                      placeholder="Add a description for this sub category..."
+                    ></textarea>
                   </div>
                 </div>
               </div>
@@ -623,7 +626,7 @@ export default function BrandManagementPage() {
                   type="button"
                   className="flex-[2] py-3 px-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all transform active:scale-95"
                 >
-                  {formMode === "create" ? "Create Brand" : "Save Changes"}
+                  {formMode === "create" ? "Create Sub Category" : "Save Changes"}
                 </button>
               </div>
             </div>
@@ -647,14 +650,14 @@ export default function BrandManagementPage() {
               <AlertCircle className="w-8 h-8" />
             </div>
             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-              Delete Brand?
+              Delete Sub Category?
             </h3>
             <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
               Are you sure you want to delete{" "}
               <span className="font-bold text-slate-900 dark:text-white">
-                "{selectedBrand?.name}"
+                "{selectedCategory?.name}"
               </span>
-              ? This action cannot be undone.
+              ? All products within this sub category will be uncategorized.
             </p>
             <div className="flex gap-3">
               <button

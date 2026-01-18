@@ -237,35 +237,35 @@ export default function CustomersPage() {
   const getStatusColor = (status) => {
     switch (status) {
       case "Active":
-        return "bg-emerald-100 text-emerald-700 border-emerald-200";
+        return "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50";
       case "Blocked":
-        return "bg-red-100 text-red-700 border-red-200";
+        return "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800/50";
       default:
-        return "bg-slate-100 text-slate-600";
+        return "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400";
     }
   };
 
   return (
     <div
       ref={containerRef}
-      className="min-h-screen bg-slate-50/50 font-sans text-slate-900 overflow-x-hidden relative"
+      className="min-h-screen bg-slate-50/50 dark:bg-slate-900 font-sans px-8 py-6 text-slate-900 dark:text-white overflow-x-hidden relative"
       onClick={() => {
         if (showDateMenu) setShowDateMenu(false);
         if (showFilterMenu) setShowFilterMenu(false);
       }}
     >
       {/* 1. HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4  mb-8">
         <div className="animate-header">
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Customers
           </h1>
-          <p className="text-slate-500 font-medium mt-1">
+          <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">
             View and manage your customer base.
           </p>
         </div>
         <div className="animate-header flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">
+          <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
             <Download className="w-4 h-4" /> Export
           </button>
           <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20 active:scale-95">
@@ -304,33 +304,33 @@ export default function CustomersPage() {
         ].map((stat, i) => (
           <div
             key={i}
-            className="animate-stat bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow"
+            className="animate-stat bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow"
           >
             <div
-              className={`w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center ${stat.color}`}
+              className={`w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center ${stat.color}`}
             >
               <stat.icon className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+              <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
                 {stat.label}
               </p>
-              <h4 className="text-2xl font-bold text-slate-900">{stat.val}</h4>
+              <h4 className="text-2xl font-bold text-slate-900 dark:text-white">{stat.val}</h4>
             </div>
           </div>
         ))}
       </div>
 
       {/* 3. TOOLBAR */}
-      <div className="animate-toolbar bg-white rounded-2xl shadow-sm border border-slate-200 p-1 mb-6 relative z-20">
+      <div className="animate-toolbar bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-1 mb-6 relative z-20">
         <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4 p-3">
           {/* Tab Filters */}
-          <div className="flex p-1 bg-slate-100 rounded-xl overflow-x-auto scrollbar-hide">
+          <div className="flex p-1 bg-slate-100 dark:bg-slate-900 rounded-xl overflow-x-auto scrollbar-hide">
             {["All", "Active", "Blocked"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${activeTab === tab ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${activeTab === tab ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}`}
               >
                 {tab}
               </button>
@@ -347,7 +347,7 @@ export default function CustomersPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search name, email..."
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-indigo-500 outline-none transition-colors"
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-colors"
               />
             </div>
 
@@ -359,7 +359,7 @@ export default function CustomersPage() {
                   setShowDateMenu(!showDateMenu);
                   setShowFilterMenu(false);
                 }}
-                className={`flex items-center gap-2 px-3 py-2 bg-white border rounded-lg text-xs font-bold transition-colors ${showDateMenu ? "border-indigo-500 ring-2 ring-indigo-100" : "border-slate-200 text-slate-600 hover:border-indigo-300"}`}
+                className={`flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 border rounded-lg text-xs font-bold transition-colors ${showDateMenu ? "border-indigo-500 ring-2 ring-indigo-100 dark:ring-indigo-900/30" : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-300"}`}
               >
                 <Calendar className="w-3.5 h-3.5" />
                 <span>{dateRange.label}</span>
@@ -369,8 +369,8 @@ export default function CustomersPage() {
               </button>
 
               {showDateMenu && (
-                <div className="absolute top-full mt-2 right-0 w-48 bg-white rounded-xl shadow-xl border border-slate-100 p-1 z-30 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase">
+                <div className="absolute top-full mt-2 right-0 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 p-1 z-30 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="px-3 py-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">
                     Joined Within
                   </div>
                   {[
@@ -385,7 +385,7 @@ export default function CustomersPage() {
                         e.stopPropagation();
                         handleDateSelect(item.label, item.days);
                       }}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-between ${dateRange.label === item.label ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50"}`}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-between ${dateRange.label === item.label ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400" : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"}`}
                     >
                       {item.label}
                       {dateRange.label === item.label && (
@@ -405,12 +405,12 @@ export default function CustomersPage() {
                   setShowFilterMenu(!showFilterMenu);
                   setShowDateMenu(false);
                 }}
-                className={`p-2 border rounded-lg transition-all ${showFilterMenu ? "border-indigo-500 bg-indigo-50 text-indigo-600" : "border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-indigo-600"}`}
+                className={`p-2 border rounded-lg transition-all ${showFilterMenu ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400" : "border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400"}`}
               >
                 <div className="relative">
                   <Filter className="w-4 h-4" />
                   {statusFilters.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-indigo-600 rounded-full border border-white"></span>
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-indigo-600 dark:bg-indigo-400 rounded-full border border-white dark:border-slate-800"></span>
                   )}
                 </div>
               </button>
@@ -418,16 +418,16 @@ export default function CustomersPage() {
               {showFilterMenu && (
                 <div
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute top-full mt-2 right-0 w-48 bg-white rounded-xl shadow-xl border border-slate-100 p-3 z-30 animate-in fade-in slide-in-from-top-2 duration-200"
+                  className="absolute top-full mt-2 right-0 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 p-3 z-30 animate-in fade-in slide-in-from-top-2 duration-200"
                 >
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">
+                  <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">
                     Filter Status
                   </h4>
                   <div className="space-y-1">
                     {["Active", "Blocked"].map((status) => (
                       <label
                         key={status}
-                        className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer"
+                        className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg cursor-pointer"
                       >
                         <input
                           type="checkbox"
@@ -435,7 +435,7 @@ export default function CustomersPage() {
                           onChange={() => toggleStatusFilter(status)}
                           className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                         />
-                        <span className="text-sm text-slate-700">{status}</span>
+                        <span className="text-sm text-slate-700 dark:text-slate-300">{status}</span>
                       </label>
                     ))}
                   </div>
@@ -447,10 +447,10 @@ export default function CustomersPage() {
       </div>
 
       {/* 4. CUSTOMER TABLE */}
-      <div className="animate-toolbar bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[600px]">
+      <div className="animate-toolbar bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[600px]">
         <div className="overflow-x-auto flex-1">
           <table className="w-full text-left border-collapse" ref={tableRef}>
-            <thead className="bg-slate-50/80 border-b border-slate-200">
+            <thead className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th className="p-4 pl-6 w-10">
                   <input
@@ -458,31 +458,31 @@ export default function CustomersPage() {
                     className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                   />
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Customer
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Location
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Joined
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Spent
                 </th>
                 <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right pr-6"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
               {paginatedCustomers.length > 0 ? (
                 paginatedCustomers.map((customer) => (
                   <tr
                     key={customer.id}
                     onClick={() => setSelectedCustomer(customer)}
-                    className="customer-row hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                    className="customer-row hover:bg-slate-50/80 dark:hover:bg-slate-700/80 transition-colors cursor-pointer group"
                   >
                     <td
                       className="p-4 pl-6"
@@ -495,7 +495,7 @@ export default function CustomersPage() {
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden shrink-0 border border-slate-100">
+                        <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden shrink-0 border border-slate-100 dark:border-slate-600">
                           <img
                             src={customer.avatar}
                             className="w-full h-full object-cover"
@@ -504,11 +504,11 @@ export default function CustomersPage() {
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-900 text-sm">
+                            <span className="font-bold text-slate-900 dark:text-white text-sm">
                               {customer.name}
                             </span>
                           </div>
-                          <div className="text-xs text-slate-400">
+                          <div className="text-xs text-slate-400 dark:text-slate-500">
                             {customer.email}
                           </div>
                         </div>
@@ -521,17 +521,17 @@ export default function CustomersPage() {
                         {customer.status}
                       </span>
                     </td>
-                    <td className="p-4 text-sm text-slate-500">
+                    <td className="p-4 text-sm text-slate-500 dark:text-slate-400">
                       {customer.location}
                     </td>
-                    <td className="p-4 text-sm text-slate-500">
+                    <td className="p-4 text-sm text-slate-500 dark:text-slate-400">
                       {customer.joinedDateStr}
                     </td>
-                    <td className="p-4 text-sm font-bold text-slate-900">
+                    <td className="p-4 text-sm font-bold text-slate-900 dark:text-white">
                       ${customer.totalSpent}
                     </td>
                     <td className="p-4 pr-6 text-right">
-                      <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                      <button className="p-2 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
                         <ChevronRight className="w-4 h-4" />
                       </button>
                     </td>
@@ -541,7 +541,7 @@ export default function CustomersPage() {
                 <tr>
                   <td
                     colSpan="7"
-                    className="p-8 text-center text-slate-400 font-medium"
+                    className="p-8 text-center text-slate-400 dark:text-slate-500 font-medium"
                   >
                     No customers found.
                   </td>
@@ -552,8 +552,8 @@ export default function CustomersPage() {
         </div>
 
         {/* 5. PAGINATION FOOTER (MATCHING ORDERS PAGE) */}
-        <div className="border-t border-slate-200 bg-white p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3 text-sm text-slate-500">
+        <div className="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
             <span>Rows:</span>
             <select
               value={itemsPerPage}
@@ -561,7 +561,7 @@ export default function CustomersPage() {
                 setItemsPerPage(Number(e.target.value));
                 setCurrentPage(1);
               }}
-              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:border-indigo-500 outline-none font-bold text-slate-700"
+              className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 focus:border-indigo-500 outline-none font-bold text-slate-700 dark:text-slate-300"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -570,7 +570,7 @@ export default function CustomersPage() {
             <span className="hidden sm:inline ml-2">
               {filteredCustomers.length > 0 ? (
                 <>
-                  <span className="font-bold text-slate-900">
+                  <span className="font-bold text-slate-900 dark:text-white">
                     {(currentPage - 1) * itemsPerPage + 1}-
                     {Math.min(
                       currentPage * itemsPerPage,
@@ -578,7 +578,7 @@ export default function CustomersPage() {
                     )}
                   </span>{" "}
                   of{" "}
-                  <span className="font-bold text-slate-900">
+                  <span className="font-bold text-slate-900 dark:text-white">
                     {filteredCustomers.length}
                   </span>
                 </>
@@ -592,7 +592,7 @@ export default function CustomersPage() {
             <button
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
-              className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -601,7 +601,7 @@ export default function CustomersPage() {
               <button
                 key={i}
                 onClick={() => setCurrentPage(i + 1)}
-                className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${currentPage === i + 1 ? "bg-indigo-600 text-white shadow-md" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${currentPage === i + 1 ? "bg-indigo-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"}`}
               >
                 {i + 1}
               </button>
@@ -611,7 +611,7 @@ export default function CustomersPage() {
                 setCurrentPage(Math.min(totalPages, currentPage + 1))
               }
               disabled={currentPage === totalPages || totalPages === 0}
-              className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -627,21 +627,21 @@ export default function CustomersPage() {
         >
           <div
             ref={overlayRef}
-            className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm transition-opacity"
+            className="absolute inset-0 bg-slate-900/30 dark:bg-slate-950/50 backdrop-blur-sm transition-opacity"
             onClick={handleCloseDrawer}
           />
 
           <div className="absolute inset-y-0 right-0 flex max-w-full pl-0 sm:pl-16">
             <div
               ref={drawerRef}
-              className="w-screen max-w-xl bg-white shadow-2xl flex flex-col h-full border-l border-slate-100"
+              className="w-screen max-w-xl bg-white dark:bg-slate-800 shadow-2xl flex flex-col h-full border-l border-slate-100 dark:border-slate-700"
             >
               {/* Header */}
-              <div className="relative h-32 bg-slate-100">
+              <div className="relative h-32 bg-slate-100 dark:bg-slate-900">
                 <div className="absolute inset-0 bg-indigo-600/10 pattern-dots"></div>
                 <button
                   onClick={handleCloseDrawer}
-                  className="absolute top-4 right-4 p-2 bg-white/50 backdrop-blur-sm hover:bg-white rounded-full text-slate-600 transition-colors"
+                  className="absolute top-4 right-4 p-2 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700 rounded-full text-slate-600 dark:text-slate-400 transition-colors"
                 >
                   <MoreHorizontal className="w-5 h-5" />
                 </button>
@@ -651,14 +651,14 @@ export default function CustomersPage() {
                 <div className="flex items-end gap-4">
                   <img
                     src={selectedCustomer.avatar}
-                    className="w-24 h-24 rounded-2xl border-4 border-white shadow-md bg-white"
+                    className="w-24 h-24 rounded-2xl border-4 border-white dark:border-slate-800 shadow-md bg-white dark:bg-slate-800"
                   />
                   <div className="pb-1">
-                    <h2 className="text-2xl font-bold text-slate-900 leading-none mb-1">
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">
                       {selectedCustomer.name}
                     </h2>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-slate-500">
+                      <span className="text-sm text-slate-500 dark:text-slate-400">
                         {selectedCustomer.location}
                       </span>
                       <span
@@ -681,20 +681,20 @@ export default function CustomersPage() {
                         `https://wa.me/?text=Hello ${selectedCustomer.name}`,
                       )
                     }
-                    className="flex flex-col items-center justify-center p-3 rounded-xl bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 transition-all active:scale-95"
+                    className="flex flex-col items-center justify-center p-3 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800/50 transition-all active:scale-95"
                   >
                     <MessageCircle className="w-5 h-5 mb-1" />
                     <span className="text-[10px] font-bold uppercase">
                       WhatsApp
                     </span>
                   </button>
-                  <button className="flex flex-col items-center justify-center p-3 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 transition-all active:scale-95">
+                  <button className="flex flex-col items-center justify-center p-3 rounded-xl bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-900/40 border border-sky-200 dark:border-sky-800/50 transition-all active:scale-95">
                     <Send className="w-5 h-5 mb-1" />
                     <span className="text-[10px] font-bold uppercase">
                       Telegram
                     </span>
                   </button>
-                  <button className="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 transition-all active:scale-95">
+                  <button className="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-all active:scale-95">
                     <Mail className="w-5 h-5 mb-1" />
                     <span className="text-[10px] font-bold uppercase">
                       Email
@@ -703,44 +703,44 @@ export default function CustomersPage() {
                 </div>
 
                 {/* Contact Info */}
-                <div className="bg-white rounded-2xl border border-slate-200 p-5">
-                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+                  <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">
                     Contact Details
                   </h3>
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-slate-50 text-slate-400">
+                      <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-400 dark:text-slate-500">
                         <Mail className="w-4 h-4" />
                       </div>
                       <div>
-                        <div className="text-sm font-bold text-slate-900">
+                        <div className="text-sm font-bold text-slate-900 dark:text-white">
                           {selectedCustomer.email}
                         </div>
-                        <div className="text-xs text-slate-400">
+                        <div className="text-xs text-slate-400 dark:text-slate-500">
                           Primary Email
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-slate-50 text-slate-400">
+                      <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-400 dark:text-slate-500">
                         <Phone className="w-4 h-4" />
                       </div>
                       <div>
-                        <div className="text-sm font-bold text-slate-900">
+                        <div className="text-sm font-bold text-slate-900 dark:text-white">
                           {selectedCustomer.phone}
                         </div>
-                        <div className="text-xs text-slate-400">Mobile</div>
+                        <div className="text-xs text-slate-400 dark:text-slate-500">Mobile</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-slate-50 text-slate-400">
+                      <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-400 dark:text-slate-500">
                         <MapPin className="w-4 h-4" />
                       </div>
                       <div>
-                        <div className="text-sm font-bold text-slate-900">
+                        <div className="text-sm font-bold text-slate-900 dark:text-white">
                           {selectedCustomer.location}
                         </div>
-                        <div className="text-xs text-slate-400">
+                        <div className="text-xs text-slate-400 dark:text-slate-500">
                           Billing Address
                         </div>
                       </div>
@@ -750,19 +750,19 @@ export default function CustomersPage() {
 
                 {/* Stats */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200">
-                    <div className="text-slate-400 text-xs font-bold uppercase mb-1">
+                  <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-700">
+                    <div className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase mb-1">
                       Lifetime Spent
                     </div>
-                    <div className="text-2xl font-bold text-slate-900">
+                    <div className="text-2xl font-bold text-slate-900 dark:text-white">
                       ${selectedCustomer.totalSpent}
                     </div>
                   </div>
-                  <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200">
-                    <div className="text-slate-400 text-xs font-bold uppercase mb-1">
+                  <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-700">
+                    <div className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase mb-1">
                       Total Orders
                     </div>
-                    <div className="text-2xl font-bold text-slate-900">
+                    <div className="text-2xl font-bold text-slate-900 dark:text-white">
                       {selectedCustomer.ordersCount}
                     </div>
                   </div>
@@ -770,23 +770,23 @@ export default function CustomersPage() {
               </div>
 
               {/* Drawer Footer Actions */}
-              <div className="p-5 border-t border-slate-100 bg-white flex justify-between items-center relative">
+              <div className="p-5 border-t border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 flex justify-between items-center relative">
                 <div className="relative">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowActionsMenu(!showActionsMenu);
                     }}
-                    className="p-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-bold text-sm"
+                    className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white font-bold text-sm"
                   >
                     Manage
                   </button>
                   {showActionsMenu && (
-                    <div className="absolute bottom-full left-0 mb-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 p-1 z-30 animate-in fade-in zoom-in-95 duration-200">
-                      <button className="w-full text-left px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2">
+                    <div className="absolute bottom-full left-0 mb-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 p-1 z-30 animate-in fade-in zoom-in-95 duration-200">
+                      <button className="w-full text-left px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg flex items-center gap-2">
                         <Ban className="w-3.5 h-3.5" /> Block Customer
                       </button>
-                      <button className="w-full text-left px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 rounded-lg flex items-center gap-2">
+                      <button className="w-full text-left px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2">
                         <ShieldAlert className="w-3.5 h-3.5" /> Reset Password
                       </button>
                     </div>

@@ -115,10 +115,10 @@ const RECENT_ORDERS = [
 
 const StatusBadge = ({ status }) => {
   const styles = {
-    Completed: "bg-green-100 text-green-700",
-    Processing: "bg-blue-100 text-blue-700",
-    Pending: "bg-yellow-100 text-yellow-700",
-    Cancelled: "bg-red-100 text-red-700",
+    Completed: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
+    Processing: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
+    Pending: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400",
+    Cancelled: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400",
   };
   return (
     <span
@@ -133,20 +133,20 @@ const StatusBadge = ({ status }) => {
 
 export default function Dashboard() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-8 py-6">
       {/* 1. HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-slate-500 text-sm">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">
             Welcome back, here's what's happening today.
           </p>
         </div>
         <div className="flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+          <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
             <Calendar className="w-4 h-4" /> Jan 16, 2026
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/20">
+          <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors shadow-lg shadow-slate-900/20 dark:shadow-none">
             <Download className="w-4 h-4" /> Export Report
           </button>
         </div>
@@ -157,7 +157,7 @@ export default function Dashboard() {
         {KPI_DATA.map((kpi, idx) => (
           <div
             key={idx}
-            className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow"
+            className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="flex justify-between items-start mb-4">
               <div className={`p-3 rounded-xl ${kpi.color}`}>
@@ -166,8 +166,8 @@ export default function Dashboard() {
               <div
                 className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
                   kpi.trend === "up"
-                    ? "bg-green-50 text-green-600"
-                    : "bg-red-50 text-red-600"
+                    ? "bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                    : "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400"
                 }`}
               >
                 {kpi.trend === "up" ? (
@@ -178,10 +178,10 @@ export default function Dashboard() {
                 {kpi.change}
               </div>
             </div>
-            <h3 className="text-slate-500 text-sm font-medium mb-1">
+            <h3 className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">
               {kpi.title}
             </h3>
-            <p className="text-2xl font-black text-slate-900">{kpi.value}</p>
+            <p className="text-2xl font-black text-slate-900 dark:text-white">{kpi.value}</p>
           </div>
         ))}
       </div>
@@ -189,10 +189,10 @@ export default function Dashboard() {
       {/* 3. CHART & RECENT ORDERS SPLIT */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* CHART (2/3 Width) */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-900">Revenue Analytics</h3>
-            <select className="bg-slate-50 border border-slate-200 text-xs rounded-lg px-2 py-1 outline-none">
+            <h3 className="font-bold text-slate-900 dark:text-white">Revenue Analytics</h3>
+            <select className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs rounded-lg px-2 py-1 outline-none dark:text-slate-300">
               <option>Last 7 Days</option>
               <option>Last 30 Days</option>
             </select>
@@ -211,6 +211,7 @@ export default function Dashboard() {
                   strokeDasharray="3 3"
                   vertical={false}
                   stroke="#E2E8F0"
+                  className="dark:stroke-slate-700"
                 />
                 <XAxis
                   dataKey="name"
@@ -226,11 +227,13 @@ export default function Dashboard() {
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "#fff",
+                    backgroundColor: "var(--tooltip-bg, #fff)",
                     borderRadius: "12px",
                     border: "none",
                     boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                    color: "var(--tooltip-text, #000)",
                   }}
+                  itemStyle={{ color: "var(--tooltip-text, #000)" }}
                 />
                 <Area
                   type="monotone"
@@ -246,28 +249,28 @@ export default function Dashboard() {
         </div>
 
         {/* RECENT ACTIVITY (1/3 Width) */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col">
-          <h3 className="font-bold text-slate-900 mb-4">Recent Orders</h3>
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col">
+          <h3 className="font-bold text-slate-900 dark:text-white mb-4">Recent Orders</h3>
           <div className="flex-1 overflow-auto">
             <div className="space-y-4">
               {RECENT_ORDERS.map((order, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
+                  className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer group"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 text-xs">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center font-bold text-slate-500 dark:text-slate-400 text-xs">
                       {order.customer.charAt(0)}
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-900">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">
                         {order.customer}
                       </p>
-                      <p className="text-xs text-slate-500">{order.product}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{order.product}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-slate-900">
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">
                       {order.amount}
                     </p>
                     <StatusBadge status={order.status} />
@@ -276,7 +279,7 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
-          <button className="mt-4 w-full py-2 text-sm font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+          <button className="mt-4 w-full py-2 text-sm font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
             View All Orders
           </button>
         </div>

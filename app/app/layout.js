@@ -11,7 +11,7 @@ export default function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-white">
 
       {/* Sidebar Component */}
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
@@ -20,19 +20,19 @@ export default function AdminLayout({ children }) {
       <div className="lg:pl-64 flex flex-col min-h-screen transition-all duration-300">
 
         {/* TOP HEADER */}
-        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+        <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
 
           <div className="flex items-center gap-4">
             {/* Mobile Toggle */}
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-2 -ml-2 rounded-lg text-slate-600 hover:bg-slate-100 lg:hidden"
+              className="p-2 -ml-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 lg:hidden"
             >
               <Menu className="w-6 h-6" />
             </button>
 
             {/* Breadcrumbs */}
-            <nav className="hidden sm:flex items-center text-sm font-medium text-slate-500">
+            <nav className="hidden sm:flex items-center text-sm font-medium text-slate-500 dark:text-slate-400">
               <Link href="/app" className="hover:text-indigo-600 transition-colors">
                 Dashboard
               </Link>
@@ -43,7 +43,7 @@ export default function AdminLayout({ children }) {
                   <React.Fragment key={href}>
                     <ChevronRight className="w-4 h-4 mx-1 text-slate-400" />
                     {isLast ? (
-                      <span className="text-slate-900 font-semibold capitalize">
+                      <span className="text-slate-900 dark:text-white font-semibold capitalize">
                         {segment.replace(/-/g, " ")}
                       </span>
                     ) : (
@@ -55,20 +55,20 @@ export default function AdminLayout({ children }) {
                 );
               })}
             </nav>
+          </div>
 
+          <div className="flex items-center gap-4">
             {/* Search Bar */}
-            <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-lg text-slate-500 focus-within:ring-2 ring-blue-500/20 ring-offset-2 transition-all ml-4">
+            <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 focus-within:ring-2 ring-blue-500/20 ring-offset-2 dark:ring-offset-slate-800 transition-all">
               <Search className="w-4 h-4" />
               <input
                 type="text"
                 placeholder="Search..."
-                className="bg-transparent border-none outline-none text-sm w-48 lg:w-64 placeholder:text-slate-400"
+                className="bg-transparent border-none outline-none text-sm w-48 lg:w-64 placeholder:text-slate-400 dark:text-white"
               />
             </div>
-          </div>
 
-          <div className="flex items-center gap-4">
-            <button className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
+            <button className="relative p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
             </button>
@@ -80,7 +80,7 @@ export default function AdminLayout({ children }) {
           {children}
         </main>
 
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }

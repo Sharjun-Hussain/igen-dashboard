@@ -10,7 +10,6 @@ import {
   Edit3,
   Trash2,
   X,
-  UploadCloud,
   AlertCircle,
   LayoutGrid,
   List as ListIcon,
@@ -27,8 +26,6 @@ const INITIAL_CATEGORIES = [
     parent: "None",
     count: 120,
     status: "Active",
-    image:
-      "https://images.unsplash.com/photo-1598327105666-5b89351aff75?w=500&q=80",
   },
   {
     id: 2,
@@ -37,8 +34,6 @@ const INITIAL_CATEGORIES = [
     parent: "None",
     count: 45,
     status: "Active",
-    image:
-      "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=500&q=80",
   },
   {
     id: 3,
@@ -47,8 +42,6 @@ const INITIAL_CATEGORIES = [
     parent: "None",
     count: 80,
     status: "Active",
-    image:
-      "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=500&q=80",
   },
   {
     id: 4,
@@ -57,7 +50,6 @@ const INITIAL_CATEGORIES = [
     parent: "Audio Gear",
     count: 32,
     status: "Hidden",
-    image: null,
   },
   {
     id: 5,
@@ -66,8 +58,6 @@ const INITIAL_CATEGORIES = [
     parent: "None",
     count: 15,
     status: "Draft",
-    image:
-      "https://images.unsplash.com/photo-1605901309584-818e25960b8f?w=500&q=80",
   },
   {
     id: 6,
@@ -76,8 +66,6 @@ const INITIAL_CATEGORIES = [
     parent: "None",
     count: 12,
     status: "Active",
-    image:
-      "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=500&q=80",
   },
 ];
 
@@ -254,7 +242,7 @@ export default function SmoothCategoriesPage() {
       const newId = Math.max(...categories.map((c) => c.id)) + 1;
       setCategories([
         ...categories,
-        { id: newId, count: 0, image: null, ...formData },
+        { id: newId, count: 0, ...formData },
       ]);
     } else {
       setCategories(
@@ -293,16 +281,16 @@ export default function SmoothCategoriesPage() {
   return (
     <div
       ref={containerRef}
-      className="min-h-screen bg-slate-50/50 font-sans text-slate-900 overflow-x-hidden"
+      className="min-h-screen bg-slate-50/50 dark:bg-slate-900 font-sans text-slate-900 dark:text-white overflow-x-hidden px-8 py-6"
     >
       {/* 1. TOP BAR */}
       <div className="max-w-7xl mx-auto mb-10">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
           <div className="animate-header">
-            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2">
+            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-2">
               Category Manager
             </h1>
-            <p className="text-slate-500 font-medium">
+            <p className="text-slate-500 dark:text-slate-400 font-medium">
               Manage your product hierarchy and catalog organization.
             </p>
           </div>
@@ -319,31 +307,31 @@ export default function SmoothCategoriesPage() {
         </div>
 
         {/* 2. TOOLBAR */}
-        <div className="animate-toolbar sticky top-4 z-30 bg-white/80 backdrop-blur-xl border border-white/20 shadow-lg shadow-slate-200/50 rounded-2xl p-2 flex flex-col sm:flex-row gap-3 items-center justify-between will-change-transform">
+        <div className="animate-toolbar sticky top-4 z-30 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 shadow-lg shadow-slate-200/50 dark:shadow-indigo-900/10 rounded-2xl p-2 flex flex-col sm:flex-row gap-3 items-center justify-between will-change-transform">
           <div className="relative w-full sm:w-96 group">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <div className="absolute  inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
             </div>
             <input
               type="text"
-              className="block w-full pl-10 pr-3 py-2.5 bg-transparent rounded-xl text-sm placeholder:text-slate-400 focus:outline-none focus:bg-slate-50 transition-all"
+              className="block w-full pl-10 pr-3 py-2.5 bg-transparent rounded-xl text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 dark:text-white focus:outline-none focus:bg-slate-50 dark:focus:bg-slate-900 transition-all"
               placeholder="Search categories..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto p-1 bg-slate-100/50 rounded-xl">
+          <div className="flex items-center gap-2 w-full sm:w-auto p-1 bg-slate-100/50 dark:bg-slate-900/50 rounded-xl">
             <button
               onClick={() => setViewMode("grid")}
-              className={`p-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${viewMode === "grid" ? "bg-white shadow-sm text-indigo-600 scale-100" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"}`}
+              className={`p-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${viewMode === "grid" ? "bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400 scale-100" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"}`}
             >
               <LayoutGrid className="w-4 h-4" />{" "}
               <span className="hidden sm:inline">Grid</span>
             </button>
             <button
               onClick={() => setViewMode("list")}
-              className={`p-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${viewMode === "list" ? "bg-white shadow-sm text-indigo-600 scale-100" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"}`}
+              className={`p-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${viewMode === "list" ? "bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400 scale-100" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"}`}
             >
               <ListIcon className="w-4 h-4" />{" "}
               <span className="hidden sm:inline">List</span>
@@ -354,14 +342,14 @@ export default function SmoothCategoriesPage() {
         {/* 3. CONTENT AREA */}
         <div className="mt-8 min-h-[500px]">
           {filteredCategories.length === 0 ? (
-            <div className="text-center py-20 bg-white border border-dashed border-slate-300 rounded-3xl animate-header">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-50 mb-4">
+            <div className="text-center py-20 bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 rounded-3xl animate-header">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-900 mb-4">
                 <Search className="w-6 h-6 text-slate-400" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 No categories found
               </h3>
-              <p className="text-slate-500 mt-1">
+              <p className="text-slate-500 dark:text-slate-400 mt-1">
                 Try adjusting your search terms.
               </p>
             </div>
@@ -373,42 +361,28 @@ export default function SmoothCategoriesPage() {
                   {filteredCategories.map((cat) => (
                     <div
                       key={cat.id}
-                      className="category-item group relative bg-white rounded-3xl p-4 border border-slate-100 hover:border-indigo-100 shadow-sm hover:shadow-xl hover:shadow-indigo-900/5 transition-all duration-500 ease-out cursor-pointer flex flex-col h-full will-change-transform"
+                      className="category-item group relative bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 hover:border-indigo-100 dark:hover:border-indigo-900/50 shadow-sm hover:shadow-xl hover:shadow-indigo-900/5 transition-all duration-500 ease-out cursor-pointer flex flex-col h-full will-change-transform"
                     >
-                      {/* Image Area */}
-                      <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 mb-4">
-                        {cat.image ? (
-                          <img
-                            src={cat.image}
-                            alt={cat.name}
-                            className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out"
-                          />
-                        ) : (
-                          <div className="flex items-center justify-center w-full h-full text-slate-300">
-                            <UploadCloud className="w-10 h-10" />
-                          </div>
-                        )}
-                        <div className="absolute top-3 right-3">
+                      {/* Text Area */}
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start mb-4">
+                          <h3 className="font-bold text-xl text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">
+                            {cat.name}
+                          </h3>
                           <span
-                            className={`backdrop-blur-md bg-white/90 px-2.5 py-1 rounded-full text-xs font-bold border ${cat.status === "Active" ? "text-green-600 border-green-100" : "text-slate-500 border-slate-100"}`}
+                            className={`px-2.5 py-1 rounded-full text-xs font-bold border ${cat.status === "Active" ? "text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/50" : "text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-700"}`}
                           >
                             {cat.status}
                           </span>
                         </div>
-                      </div>
-
-                      {/* Text Area */}
-                      <div className="flex-1">
-                        <h3 className="font-bold text-lg text-slate-900 mb-1 group-hover:text-indigo-600 transition-colors duration-300">
-                          {cat.name}
-                        </h3>
-                        <div className="flex items-center gap-2 text-xs font-medium text-slate-500 mb-4">
-                          <span className="bg-slate-100 px-2 py-0.5 rounded-md text-slate-600">
+                        
+                        <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 mb-4">
+                          <span className="bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-md text-slate-600 dark:text-slate-400">
                             {cat.slug}
                           </span>
                           {cat.parent !== "None" && (
-                            <span className="text-indigo-500 flex items-center gap-1">
-                              <span className="w-1 h-1 rounded-full bg-indigo-400"></span>{" "}
+                            <span className="text-indigo-500 dark:text-indigo-400 flex items-center gap-1">
+                              <span className="w-1 h-1 rounded-full bg-indigo-400 dark:bg-indigo-500"></span>{" "}
                               {cat.parent}
                             </span>
                           )}
@@ -416,8 +390,8 @@ export default function SmoothCategoriesPage() {
                       </div>
 
                       {/* Footer / Actions */}
-                      <div className="flex items-center justify-between pt-4 border-t border-slate-50 mt-auto">
-                        <span className="text-xs font-bold text-slate-400">
+                      <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-700/50 mt-auto">
+                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
                           {cat.count} products
                         </span>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
@@ -426,7 +400,7 @@ export default function SmoothCategoriesPage() {
                               e.stopPropagation();
                               handleOpenEdit(cat);
                             }}
-                            className="p-2 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 rounded-lg transition-colors"
+                            className="p-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors"
                           >
                             <Edit3 className="w-4 h-4" />
                           </button>
@@ -435,7 +409,7 @@ export default function SmoothCategoriesPage() {
                               e.stopPropagation();
                               handleOpenDelete(cat);
                             }}
-                            className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition-colors"
+                            className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -446,56 +420,44 @@ export default function SmoothCategoriesPage() {
                 </div>
               ) : (
                 /* LIST VIEW */
-                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
                   <table className="w-full text-left">
-                    <thead className="bg-slate-50/50 border-b border-slate-200">
+                    <thead className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
                       <tr>
-                        <th className="p-5 pl-8 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        <th className="p-5 pl-8 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                           Category
                         </th>
-                        <th className="p-5 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        <th className="p-5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                           Parent
                         </th>
-                        <th className="p-5 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        <th className="p-5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                           Status
                         </th>
-                        <th className="p-5 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">
+                        <th className="p-5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right">
                           Items
                         </th>
                         <th className="p-5 pr-8"></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                       {filteredCategories.map((cat) => (
                         <tr
                           key={cat.id}
-                          className="category-item group hover:bg-slate-50/80 transition-colors duration-200"
+                          className="category-item group hover:bg-slate-50/80 dark:hover:bg-slate-700/80 transition-colors duration-200"
                         >
                           <td className="p-4 pl-8">
                             <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-slate-200">
-                                {cat.image ? (
-                                  <img
-                                    src={cat.image}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                    <UploadCloud className="w-4 h-4" />
-                                  </div>
-                                )}
-                              </div>
                               <div>
-                                <div className="font-bold text-slate-900">
+                                <div className="font-bold text-slate-900 dark:text-white">
                                   {cat.name}
                                 </div>
-                                <div className="text-xs text-slate-400 font-mono">
+                                <div className="text-xs text-slate-400 dark:text-slate-500 font-mono">
                                   {cat.slug}
                                 </div>
                               </div>
                             </div>
                           </td>
-                          <td className="p-4 text-sm font-medium text-slate-600">
+                          <td className="p-4 text-sm font-medium text-slate-600 dark:text-slate-400">
                             {cat.parent === "None" ? (
                               <span className="opacity-30">—</span>
                             ) : (
@@ -504,7 +466,7 @@ export default function SmoothCategoriesPage() {
                           </td>
                           <td className="p-4">
                             <div
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${cat.status === "Active" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-slate-100 text-slate-500 border-slate-200"}`}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${cat.status === "Active" ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50" : "bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700"}`}
                             >
                               {cat.status === "Active" ? (
                                 <CheckCircle2 className="w-3 h-3" />
@@ -514,20 +476,20 @@ export default function SmoothCategoriesPage() {
                               {cat.status}
                             </div>
                           </td>
-                          <td className="p-4 text-right text-sm font-bold text-slate-700">
+                          <td className="p-4 text-right text-sm font-bold text-slate-700 dark:text-slate-300">
                             {cat.count}
                           </td>
                           <td className="p-4 pr-8 text-right">
                             <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                               <button
                                 onClick={() => handleOpenEdit(cat)}
-                                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+                                className="p-2 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm rounded-lg transition-all"
                               >
                                 <Edit3 className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleOpenDelete(cat)}
-                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+                                className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm rounded-lg transition-all"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -549,30 +511,30 @@ export default function SmoothCategoriesPage() {
         <div className="fixed inset-0 z-50 overflow-hidden">
           <div
             ref={formOverlayRef}
-            className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-900/20 dark:bg-slate-950/40 backdrop-blur-sm"
             onClick={closeFormWithAnim}
           />
 
           <div className="absolute inset-y-0 right-0 flex max-w-full pl-10 pointer-events-none">
             <div
               ref={formContentRef}
-              className="pointer-events-auto w-screen max-w-md bg-white shadow-2xl flex flex-col h-full border-l border-slate-100"
+              className="pointer-events-auto w-screen max-w-md bg-white dark:bg-slate-800 shadow-2xl flex flex-col h-full border-l border-slate-100 dark:border-slate-700"
             >
               {/* Drawer Header */}
-              <div className="px-6 py-6 border-b border-slate-100 bg-slate-50/50 flex items-start justify-between">
+              <div className="px-6 py-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 flex items-start justify-between">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                     {formMode === "create"
                       ? "Create Category"
                       : "Edit Category"}
                   </h2>
-                  <p className="text-sm text-slate-500 mt-1">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                     Configure category details and hierarchy.
                   </p>
                 </div>
                 <button
                   onClick={closeFormWithAnim}
-                  className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                  className="rounded-full p-2 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -580,28 +542,10 @@ export default function SmoothCategoriesPage() {
 
               {/* Drawer Body */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                {/* Image Uploader */}
-                <div className="group relative w-full aspect-[2/1] bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all flex flex-col items-center justify-center cursor-pointer overflow-hidden">
-                  {selectedCategory?.image ? (
-                    <img
-                      src={selectedCategory.image}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center text-slate-400 group-hover:text-indigo-500 transition-colors">
-                      <div className="p-3 bg-white rounded-full shadow-sm mb-2 group-hover:scale-110 transition-transform">
-                        <UploadCloud className="w-6 h-6" />
-                      </div>
-                      <span className="text-xs font-bold uppercase tracking-wider">
-                        Click to upload cover
-                      </span>
-                    </div>
-                  )}
-                </div>
-
+                
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase mb-2">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
                       Category Name
                     </label>
                     <input
@@ -609,25 +553,25 @@ export default function SmoothCategoriesPage() {
                       type="text"
                       value={formData.name}
                       onChange={handleNameChange}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all"
                       placeholder="e.g. Wireless Headphones"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase mb-2">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
                         Slug
                       </label>
                       <input
                         type="text"
                         readOnly
                         value={formData.slug}
-                        className="w-full bg-slate-100 border-transparent text-slate-500 rounded-xl px-4 py-3 text-sm cursor-not-allowed outline-none font-mono"
+                        className="w-full bg-slate-100 dark:bg-slate-900 border-transparent text-slate-500 dark:text-slate-400 rounded-xl px-4 py-3 text-sm cursor-not-allowed outline-none font-mono"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase mb-2">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
                         Status
                       </label>
                       <select
@@ -635,17 +579,17 @@ export default function SmoothCategoriesPage() {
                         onChange={(e) =>
                           setFormData({ ...formData, status: e.target.value })
                         }
-                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 outline-none appearance-none"
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:border-indigo-500 outline-none appearance-none"
                       >
-                        <option value="Active">Active</option>
-                        <option value="Draft">Draft</option>
-                        <option value="Hidden">Hidden</option>
+                        <option className="dark:bg-slate-800" value="Active">Active</option>
+                        <option className="dark:bg-slate-800" value="Draft">Draft</option>
+                        <option className="dark:bg-slate-800" value="Hidden">Hidden</option>
                       </select>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase mb-2">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
                       Parent Category
                     </label>
                     <select
@@ -653,16 +597,16 @@ export default function SmoothCategoriesPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, parent: e.target.value })
                       }
-                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 outline-none"
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:border-indigo-500 outline-none"
                     >
-                      <option value="None">No Parent (Top Level)</option>
-                      <option value="Electronics">Electronics</option>
-                      <option value="Fashion">Fashion</option>
+                      <option className="dark:bg-slate-800" value="None">No Parent (Top Level)</option>
+                      <option className="dark:bg-slate-800" value="Electronics">Electronics</option>
+                      <option className="dark:bg-slate-800" value="Fashion">Fashion</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase mb-2">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
                       Description
                     </label>
                     <textarea
@@ -674,7 +618,7 @@ export default function SmoothCategoriesPage() {
                           description: e.target.value,
                         })
                       }
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all resize-none"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all resize-none"
                       placeholder="Add a description for this category..."
                     ></textarea>
                   </div>
@@ -682,11 +626,11 @@ export default function SmoothCategoriesPage() {
               </div>
 
               {/* Drawer Footer */}
-              <div className="p-6 border-t border-slate-100 bg-slate-50/30 flex gap-3">
+              <div className="p-6 border-t border-slate-100 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30 flex gap-3">
                 <button
                   type="button"
                   onClick={closeFormWithAnim}
-                  className="flex-1 py-3 px-4 rounded-xl font-bold text-sm text-slate-600 hover:bg-slate-100 transition-colors"
+                  className="flex-1 py-3 px-4 rounded-xl font-bold text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   Cancel
                 </button>
@@ -708,22 +652,22 @@ export default function SmoothCategoriesPage() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div
             ref={deleteOverlayRef}
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm"
             onClick={closeDeleteWithAnim}
           />
           <div
             ref={deleteContentRef}
-            className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center"
+            className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center"
           >
-            <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
               Delete Category?
             </h3>
-            <p className="text-slate-500 text-sm mb-6">
+            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
               Are you sure you want to delete{" "}
-              <span className="font-bold text-slate-900">
+              <span className="font-bold text-slate-900 dark:text-white">
                 "{selectedCategory?.name}"
               </span>
               ? All products within this category will be uncategorized.
@@ -731,7 +675,7 @@ export default function SmoothCategoriesPage() {
             <div className="flex gap-3">
               <button
                 onClick={closeDeleteWithAnim}
-                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100"
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
               >
                 Cancel
               </button>
