@@ -73,21 +73,21 @@ const MENU_GROUPS = [
       // { title: "Shipments", icon: Truck, href: "/app/shipments" },
     ],
   },
-  // {
-  //   label: "Growth",
-  //   items: [
-  //     {
-  //       title: "Marketing",
-  //       icon: Megaphone,
-  //       href: "#",
-  //       submenu: [
-  //         { title: "Campaigns", href: "/app/campaigns" },
-  //         { title: "Coupons", href: "/app/coupons" },
-  //         { title: "Automations", href: "/app/automations" },
-  //       ],
-  //     },
-  //   ],
-  // },
+  {
+    label: "Growth",
+    items: [
+      {
+        title: "Marketing",
+        icon: Megaphone,
+        href: "#",
+        submenu: [
+          { title: "Campaigns", href: "/app/campaigns" },
+          { title: "Coupons", href: "/app/coupons" },
+          // { title: "Automations", href: "/app/automations" },
+        ],
+      },
+    ],
+  },
   {
     label: "System",
     items: [
