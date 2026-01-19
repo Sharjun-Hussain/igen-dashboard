@@ -104,7 +104,10 @@ export default function LoginPage() {
         toast.error(result.error);
       } else {
         toast.success("Logged in successfully");
-        router.push("/");
+        // Check for callbackUrl in URL parameters
+        const searchParams = new URLSearchParams(window.location.search);
+        const callbackUrl = searchParams.get("callbackUrl") || "/app"; // Default to /app instead of /
+        router.push(callbackUrl);
         router.refresh();
       }
     } catch (error) {
