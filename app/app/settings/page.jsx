@@ -114,7 +114,6 @@ export default function SriLankaSettingsPage() {
         "integrations",
         "data",
         "smtp",
-        "team",
       ];
 
       for (const section of sections) {
@@ -192,7 +191,6 @@ export default function SriLankaSettingsPage() {
               { id: "integrations", label: "WhatsApp & API", icon: Smartphone },
               { id: "data", label: "Import / Export", icon: Database }, // New Item
               { id: "smtp", label: "SMTP Email", icon: Mail },
-              { id: "team", label: "Roles & Users", icon: Users },
             ].map((item) => (
               <button
                 key={item.id}
@@ -462,51 +460,6 @@ export default function SriLankaSettingsPage() {
             </div>
           </section>
 
-          {/* F. TEAM & ROLES */}
-          <section id="team" className="animate-section scroll-mt-32">
-            {/* ... (Existing Team Code) ... */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-8">
-              <div className="flex justify-between items-start mb-6">
-                <SectionHeader
-                  icon={Users}
-                  title="Roles & Permissions"
-                  description="Manage access to the dashboard."
-                  colorClass="bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400"
-                />
-                <button className="flex items-center gap-2 text-sm font-bold bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 active:scale-95 transition-all">
-                  Invite User
-                </button>
-              </div>
-              <div className="grid grid-cols-1 gap-3">
-                {team.map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-indigo-200 dark:hover:border-indigo-900/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={member.avatar}
-                        className="w-10 h-10 rounded-full border border-slate-100 dark:border-slate-600"
-                      />
-                      <div>
-                        <h4 className="font-bold text-slate-900 dark:text-white text-sm">
-                          {member.name}
-                        </h4>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">{member.email}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md ${member.role === "Owner" ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400" : "bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400"}`}
-                      >
-                        {member.role}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
         </div>
       </div>
 

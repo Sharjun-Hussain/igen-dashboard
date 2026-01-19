@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+
 import { useTheme } from "next-themes";
+import { useSession, signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -20,6 +22,7 @@ import {
   Truck,
   Sun,
   Moon,
+  Lock,
 } from "lucide-react";
 
 // --- CUSTOM SCROLLBAR CSS ---
@@ -92,6 +95,9 @@ const MENU_GROUPS = [
     label: "System",
     items: [
       { title: "Settings", icon: Settings, href: "/app/settings" },
+      { title: "Users", icon: Users, href: "/app/users" },
+      { title: "Roles", icon: Users, href: "/app/roles" },
+      { title: "Permissions", icon: Lock, href: "/app/permissions" },
       // { title: "Billing", icon: CreditCard, href: "/app/billing" },
     ],
   },
@@ -99,6 +105,7 @@ const MENU_GROUPS = [
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const [openSubmenu, setOpenSubmenu] = useState("");
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -285,7 +292,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-indigo-500/30 transition-all cursor-pointer group mb-3">
             <div className="relative">
               <img
-                src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100"
+                src={session?.user?.image || "https://ui-avatars.com/api/?name=" + (session?.user?.name || "User") + "&background=random"}
                 alt="Admin"
                 className="w-9 h-9 rounded-lg object-cover"
               />
@@ -293,11 +300,16 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                Sharjoon H.
+                {session?.user?.name || "User"}
               </p>
-              <p className="text-xs text-slate-500 truncate">Super Admin</p>
+              <p className="text-xs text-slate-500 truncate">
+                {session?.user?.roles?.[0]?.name || session?.user?.usertype || "User"}
+              </p>
             </div>
-            <button className="text-slate-400 hover:text-red-500 transition-colors">
+            <button 
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="text-slate-400 hover:text-red-500 transition-colors"
+            >
               <LogOut className="w-4 h-4" />
             </button>
           </div>

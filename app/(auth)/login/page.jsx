@@ -14,6 +14,19 @@ import {
   Chrome,
   Command,
 } from "lucide-react";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import z from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+const formschema = z.object({
+  email: z.string().email({ message: "Invalid Email Address" }),
+  password: z
+    .string()
+    .min(6, { message: "password must be at least 6 characters" }),
+});
 
 // --- UI COMPONENTS ---
 
@@ -69,7 +82,37 @@ const SocialButton = ({ icon: Icon, label }) => (
 
 export default function LoginPage() {
   const containerRef = useRef(null);
+  const router = useRouter();
+  const { data: session } = useSession();
+  const [isLoading, setIsLoading] = useState(false);
 
+  const form = useForm({
+    resolver: zodResolver(formschema),
+    defaultValues: { email: "", password: "" },
+  });
+
+  async function onSubmit(values) {
+    setIsLoading(true);
+    try {
+      const result = await signIn("credentials", {
+        email: values.email,
+        password: values.password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("Logged in successfully");
+        router.push("/");
+        router.refresh();
+      }
+    } catch (error) {
+      toast.error("An unexpected error occurred");
+    } finally {
+      setIsLoading(false);
+    }
+  }
   // GSAP Animations
   useGSAP(
     () => {
@@ -79,12 +122,12 @@ export default function LoginPage() {
       tl.fromTo(
         ".left-panel",
         { x: -50, opacity: 0 },
-        { x: 0, opacity: 1, duration: 0.8 }
+        { x: 0, opacity: 1, duration: 0.8 },
       ).fromTo(
         ".right-panel",
         { x: 50, opacity: 0 },
         { x: 0, opacity: 1, duration: 0.8 },
-        "<"
+        "<",
       );
 
       // Content Stagger
@@ -92,10 +135,10 @@ export default function LoginPage() {
         ".stagger-in",
         { y: 20, opacity: 0 },
         { y: 0, opacity: 1, stagger: 0.1, ease: "power2.out" },
-        "-=0.4"
+        "-=0.4",
       );
     },
-    { scope: containerRef }
+    { scope: containerRef },
   );
 
   return (
@@ -156,35 +199,35 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-6 stagger-in">
-            {/* Social Logins */}
-            <div className="grid grid-cols-2 gap-4">
-              <SocialButton icon={Chrome} label="Google" />
-              <SocialButton icon={Command} label="Apple" />
-            </div>
-
-            <div className="relative flex items-center justify-center">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200"></div>
-              </div>
-              <span className="relative bg-white px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Or email
-              </span>
-            </div>
-
             {/* Inputs */}
-            <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
-              <Input
-                label="Email"
-                type="email"
-                placeholder="Enter your email"
-                icon={Mail}
-              />
-              <Input
-                label="Password"
-                type="password"
-                placeholder="••••••••"
-                icon={Lock}
-              />
+            <form className="space-y-5" onSubmit={form.handleSubmit(onSubmit)}>
+              <div className="space-y-1">
+                <Input
+                  label="Email"
+                  type="email"
+                  placeholder="Enter your email"
+                  icon={Mail}
+                  {...form.register("email")}
+                  className={form.formState.errors.email ? "border-red-500 focus-visible:ring-red-500" : ""}
+                />
+                {form.formState.errors.email && (
+                  <p className="text-xs text-red-500 font-medium ml-1">{form.formState.errors.email.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <Input
+                  label="Password"
+                  type="password"
+                  placeholder="••••••••"
+                  icon={Lock}
+                  {...form.register("password")}
+                  className={form.formState.errors.password ? "border-red-500 focus-visible:ring-red-500" : ""}
+                />
+                {form.formState.errors.password && (
+                  <p className="text-xs text-red-500 font-medium ml-1">{form.formState.errors.password.message}</p>
+                )}
+              </div>
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -211,9 +254,19 @@ export default function LoginPage() {
                 </a>
               </div>
 
-              <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-200 transition-all active:scale-[0.98] group">
-                Sign In
-                <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-200 transition-all active:scale-[0.98] group disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isLoading ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    Sign In
+                    <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                  </>
+                )}
               </button>
             </form>
 
