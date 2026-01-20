@@ -13,27 +13,42 @@ import {
   Linkedin,
   ShieldCheck,
   Wallet,
-  Layout,
-  Plus,
-  Trash2,
   CheckCircle2,
   X,
   Type,
   Link as LinkIcon,
+  Trash2,
+  Plus,
 } from "lucide-react";
+import { Layout } from "lucide-react";
 
 // --- INITIAL DATA ---
-
+// NOTE: 'socials' is now an Array of Objects, not a plain Object.
 const INITIAL_DATA = {
   brand: {
     description:
       "Sri Lanka's most trusted tech destination. We bring the future of technology to your doorstep with official warranties and premium support.",
-    socials: {
-      twitter: true,
-      instagram: true,
-      facebook: true,
-      linkedin: false,
-    },
+    socials: [
+      {
+        id: "facebook",
+        icon: "facebook",
+        active: true,
+        url: "https://facebook.com/",
+      },
+      {
+        id: "instagram",
+        icon: "instagram",
+        active: true,
+        url: "https://instagram.com/",
+      },
+      {
+        id: "twitter",
+        icon: "twitter",
+        active: true,
+        url: "https://twitter.com/",
+      },
+      { id: "linkedin", icon: "linkedin", active: false, url: "" },
+    ],
   },
   columns: [
     {
@@ -64,7 +79,7 @@ const INITIAL_DATA = {
     address: "Main Street, Sainthamruthu.",
     hours: "Open Daily: 10AM - 8PM",
     image:
-      "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2069&auto=format&fit=crop", // Map/Store bg
+      "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2069&auto=format&fit=crop",
   },
   newsletter: {
     title: "Join the inner circle.",
@@ -73,13 +88,12 @@ const INITIAL_DATA = {
   },
   bottom: {
     copyright: "© 2026 Igen LK. All rights reserved. | Solution By Inzeedo",
-    paymentMethods: ["visa", "master", "koko"],
   },
 };
 
 export default function FooterManager() {
   const [data, setData] = useState(INITIAL_DATA);
-  const [selectedSection, setSelectedSection] = useState(null); // 'brand', 'col1', 'col2', 'store', 'newsletter', 'bottom'
+  const [selectedSection, setSelectedSection] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
   // --- HANDLERS ---
@@ -106,14 +120,22 @@ export default function FooterManager() {
     }));
   };
 
-  const toggleSocial = (key) => {
-    setData((prev) => ({
-      ...prev,
-      brand: {
-        ...prev.brand,
-        socials: { ...prev.brand.socials, [key]: !prev.brand.socials[key] },
-      },
-    }));
+  // Safe Social Update Handler
+  const handleSocialUpdate = (id, field, value) => {
+    setData((prev) => {
+      // Safety check: ensure socials is an array before mapping
+      if (!Array.isArray(prev.brand.socials)) return prev;
+
+      return {
+        ...prev,
+        brand: {
+          ...prev.brand,
+          socials: prev.brand.socials.map((s) =>
+            s.id === id ? { ...s, [field]: value } : s,
+          ),
+        },
+      };
+    });
   };
 
   const handleSave = () => {
@@ -122,6 +144,22 @@ export default function FooterManager() {
       setIsSaving(false);
       alert("Footer Updated!");
     }, 800);
+  };
+
+  // Helper to render icons
+  const getSocialIcon = (id, className) => {
+    switch (id) {
+      case "facebook":
+        return <Facebook className={className} />;
+      case "instagram":
+        return <Instagram className={className} />;
+      case "twitter":
+        return <Twitter className={className} />;
+      case "linkedin":
+        return <Linkedin className={className} />;
+      default:
+        return null;
+    }
   };
 
   return (
@@ -178,22 +216,21 @@ export default function FooterManager() {
                   <p className="text-sm leading-relaxed mb-6">
                     {data.brand.description}
                   </p>
+
+                  {/* Social Icons Preview - Safe Check Added */}
                   <div className="flex gap-4">
-                    {data.brand.socials.twitter && (
-                      <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white">
-                        <Twitter className="w-4 h-4" />
-                      </div>
-                    )}
-                    {data.brand.socials.instagram && (
-                      <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white">
-                        <Instagram className="w-4 h-4" />
-                      </div>
-                    )}
-                    {data.brand.socials.facebook && (
-                      <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white">
-                        <Facebook className="w-4 h-4" />
-                      </div>
-                    )}
+                    {Array.isArray(data.brand.socials) &&
+                      data.brand.socials.map(
+                        (social) =>
+                          social.active && (
+                            <div
+                              key={social.id}
+                              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                            >
+                              {getSocialIcon(social.id, "w-4 h-4")}
+                            </div>
+                          ),
+                      )}
                   </div>
                 </div>
 
@@ -232,13 +269,11 @@ export default function FooterManager() {
                       ${selectedSection === "store" ? "border-indigo-500" : "border-slate-800 hover:border-slate-700"}
                     `}
                   >
-                    {/* Background Image Overlay */}
                     <img
                       src={data.store.image}
                       className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-overlay"
                     />
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-900/80 to-purple-900/80 mix-blend-multiply" />
-
                     <div className="relative z-10">
                       <span className="inline-block bg-indigo-600 text-white text-[10px] font-bold px-3 py-1 rounded-full mb-4">
                         {data.store.badge}
@@ -255,9 +290,8 @@ export default function FooterManager() {
                 </div>
               </div>
 
-              {/* MIDDLE ROW: Newsletter & Badges */}
+              {/* MIDDLE ROW */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-                {/* Newsletter */}
                 <div
                   onClick={() => setSelectedSection("newsletter")}
                   className={`
@@ -276,7 +310,6 @@ export default function FooterManager() {
                   </div>
                 </div>
 
-                {/* Secure Badge Area */}
                 <div className="bg-[#111] p-8 rounded-3xl border border-slate-800 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
@@ -348,8 +381,8 @@ export default function FooterManager() {
                 <h2 className="font-bold text-slate-900 dark:text-white capitalize">
                   {selectedSection === "col1"
                     ? "Discover Links"
-                    : selectedSection === "col2"
-                      ? "Help Links"
+                    : selectedSection === "brand"
+                      ? "Brand & Socials"
                       : selectedSection}
                 </h2>
               </div>
@@ -362,12 +395,12 @@ export default function FooterManager() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {/* --- BRAND EDITOR --- */}
+              {/* --- BRAND & SOCIALS EDITOR --- */}
               {selectedSection === "brand" && (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div>
                     <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">
-                      Description
+                      Brand Description
                     </label>
                     <textarea
                       value={data.brand.description}
@@ -377,38 +410,72 @@ export default function FooterManager() {
                       className="input-field resize-none h-32"
                     />
                   </div>
-                  <div>
-                    <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">
-                      Social Icons
+
+                  {/* Social Media Manager */}
+                  <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <label className="text-xs font-bold text-slate-500 uppercase block">
+                      Social Connectivity
                     </label>
-                    <div className="flex gap-2">
-                      {["twitter", "instagram", "facebook", "linkedin"].map(
-                        (social) => (
-                          <button
-                            key={social}
-                            onClick={() => toggleSocial(social)}
-                            className={`
-                            p-3 rounded-lg border transition-all capitalize text-xs font-bold
-                            ${
-                              data.brand.socials[social]
-                                ? "bg-indigo-50 border-indigo-200 text-indigo-600 dark:bg-indigo-900/20 dark:border-indigo-800 dark:text-indigo-400"
-                                : "bg-slate-50 border-slate-200 text-slate-400 dark:bg-slate-900 dark:border-slate-800"
-                            }
-                          `}
-                          >
-                            {social}
-                          </button>
-                        ),
-                      )}
-                    </div>
+                    {Array.isArray(data.brand.socials) &&
+                      data.brand.socials.map((social) => (
+                        <div
+                          key={social.id}
+                          className="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              {getSocialIcon(
+                                social.id,
+                                "w-4 h-4 text-slate-500",
+                              )}
+                              <span className="text-sm font-bold capitalize text-slate-700 dark:text-slate-300">
+                                {social.id}
+                              </span>
+                            </div>
+                            {/* Toggle Switch */}
+                            <button
+                              onClick={() =>
+                                handleSocialUpdate(
+                                  social.id,
+                                  "active",
+                                  !social.active,
+                                )
+                              }
+                              className={`w-8 h-4 rounded-full transition-colors relative ${social.active ? "bg-indigo-500" : "bg-slate-300 dark:bg-slate-700"}`}
+                            >
+                              <div
+                                className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${social.active ? "translate-x-4" : ""}`}
+                              ></div>
+                            </button>
+                          </div>
+
+                          {/* URL Input (Only if active) */}
+                          {social.active && (
+                            <div className="flex items-center gap-2">
+                              <LinkIcon className="w-3 h-3 text-slate-400" />
+                              <input
+                                value={social.url}
+                                onChange={(e) =>
+                                  handleSocialUpdate(
+                                    social.id,
+                                    "url",
+                                    e.target.value,
+                                  )
+                                }
+                                className="bg-transparent border-b border-slate-300 dark:border-slate-700 w-full text-xs py-1 focus:border-indigo-500 focus:outline-none text-slate-600 dark:text-slate-400 font-mono"
+                                placeholder={`https://${social.id}.com/...`}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ))}
                   </div>
                 </div>
               )}
 
-              {/* --- LINKS EDITOR (Reusable for Col1 & Col2) --- */}
+              {/* --- LINKS EDITOR --- */}
               {(selectedSection === "col1" || selectedSection === "col2") && (
                 <div className="space-y-6">
-                  {/* Column Title */}
                   <div>
                     <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">
                       Column Title
@@ -429,8 +496,6 @@ export default function FooterManager() {
                       className="input-field font-bold"
                     />
                   </div>
-
-                  {/* Links List */}
                   <div className="space-y-3">
                     <label className="text-xs font-bold text-slate-500 uppercase block">
                       Links

@@ -82,16 +82,16 @@ const MENU_GROUPS = [
           { title: "Footer", href: "/app/cms/footer" },
         ],
       },
-      {
-        title: "Content Hub",
-        icon: FileText,
-        href: "#",
-        submenu: [
-          { title: "Tech Blog", href: "/app/blog" },
-          { title: "Pages (About/Terms)", href: "/app/pages" },
-          { title: "FAQs", href: "/app/faqs" },
-        ],
-      },
+      // {
+      //   title: "Content Hub",
+      //   icon: FileText,
+      //   href: "#",
+      //   submenu: [
+      //     { title: "Tech Blog", href: "/app/blog" },
+      //     { title: "Pages (About/Terms)", href: "/app/pages" },
+      //     { title: "FAQs", href: "/app/faqs" },
+      //   ],
+      // },
       { title: "Testimonials", icon: MessageSquare, href: "/app/reviews" },
     ],
   },
