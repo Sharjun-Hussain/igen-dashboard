@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
 import { useTheme } from "next-themes";
 import { useSession, signOut } from "next-auth/react";
 import {
@@ -23,10 +22,18 @@ import {
   Sun,
   Moon,
   Lock,
+  Monitor,
+  Image as ImageIcon,
+  Tag,
+  MessageSquare,
+  FileText,
+  HelpCircle,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
+import { Layers3 } from "lucide-react";
 
 // --- CUSTOM SCROLLBAR CSS ---
-// This makes the scrollbar 3px wide and smooth
 const SCROLLBAR_STYLES = `
   .custom-tiny-scrollbar::-webkit-scrollbar {
     width: 3px;
@@ -35,14 +42,14 @@ const SCROLLBAR_STYLES = `
     background: transparent;
   }
   .custom-tiny-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #e2e8f0; /* Light Mode: Slate-200 */
+    background-color: #e2e8f0;
     border-radius: 20px;
   }
   .dark .custom-tiny-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #1e293b; /* Dark Mode: Slate-800 */
+    background-color: #1e293b;
   }
   .custom-tiny-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: #94a3b8; /* Hover: Slate-400 */
+    background-color: #94a3b8;
   }
 `;
 
@@ -56,49 +63,85 @@ const MENU_GROUPS = [
     ],
   },
   {
-    label: "Management",
+    label: "Storefront (CMS)",
     items: [
-      { title: "Orders", icon: ShoppingCart, href: "/app/orders", badge: "12" },
       {
-        title: "Catalog",
-        icon: ShoppingBag,
+        title: "Landing Page",
+        icon: Monitor,
         href: "#",
         submenu: [
-          { title: "Products", href: "/app/products" },
-          { title: "Categories", href: "/app/categories" },
-          { title: "Brands", href: "/app/brand" },
-          // { title: "Inventory", href: "/app/inventory" },
-          // { title: "Suppliers", href: "/app/suppliers" },
-          // { title: "Transfers", href: "/app/transfers" },
+          { title: "Hero Banners", href: "/app/cms/hero" }, // Top slider management
+          { title: "New Arrivals", href: "/app/cms/" },
+          { title: "Flash Sales", href: "/app/cms/flash-sales" },
+          { title: "Featured Sections", href: "/app/cms/featured-sections" },
+          { title: "Promises", href: "/app/cms/promises" },
+          { title: "Product Showcase", href: "/app/cms/product-showcase" },
+          { title: "Delivery Process", href: "/app/cms/delivery-process" },
+          { title: "FAQs", href: "/app/cms/faqs" },
+          { title: "Header", href: "/app/cms/header" },
+          { title: "Footer", href: "/app/cms/footer" },
         ],
       },
-      { title: "Customers", icon: Users, href: "/app/customers" },
-      // { title: "Shipments", icon: Truck, href: "/app/shipments" },
+      {
+        title: "Content Hub",
+        icon: FileText,
+        href: "#",
+        submenu: [
+          { title: "Tech Blog", href: "/app/blog" },
+          { title: "Pages (About/Terms)", href: "/app/pages" },
+          { title: "FAQs", href: "/app/faqs" },
+        ],
+      },
+      { title: "Testimonials", icon: MessageSquare, href: "/app/reviews" },
     ],
   },
   {
-    label: "Growth",
+    label: "Catalog Management",
     items: [
       {
-        title: "Marketing",
+        title: "Products",
+        icon: ShoppingBag,
+        href: "/app/products",
+        submenu: [
+          { title: "All Products", href: "/app/products" },
+          { title: "Add Product", href: "/app/products/new" },
+        ],
+      },
+      { title: "Categories", icon: Layers, href: "/app/categories" },
+      { title: "Brands", icon: Tag, href: "/app/brand" },
+    ],
+  },
+  {
+    label: "Sales & Orders",
+    items: [
+      { title: "Orders", icon: ShoppingCart, href: "/app/orders", badge: "12" },
+      // { title: "Shipments", icon: Truck, href: "/app/shipments" },
+      // { title: "Returns/Refunds", icon: CreditCard, href: "/app/returns" },
+    ],
+  },
+  {
+    label: "Marketing",
+    items: [
+      {
+        title: "Promotions",
         icon: Megaphone,
         href: "#",
         submenu: [
-          { title: "Campaigns", href: "/app/campaigns" },
-          { title: "Coupons", href: "/app/coupons" },
-          // { title: "Automations", href: "/app/automations" },
+          { title: "Flash Deals", href: "/app/marketing/flash-sales" }, // For 'Deals of the Week' countdowns
+          { title: "Coupons", href: "/app/marketing/coupons" },
+          { title: "Bundles", href: "/app/marketing/bundles" },
         ],
       },
+      { title: "Customers", icon: Users, href: "/app/customers" },
     ],
   },
   {
     label: "System",
     items: [
       { title: "Settings", icon: Settings, href: "/app/settings" },
-      { title: "Users", icon: Users, href: "/app/users" },
-      { title: "Roles", icon: Users, href: "/app/roles" },
+      { title: "Roles", icon: ShieldCheck, href: "/app/roles" },
       { title: "Permissions", icon: Lock, href: "/app/permissions" },
-      // { title: "Billing", icon: CreditCard, href: "/app/billing" },
+      { title: "Staff", icon: ShieldCheck, href: "/app/users" },
     ],
   },
 ];
@@ -115,7 +158,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     setMounted(true);
   }, []);
 
-  // Auto-expand
+  // Auto-expand menu based on current path
   useEffect(() => {
     for (const group of MENU_GROUPS) {
       for (const item of group.items) {
@@ -131,7 +174,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   };
 
   if (!mounted) {
-    return null; // or a loading skeleton
+    return null;
   }
 
   return (
@@ -149,11 +192,11 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       {/* SIDEBAR CONTAINER */}
       <aside
         className={`
-          fixed top-0 left-0 z-50 h-screen w-65
+          fixed top-0 left-0 z-50 h-screen w-64
           bg-white dark:bg-slate-950 
           border-r border-slate-200 dark:border-slate-800
           text-slate-600 dark:text-slate-300
-          transition-all duration-300 ease-in-out shadow-2xl
+          transition-transform duration-300 ease-in-out shadow-2xl
           flex flex-col
           ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
@@ -169,7 +212,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                 NexusAdmin
               </h1>
               <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 tracking-widest uppercase">
-                Enterprise
+                CMS Edition
               </span>
             </div>
           </Link>
@@ -181,8 +224,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           </button>
         </div>
 
-        {/* 2. NAVIGATION LINKS (SCROLLABLE AREA) */}
-        {/* Added "custom-tiny-scrollbar" class here */}
+        {/* 2. NAVIGATION LINKS */}
         <div className="flex-1 overflow-y-auto py-6 px-4 space-y-8 custom-tiny-scrollbar">
           {MENU_GROUPS.map((group, gIdx) => (
             <div key={gIdx}>
@@ -256,7 +298,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                         <div
                           className={`overflow-hidden transition-all duration-300 ease-in-out ${
                             isSubmenuOpen
-                              ? "max-h-48 opacity-100 mt-1"
+                              ? "max-h-96 opacity-100 mt-1"
                               : "max-h-0 opacity-0"
                           }`}
                         >
@@ -286,13 +328,17 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           ))}
         </div>
 
-        {/* 3. USER FOOTER & THEME TOGGLE (Sticky Bottom) */}
+        {/* 3. USER FOOTER & THEME TOGGLE */}
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shrink-0">
-          {/* User Card */}
           <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-indigo-500/30 transition-all cursor-pointer group mb-3">
             <div className="relative">
               <img
-                src={session?.user?.image || "https://ui-avatars.com/api/?name=" + (session?.user?.name || "User") + "&background=random"}
+                src={
+                  session?.user?.image ||
+                  "https://ui-avatars.com/api/?name=" +
+                    (session?.user?.name || "Admin") +
+                    "&background=random"
+                }
                 alt="Admin"
                 className="w-9 h-9 rounded-lg object-cover"
               />
@@ -300,13 +346,13 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                {session?.user?.name || "User"}
+                {session?.user?.name || "Admin User"}
               </p>
               <p className="text-xs text-slate-500 truncate">
-                {session?.user?.roles?.[0]?.name || session?.user?.usertype || "User"}
+                {session?.user?.email || "admin@igen.com"}
               </p>
             </div>
-            <button 
+            <button
               onClick={() => signOut({ callbackUrl: "/login" })}
               className="text-slate-400 hover:text-red-500 transition-colors"
             >
@@ -314,7 +360,6 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             </button>
           </div>
 
-          {/* Theme Toggle */}
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
