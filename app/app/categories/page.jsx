@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useMemo, useEffect } from "react";
+import React, { useState, useRef, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -24,7 +24,7 @@ import {
   Loader2,
 } from "lucide-react";
 
-export default function CategoriesPage() {
+function CategoriesContent() {
   const containerRef = useRef(null);
   const { data: session } = useSession();
   const { mutate } = useSWRConfig();
@@ -793,3 +793,18 @@ export default function CategoriesPage() {
     </div>
   );
 }
+
+export default function CategoriesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-50/50 dark:bg-slate-900 p-6 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+        </div>
+      }
+    >
+      <CategoriesContent />
+    </Suspense>
+  );
+}
+

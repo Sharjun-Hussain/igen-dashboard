@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import useSWR, { useSWRConfig } from "swr";
@@ -31,7 +31,7 @@ import {
   ToggleRight,
 } from "lucide-react";
 
-export default function BrandManagementPage() {
+function BrandContent() {
   const { data: session } = useSession();
   const { mutate } = useSWRConfig();
   const containerRef = useRef(null);
@@ -892,5 +892,19 @@ export default function BrandManagementPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function BrandManagementPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-50/50 dark:bg-slate-900 p-6 flex items-center justify-center">
+          <CircleDashed className="w-8 h-8 animate-spin text-indigo-600" />
+        </div>
+      }
+    >
+      <BrandContent />
+    </Suspense>
   );
 }

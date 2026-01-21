@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -71,7 +71,7 @@ const INITIAL_COUPONS = [
   },
 ];
 
-export default function CouponsPage() {
+function CouponsContent() {
   const containerRef = useRef(null);
 
   // --- STATE ---
@@ -632,3 +632,18 @@ export default function CouponsPage() {
     </div>
   );
 }
+
+export default function CouponsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-50/50 p-6 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+        </div>
+      }
+    >
+      <CouponsContent />
+    </Suspense>
+  );
+}
+

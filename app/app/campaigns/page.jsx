@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -82,7 +82,7 @@ const INITIAL_CAMPAIGNS = [
   },
 ];
 
-export default function MarketingCampaignsPage() {
+function CampaignsContent() {
   const containerRef = useRef(null);
 
   // --- STATE ---
@@ -583,3 +583,18 @@ export default function MarketingCampaignsPage() {
     </div>
   );
 }
+
+export default function MarketingCampaignsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-50/50 p-6 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+        </div>
+      }
+    >
+      <CampaignsContent />
+    </Suspense>
+  );
+}
+
