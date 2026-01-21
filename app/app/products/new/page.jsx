@@ -72,7 +72,7 @@ const ProductRelationshipSelector = ({
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search products by name or code..."
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-indigo-500 transition-all dark:text-white text-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all dark:text-white text-sm"
           />
         </div>
 
@@ -791,7 +791,7 @@ export default function CreateProductPage() {
                         onChange={(e) =>
                           setFormData({ ...formData, name: e.target.value })
                         }
-                        className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-indigo-500 transition-all dark:text-white"
+                        className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all dark:text-white"
                         placeholder="e.g. Apple iPhone 15 Pro"
                       />
                     </div>
@@ -808,7 +808,7 @@ export default function CreateProductPage() {
                             onChange={(e) =>
                               setFormData({ ...formData, code: e.target.value })
                             }
-                            className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-600 dark:text-slate-300 text-sm"
+                            className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-600 dark:text-slate-300 text-sm"
                             placeholder="APL-IP15P-TIT"
                           />
                           <button
@@ -828,7 +828,7 @@ export default function CreateProductPage() {
                           onChange={(e) =>
                             setFormData({ ...formData, type: e.target.value })
                           }
-                          className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none dark:text-white"
+                          className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white"
                         >
                           <option value="physical">Physical Product</option>
                           <option value="digital">Digital Asset</option>
@@ -850,7 +850,7 @@ export default function CreateProductPage() {
                               category_id: e.target.value,
                             })
                           }
-                          className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none dark:text-white"
+                          className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white"
                         >
                           <option value="">Select Category</option>
                           {categories.map((cat) => (
@@ -872,7 +872,7 @@ export default function CreateProductPage() {
                               brand_id: e.target.value,
                             })
                           }
-                          className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none dark:text-white"
+                          className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white"
                         >
                           <option value="">Select Brand</option>
                           {brands.map((brand) => (
@@ -897,7 +897,7 @@ export default function CreateProductPage() {
                             short_description: e.target.value,
                           })
                         }
-                        className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-sm dark:text-white"
+                        className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm dark:text-white"
                         placeholder="Brief summary for list views..."
                         maxLength="160"
                       ></textarea>
@@ -911,7 +911,7 @@ export default function CreateProductPage() {
                         Full Description
                       </label>
                       <textarea
-                        className="w-full p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none resize-none text-sm dark:text-white"
+                        className="w-full p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none text-sm dark:text-white"
                         placeholder="Write your full product description here..."
                         value={formData.full_description}
                         onChange={(e) =>
@@ -1110,7 +1110,7 @@ export default function CreateProductPage() {
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm outline-none dark:text-white"
+                        className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white"
                         placeholder="Type to search features..."
                         value={featureInput}
                         onChange={(e) =>
@@ -1179,7 +1179,7 @@ export default function CreateProductPage() {
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm outline-none dark:text-white"
+                        className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white"
                         placeholder="Type to search tags..."
                         value={tagInput}
                         onChange={(e) => handleTagInputChange(e.target.value)}
@@ -1250,7 +1250,7 @@ export default function CreateProductPage() {
                       </label>
                       <input
                         type="text"
-                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm outline-none dark:text-white"
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white"
                         placeholder="e.g. Display"
                         value={specInput.specification_name}
                         onChange={(e) =>
@@ -1267,7 +1267,7 @@ export default function CreateProductPage() {
                       </label>
                       <input
                         type="text"
-                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm outline-none dark:text-white"
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white"
                         placeholder="e.g. 6.1-inch OLED"
                         value={specInput.specification_value}
                         onChange={(e) =>
@@ -1383,7 +1383,7 @@ export default function CreateProductPage() {
                               variant_name: e.target.value,
                             })
                           }
-                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                         >
                           <option value="Brand New">Brand New</option>
                           <option value="Used">Used</option>
@@ -1403,7 +1403,7 @@ export default function CreateProductPage() {
                               sku: e.target.value,
                             })
                           }
-                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
+                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                           placeholder="IP15P-256-NT"
                         />
                       </div>
@@ -1420,7 +1420,7 @@ export default function CreateProductPage() {
                               barcode: e.target.value,
                             })
                           }
-                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
+                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                           placeholder="195949000123"
                         />
                       </div>
@@ -1437,7 +1437,7 @@ export default function CreateProductPage() {
                               storage_size: e.target.value,
                             })
                           }
-                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
+                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                           placeholder="256GB"
                         />
                       </div>
@@ -1459,7 +1459,7 @@ export default function CreateProductPage() {
                                 });
                               }
                             }}
-                            className="w-full px-3 py-2 pr-10 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                            className="w-full px-3 py-2 pr-10 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                             placeholder="8"
                           />
                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
@@ -1480,7 +1480,7 @@ export default function CreateProductPage() {
                               color: e.target.value,
                             })
                           }
-                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
+                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                           placeholder="Natural Titanium"
                         />
                       </div>
@@ -1501,7 +1501,7 @@ export default function CreateProductPage() {
                                 price: e.target.value,
                               })
                             }
-                            className="w-full px-3 py-2 pl-10 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                            className="w-full px-3 py-2 pl-10 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                             placeholder="149900"
                           />
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
@@ -1523,7 +1523,7 @@ export default function CreateProductPage() {
                                 sales_price: e.target.value,
                               })
                             }
-                            className="w-full px-3 py-2 pl-10 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                            className="w-full px-3 py-2 pl-10 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                             placeholder="144900"
                           />
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
@@ -1544,7 +1544,7 @@ export default function CreateProductPage() {
                               stock_quantity: e.target.value,
                             })
                           }
-                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
+                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                           placeholder="50"
                         />
                       </div>
@@ -1561,7 +1561,7 @@ export default function CreateProductPage() {
                               low_stock_threshold: e.target.value,
                             })
                           }
-                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
+                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                           placeholder="5"
                         />
                       </div>
@@ -1592,7 +1592,7 @@ export default function CreateProductPage() {
                                 offer_price: e.target.value,
                               })
                             }
-                            className="w-full px-3 py-2 pl-10 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                            className="w-full px-3 py-2 pl-10 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                             placeholder="799.00"
                           />
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
@@ -1703,7 +1703,7 @@ export default function CreateProductPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, status: e.target.value })
                     }
-                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none dark:text-white"
+                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white"
                   >
                     <option value="draft">Draft</option>
                     <option value="published">Published</option>
