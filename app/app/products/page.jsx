@@ -45,12 +45,51 @@ const getImageUrl = (path) => {
   return `${baseUrl}/${path}`;
 };
 
+// --- COMPONENT: DELETE MODAL ---
+const DeleteModal = ({ isOpen, onClose, onConfirm, title, message, isDeleting }) => {
+  const modalRef = useRef(null);
+  const contentRef = useRef(null);
+
+  useGSAP(() => {
+    if (isOpen) {
+      gsap.fromTo(modalRef.current, { opacity: 0 }, { opacity: 1, duration: 0.3 });
+      gsap.fromTo(contentRef.current, { scale: 0.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, delay: 0.1, ease: "back.out(1.7)" });
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div ref={modalRef} className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+      <div ref={contentRef} className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4 border border-slate-200 dark:border-slate-700">
+        <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mb-4 mx-auto">
+          <Trash2 className="w-6 h-6 text-red-500" />
+        </div>
+        <h3 className="text-xl font-bold text-center text-slate-900 dark:text-white mb-2">{title}</h3>
+        <p className="text-center text-slate-500 dark:text-slate-400 mb-6">{message}</p>
+        <div className="flex gap-3">
+          <button onClick={onClose} disabled={isDeleting} className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:opacity-50">
+            Cancel
+          </button>
+          <button onClick={onConfirm} disabled={isDeleting} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20 disabled:opacity-50 flex items-center justify-center gap-2">
+            {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            <span>Delete</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- COMPONENT: PRODUCT SHEET ---
 const ProductSheet = ({ product: initialProduct, onClose }) => {
   const sheetRef = useRef(null);
   const contentRef = useRef(null);
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState("overview");
+  const [deleteVariant, setDeleteVariant] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { mutate } = useSWRConfig();
 
   // --- FETCH DETAILED DATA ---
   const fetcher = async (url) => {
@@ -110,7 +149,41 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
     });
   };
 
+  const handleDeleteVariant = async () => {
+    if (!deleteVariant) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/variants/${deleteVariant.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session?.accessToken}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to delete variant");
+
+      toast.success("Variant deleted successfully");
+      mutate([`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/${initialProduct.id}`, session.accessToken]);
+      // Also revalidate the main products list to update stock/price if needed
+      mutate(key => typeof key === 'string' && key.includes('/admin/products?'));
+      setDeleteVariant(null);
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
+    <>
+      <DeleteModal
+        isOpen={!!deleteVariant}
+        onClose={() => setDeleteVariant(null)}
+        onConfirm={handleDeleteVariant}
+        title="Delete Variant?"
+        message={`Are you sure you want to delete "${deleteVariant?.variant_name}"? This action cannot be undone.`}
+        isDeleting={isDeleting}
+      />
     <div className="fixed inset-0 z-50 flex justify-end">
       <div
         onClick={handleClose}
@@ -360,6 +433,15 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
                                     {variant.stock_quantity} in stock
                                 </p>
                              </div>
+                             <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setDeleteVariant(variant);
+                                }}
+                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                              <ChevronRight className="w-5 h-5 text-slate-400 group-open:rotate-90 transition-transform" />
                           </div>
                         </summary>
@@ -480,6 +562,7 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
@@ -492,6 +575,9 @@ export default function ProductsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [deleteProduct, setDeleteProduct] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { mutate } = useSWRConfig();
 
   // --- API FETCHING ---
   const fetcher = async (url) => {
@@ -581,11 +667,43 @@ export default function ProductsPage() {
     }
   };
 
+  const handleDeleteProduct = async () => {
+    if (!deleteProduct) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/${deleteProduct.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session?.accessToken}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to delete product");
+
+      toast.success("Product deleted successfully");
+      mutate([`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products?page=${currentPage}&search=${debouncedSearch}`, session.accessToken]);
+      setDeleteProduct(null);
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div
       ref={containerRef}
       className="min-h-screen bg-slate-50/50 dark:bg-slate-900 font-sans text-slate-900 dark:text-white relative"
     >
+      <DeleteModal
+        isOpen={!!deleteProduct}
+        onClose={() => setDeleteProduct(null)}
+        onConfirm={handleDeleteProduct}
+        title="Delete Product?"
+        message={`Are you sure you want to delete "${deleteProduct?.name}"? This action cannot be undone.`}
+        isDeleting={isDeleting}
+      />
+
       {/* RENDER SHEET IF PRODUCT SELECTED */}
       {selectedProduct && (
         <ProductSheet
@@ -827,8 +945,14 @@ export default function ProductsPage() {
                             </span>
                           </td>
                           <td className="p-4 pr-6 text-right">
-                            <button className="p-2 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm rounded-lg transition-all opacity-0 group-hover:opacity-100">
-                              <MoreHorizontal className="w-4 h-4" />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteProduct(product);
+                              }}
+                              className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </td>
                         </tr>
@@ -854,7 +978,16 @@ export default function ProductsPage() {
                         ) : (
                           <ImageIcon className="w-10 h-10 text-slate-300 dark:text-slate-600" />
                         )}
-                        <div className="absolute top-3 right-3">
+                        <div className="absolute top-3 right-3 flex gap-2">
+                           <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteProduct(product);
+                              }}
+                              className="p-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm text-slate-400 hover:text-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           <span
                             className={`backdrop-blur-md px-2 py-1 rounded-full text-xs font-bold border ${getStatusColor(
                               product.status
@@ -863,8 +996,7 @@ export default function ProductsPage() {
                             {product.status}
                           </span>
                         </div>
-                      </div>
-                      <div className="px-1 pb-2">
+                      </div><div className="px-1 pb-2">
                         <div className="flex justify-between items-start mb-1">
                           <h3 className="font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                             {product.name}
@@ -892,6 +1024,7 @@ export default function ProductsPage() {
                           </span>
                         </div>
                       </div>
+                      
                     </div>
                   ))}
                 </div>
