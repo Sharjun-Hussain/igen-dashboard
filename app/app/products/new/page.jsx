@@ -34,6 +34,28 @@ import {
   Check,
 } from "lucide-react";
 
+const CustomCheckbox = ({ id, checked, onCheckedChange }) => {
+  return (
+    <div
+      onClick={() => onCheckedChange(!checked)}
+      className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all cursor-pointer ${
+        checked
+          ? "bg-indigo-600 border-indigo-600 shadow-lg shadow-indigo-600/20"
+          : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 hover:border-indigo-400"
+      }`}
+    >
+      {checked && <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />}
+      <input
+        type="checkbox"
+        id={id}
+        checked={checked}
+        onChange={() => {}}
+        className="sr-only"
+      />
+    </div>
+  );
+};
+
 export default function CreateProductPage() {
   const containerRef = useRef(null);
   const router = useRouter();
@@ -88,7 +110,10 @@ export default function CreateProductPage() {
   // INPUT BUFFERS
   const [tagInput, setTagInput] = useState("");
   const [featureInput, setFeatureInput] = useState("");
-  const [specInput, setSpecInput] = useState({ specification_name: "", specification_value: "" });
+  const [specInput, setSpecInput] = useState({
+    specification_name: "",
+    specification_value: "",
+  });
   const [selectedTags, setSelectedTags] = useState([]);
   const [selectedFeatures, setSelectedFeatures] = useState([]);
   const [specifications, setSpecifications] = useState([]);
@@ -110,23 +135,43 @@ export default function CreateProductPage() {
   };
 
   const { data: categoriesData } = useSWR(
-    session?.accessToken ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories`, session.accessToken] : null,
-    ([url]) => fetcher(url)
+    session?.accessToken
+      ? [
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories`,
+          session.accessToken,
+        ]
+      : null,
+    ([url]) => fetcher(url),
   );
 
   const { data: brandsData } = useSWR(
-    session?.accessToken ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/brands`, session.accessToken] : null,
-    ([url]) => fetcher(url)
+    session?.accessToken
+      ? [
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/brands`,
+          session.accessToken,
+        ]
+      : null,
+    ([url]) => fetcher(url),
   );
 
   const { data: tagsData } = useSWR(
-    session?.accessToken ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/get/tags`, session.accessToken] : null,
-    ([url]) => fetcher(url)
+    session?.accessToken
+      ? [
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/get/tags`,
+          session.accessToken,
+        ]
+      : null,
+    ([url]) => fetcher(url),
   );
 
   const { data: featuresData } = useSWR(
-    session?.accessToken ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/get/features`, session.accessToken] : null,
-    ([url]) => fetcher(url)
+    session?.accessToken
+      ? [
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/get/features`,
+          session.accessToken,
+        ]
+      : null,
+    ([url]) => fetcher(url),
   );
 
   const categories = categoriesData?.data?.data || [];
@@ -135,14 +180,16 @@ export default function CreateProductPage() {
   const availableFeatures = featuresData?.data || [];
 
   // Filter suggestions based on input
-  const filteredTags = availableTags.filter(tag => 
-    tag.name.toLowerCase().includes(tagInput.toLowerCase()) && 
-    !selectedTags.find(t => t.id === tag.id)
+  const filteredTags = availableTags.filter(
+    (tag) =>
+      tag.name.toLowerCase().includes(tagInput.toLowerCase()) &&
+      !selectedTags.find((t) => t.id === tag.id),
   );
 
-  const filteredFeatures = availableFeatures.filter(feature => 
-    feature.name.toLowerCase().includes(featureInput.toLowerCase()) && 
-    !selectedFeatures.find(f => f.id === feature.id)
+  const filteredFeatures = availableFeatures.filter(
+    (feature) =>
+      feature.name.toLowerCase().includes(featureInput.toLowerCase()) &&
+      !selectedFeatures.find((f) => f.id === feature.id),
   );
 
   // --- ANIMATIONS ---
@@ -189,22 +236,34 @@ export default function CreateProductPage() {
   const moveGalleryImage = (index, direction) => {
     const newFiles = [...galleryImageFiles];
     const newPreviews = [...galleryImagePreviews];
-    
+
     if (direction === "left" && index > 0) {
-      [newFiles[index], newFiles[index - 1]] = [newFiles[index - 1], newFiles[index]];
-      [newPreviews[index], newPreviews[index - 1]] = [newPreviews[index - 1], newPreviews[index]];
+      [newFiles[index], newFiles[index - 1]] = [
+        newFiles[index - 1],
+        newFiles[index],
+      ];
+      [newPreviews[index], newPreviews[index - 1]] = [
+        newPreviews[index - 1],
+        newPreviews[index],
+      ];
     } else if (direction === "right" && index < newFiles.length - 1) {
-      [newFiles[index], newFiles[index + 1]] = [newFiles[index + 1], newFiles[index]];
-      [newPreviews[index], newPreviews[index + 1]] = [newPreviews[index + 1], newPreviews[index]];
+      [newFiles[index], newFiles[index + 1]] = [
+        newFiles[index + 1],
+        newFiles[index],
+      ];
+      [newPreviews[index], newPreviews[index + 1]] = [
+        newPreviews[index + 1],
+        newPreviews[index],
+      ];
     }
-    
+
     setGalleryImageFiles(newFiles);
     setGalleryImagePreviews(newPreviews);
   };
 
   // Tag Handler with autocomplete
   const handleAddTag = (tag) => {
-    if (!selectedTags.find(t => t.id === tag.id)) {
+    if (!selectedTags.find((t) => t.id === tag.id)) {
       setSelectedTags([...selectedTags, tag]);
     }
     setTagInput("");
@@ -218,7 +277,7 @@ export default function CreateProductPage() {
 
   // Feature Handler with autocomplete
   const handleAddFeature = (feature) => {
-    if (!selectedFeatures.find(f => f.id === feature.id)) {
+    if (!selectedFeatures.find((f) => f.id === feature.id)) {
       setSelectedFeatures([...selectedFeatures, feature]);
     }
     setFeatureInput("");
@@ -240,7 +299,11 @@ export default function CreateProductPage() {
 
   // Variant Handler
   const addVariant = () => {
-    if (!currentVariant.variant_name || !currentVariant.sku || !currentVariant.price) {
+    if (
+      !currentVariant.variant_name ||
+      !currentVariant.sku ||
+      !currentVariant.price
+    ) {
       toast.error("Variant name, SKU, and price are required");
       return;
     }
@@ -292,18 +355,27 @@ export default function CreateProductPage() {
 
     // Features (comma-separated names)
     if (selectedFeatures.length > 0) {
-      data.append("feature_name", selectedFeatures.map(f => f.name).join(","));
+      data.append(
+        "feature_name",
+        selectedFeatures.map((f) => f.name).join(","),
+      );
     }
 
     // Tags (comma-separated)
     if (selectedTags.length > 0) {
-      data.append("tags", selectedTags.map(t => t.name).join(","));
+      data.append("tags", selectedTags.map((t) => t.name).join(","));
     }
 
     // Specifications
     specifications.forEach((spec, index) => {
-      data.append(`specifications[${index}][specification_name]`, spec.specification_name);
-      data.append(`specifications[${index}][specification_value]`, spec.specification_value);
+      data.append(
+        `specifications[${index}][specification_name]`,
+        spec.specification_name,
+      );
+      data.append(
+        `specifications[${index}][specification_value]`,
+        spec.specification_value,
+      );
     });
 
     // Variants
@@ -311,18 +383,39 @@ export default function CreateProductPage() {
       data.append(`variants[${index}][variant_name]`, variant.variant_name);
       data.append(`variants[${index}][sku]`, variant.sku);
       data.append(`variants[${index}][barcode]`, variant.barcode || "");
-      data.append(`variants[${index}][storage_size]`, variant.storage_size || "");
+      data.append(
+        `variants[${index}][storage_size]`,
+        variant.storage_size || "",
+      );
       data.append(`variants[${index}][ram_size]`, variant.ram_size || "");
       data.append(`variants[${index}][color]`, variant.color || "");
       data.append(`variants[${index}][price]`, variant.price);
-      data.append(`variants[${index}][sales_price]`, variant.sales_price || variant.price);
-      data.append(`variants[${index}][stock_quantity]`, variant.stock_quantity || "0");
-      data.append(`variants[${index}][low_stock_threshold]`, variant.low_stock_threshold || "5");
+      data.append(
+        `variants[${index}][sales_price]`,
+        variant.sales_price || variant.price,
+      );
+      data.append(
+        `variants[${index}][stock_quantity]`,
+        variant.stock_quantity || "0",
+      );
+      data.append(
+        `variants[${index}][low_stock_threshold]`,
+        variant.low_stock_threshold || "5",
+      );
       data.append(`variants[${index}][is_offer]`, variant.is_offer ? "1" : "0");
       data.append(`variants[${index}][offer_price]`, variant.offer_price || "");
-      data.append(`variants[${index}][is_trending]`, variant.is_trending ? "1" : "0");
-      data.append(`variants[${index}][is_active]`, variant.is_active ? "1" : "0");
-      data.append(`variants[${index}][is_featured]`, variant.is_featured ? "1" : "0");
+      data.append(
+        `variants[${index}][is_trending]`,
+        variant.is_trending ? "1" : "0",
+      );
+      data.append(
+        `variants[${index}][is_active]`,
+        variant.is_active ? "1" : "0",
+      );
+      data.append(
+        `variants[${index}][is_featured]`,
+        variant.is_featured ? "1" : "0",
+      );
     });
 
     return data;
@@ -334,7 +427,12 @@ export default function CreateProductPage() {
     setErrors({});
 
     // Basic validation
-    if (!formData.name || !formData.code || !formData.category_id || !formData.brand_id) {
+    if (
+      !formData.name ||
+      !formData.code ||
+      !formData.category_id ||
+      !formData.brand_id
+    ) {
       toast.error("Please fill in all required fields");
       setIsLoading(false);
       return;
@@ -357,14 +455,17 @@ export default function CreateProductPage() {
     try {
       const formDataPayload = buildFormData();
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session?.accessToken}`,
-          Accept: "application/json",
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session?.accessToken}`,
+            Accept: "application/json",
+          },
+          body: formDataPayload,
         },
-        body: formDataPayload,
-      });
+      );
 
       const data = await res.json();
 
@@ -391,7 +492,7 @@ export default function CreateProductPage() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
-              <button 
+              <button
                 onClick={() => router.back()}
                 className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors text-slate-500 dark:text-slate-400"
               >
@@ -411,8 +512,8 @@ export default function CreateProductPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <button 
-                onClick={() => setFormData({...formData, status: "draft"})}
+              <button
+                onClick={() => setFormData({ ...formData, status: "draft" })}
                 className="hidden sm:flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm font-semibold"
               >
                 <Save className="w-4 h-4" /> Save Draft
@@ -467,8 +568,6 @@ export default function CreateProductPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* --- LEFT CONTENT (8 cols) --- */}
           <div className="lg:col-span-8 space-y-8">
-
-
             {/* TAB CONTENT: GENERAL */}
             {activeTab === "general" && (
               <div className="space-y-6 animate-fade-up">
@@ -541,7 +640,10 @@ export default function CreateProductPage() {
                         <select
                           value={formData.category_id}
                           onChange={(e) =>
-                            setFormData({ ...formData, category_id: e.target.value })
+                            setFormData({
+                              ...formData,
+                              category_id: e.target.value,
+                            })
                           }
                           className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none dark:text-white"
                         >
@@ -560,7 +662,10 @@ export default function CreateProductPage() {
                         <select
                           value={formData.brand_id}
                           onChange={(e) =>
-                            setFormData({ ...formData, brand_id: e.target.value })
+                            setFormData({
+                              ...formData,
+                              brand_id: e.target.value,
+                            })
                           }
                           className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none dark:text-white"
                         >
@@ -621,35 +726,41 @@ export default function CreateProductPage() {
                       </label>
                       <div className="flex flex-wrap gap-3">
                         <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
+                          <CustomCheckbox
+                            id="is_featured"
                             checked={formData.is_featured}
-                            onChange={(e) =>
-                              setFormData({ ...formData, is_featured: e.target.checked })
+                            onCheckedChange={(checked) =>
+                              setFormData({
+                                ...formData,
+                                is_featured: !!checked,
+                              })
                             }
-                            className="w-4 h-4 rounded border-slate-300"
                           />
                           <span className="text-sm">Featured</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
+                          <CustomCheckbox
+                            id="is_trending"
                             checked={formData.is_trending}
-                            onChange={(e) =>
-                              setFormData({ ...formData, is_trending: e.target.checked })
+                            onCheckedChange={(checked) =>
+                              setFormData({
+                                ...formData,
+                                is_trending: !!checked,
+                              })
                             }
-                            className="w-4 h-4 rounded border-slate-300"
                           />
                           <span className="text-sm">Trending</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
+                          <CustomCheckbox
+                            id="is_active"
                             checked={formData.is_active}
-                            onChange={(e) =>
-                              setFormData({ ...formData, is_active: e.target.checked })
+                            onCheckedChange={(checked) =>
+                              setFormData({
+                                ...formData,
+                                is_active: !!checked,
+                              })
                             }
-                            className="w-4 h-4 rounded border-slate-300"
                           />
                           <span className="text-sm">Active</span>
                         </label>
@@ -751,8 +862,14 @@ export default function CreateProductPage() {
                             </button>
                             <button
                               onClick={() => {
-                                setGalleryImageFiles(galleryImageFiles.filter((_, i) => i !== idx));
-                                setGalleryImagePreviews(galleryImagePreviews.filter((_, i) => i !== idx));
+                                setGalleryImageFiles(
+                                  galleryImageFiles.filter((_, i) => i !== idx),
+                                );
+                                setGalleryImagePreviews(
+                                  galleryImagePreviews.filter(
+                                    (_, i) => i !== idx,
+                                  ),
+                                );
                               }}
                               className="p-1 bg-white dark:bg-slate-800 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
                             >
@@ -791,8 +908,12 @@ export default function CreateProductPage() {
                         className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm outline-none dark:text-white"
                         placeholder="Type to search features..."
                         value={featureInput}
-                        onChange={(e) => handleFeatureInputChange(e.target.value)}
-                        onFocus={() => setShowFeatureSuggestions(featureInput.length > 0)}
+                        onChange={(e) =>
+                          handleFeatureInputChange(e.target.value)
+                        }
+                        onFocus={() =>
+                          setShowFeatureSuggestions(featureInput.length > 0)
+                        }
                       />
                       <button
                         onClick={() => {
@@ -805,7 +926,7 @@ export default function CreateProductPage() {
                         <Plus className="w-5 h-5" />
                       </button>
                     </div>
-                    
+
                     {/* Autocomplete Suggestions */}
                     {showFeatureSuggestions && filteredFeatures.length > 0 && (
                       <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-48 overflow-y-auto z-10">
@@ -821,7 +942,7 @@ export default function CreateProductPage() {
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="flex flex-wrap gap-2">
                     {selectedFeatures.map((feat) => (
                       <span
@@ -830,7 +951,11 @@ export default function CreateProductPage() {
                       >
                         {feat.name}
                         <button
-                          onClick={() => setSelectedFeatures(selectedFeatures.filter(f => f.id !== feat.id))}
+                          onClick={() =>
+                            setSelectedFeatures(
+                              selectedFeatures.filter((f) => f.id !== feat.id),
+                            )
+                          }
                           className="hover:text-red-500"
                         >
                           <X className="w-3 h-3" />
@@ -853,7 +978,9 @@ export default function CreateProductPage() {
                         placeholder="Type to search tags..."
                         value={tagInput}
                         onChange={(e) => handleTagInputChange(e.target.value)}
-                        onFocus={() => setShowTagSuggestions(tagInput.length > 0)}
+                        onFocus={() =>
+                          setShowTagSuggestions(tagInput.length > 0)
+                        }
                       />
                       <button
                         onClick={() => {
@@ -866,7 +993,7 @@ export default function CreateProductPage() {
                         <Plus className="w-5 h-5" />
                       </button>
                     </div>
-                    
+
                     {/* Autocomplete Suggestions */}
                     {showTagSuggestions && filteredTags.length > 0 && (
                       <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-48 overflow-y-auto z-10">
@@ -882,7 +1009,7 @@ export default function CreateProductPage() {
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="flex flex-wrap gap-2">
                     {selectedTags.map((tag) => (
                       <span
@@ -892,7 +1019,11 @@ export default function CreateProductPage() {
                         <Tag className="w-3 h-3" />
                         {tag.name}
                         <button
-                          onClick={() => setSelectedTags(selectedTags.filter(t => t.id !== tag.id))}
+                          onClick={() =>
+                            setSelectedTags(
+                              selectedTags.filter((t) => t.id !== tag.id),
+                            )
+                          }
                           className="hover:text-red-500"
                         >
                           <X className="w-3 h-3" />
@@ -918,7 +1049,10 @@ export default function CreateProductPage() {
                         placeholder="e.g. Display"
                         value={specInput.specification_name}
                         onChange={(e) =>
-                          setSpecInput({ ...specInput, specification_name: e.target.value })
+                          setSpecInput({
+                            ...specInput,
+                            specification_name: e.target.value,
+                          })
                         }
                       />
                     </div>
@@ -932,7 +1066,10 @@ export default function CreateProductPage() {
                         placeholder="e.g. 6.1-inch OLED"
                         value={specInput.specification_value}
                         onChange={(e) =>
-                          setSpecInput({ ...specInput, specification_value: e.target.value })
+                          setSpecInput({
+                            ...specInput,
+                            specification_value: e.target.value,
+                          })
                         }
                       />
                     </div>
@@ -955,7 +1092,10 @@ export default function CreateProductPage() {
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                         {specifications.map((spec, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                          <tr
+                            key={idx}
+                            className="hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                          >
                             <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">
                               {spec.specification_name}
                             </td>
@@ -965,7 +1105,9 @@ export default function CreateProductPage() {
                             <td className="px-4 py-3 text-right">
                               <button
                                 onClick={() =>
-                                  setSpecifications(specifications.filter((_, i) => i !== idx))
+                                  setSpecifications(
+                                    specifications.filter((_, i) => i !== idx),
+                                  )
                                 }
                                 className="text-slate-400 hover:text-red-500"
                               >
@@ -994,7 +1136,7 @@ export default function CreateProductPage() {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          Variant Name *
+                          Condition
                         </label>
                         <input
                           type="text"
@@ -1169,16 +1311,15 @@ export default function CreateProductPage() {
 
                     <div className="flex items-center gap-4 mb-4">
                       <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
+                        <CustomCheckbox
+                          id="variant_is_offer"
                           checked={currentVariant.is_offer}
-                          onChange={(e) =>
+                          onCheckedChange={(checked) =>
                             setCurrentVariant({
                               ...currentVariant,
-                              is_offer: e.target.checked,
+                              is_offer: !!checked,
                             })
                           }
-                          className="w-4 h-4 rounded"
                         />
                         <span className="text-sm">On Offer</span>
                       </label>
@@ -1197,30 +1338,28 @@ export default function CreateProductPage() {
                         />
                       )}
                       <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
+                        <CustomCheckbox
+                          id="variant_is_trending"
                           checked={currentVariant.is_trending}
-                          onChange={(e) =>
+                          onCheckedChange={(checked) =>
                             setCurrentVariant({
                               ...currentVariant,
-                              is_trending: e.target.checked,
+                              is_trending: !!checked,
                             })
                           }
-                          className="w-4 h-4 rounded"
                         />
                         <span className="text-sm">Trending</span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
+                        <CustomCheckbox
+                          id="variant_is_featured"
                           checked={currentVariant.is_featured}
-                          onChange={(e) =>
+                          onCheckedChange={(checked) =>
                             setCurrentVariant({
                               ...currentVariant,
-                              is_featured: e.target.checked,
+                              is_featured: !!checked,
                             })
                           }
-                          className="w-4 h-4 rounded"
                         />
                         <span className="text-sm">Featured</span>
                       </label>
@@ -1251,15 +1390,25 @@ export default function CreateProductPage() {
                               <h5 className="font-bold text-slate-900 dark:text-white">
                                 {variant.variant_name}
                               </h5>
-                              <p className="text-xs text-slate-500 font-mono">{variant.sku}</p>
+                              <p className="text-xs text-slate-500 font-mono">
+                                {variant.sku}
+                              </p>
                               <div className="mt-2 flex gap-4 text-sm">
                                 <span>Price: ${variant.price}</span>
                                 <span>Stock: {variant.stock_quantity}</span>
-                                {variant.is_offer && <span className="text-amber-600">On Offer</span>}
+                                {variant.is_offer && (
+                                  <span className="text-amber-600">
+                                    On Offer
+                                  </span>
+                                )}
                               </div>
                             </div>
                             <button
-                              onClick={() => setVariants(variants.filter((_, i) => i !== idx))}
+                              onClick={() =>
+                                setVariants(
+                                  variants.filter((_, i) => i !== idx),
+                                )
+                              }
                               className="text-slate-400 hover:text-red-500"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1299,21 +1448,51 @@ export default function CreateProductPage() {
                 </div>
 
                 <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">
                     Quick Stats
                   </p>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">Variants:</span>
-                      <span className="font-bold">{variants.length}</span>
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-700/50">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                          <Layers className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                          Variants
+                        </span>
+                      </div>
+                      <span className="text-sm font-black text-slate-900 dark:text-white">
+                        {variants.length}
+                      </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">Images:</span>
-                      <span className="font-bold">{galleryImagePreviews.length + (heroImagePreview ? 1 : 0)}</span>
+
+                    <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-700/50">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                          <ImageIcon className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                          Images
+                        </span>
+                      </div>
+                      <span className="text-sm font-black text-slate-900 dark:text-white">
+                        {galleryImagePreviews.length +
+                          (heroImagePreview ? 1 : 0)}
+                      </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">Specs:</span>
-                      <span className="font-bold">{specifications.length}</span>
+
+                    <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-700/50">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                          <Smartphone className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                          Specs
+                        </span>
+                      </div>
+                      <span className="text-sm font-black text-slate-900 dark:text-white">
+                        {specifications.length}
+                      </span>
                     </div>
                   </div>
                 </div>
