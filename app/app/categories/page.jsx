@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
+import useSWR, { useSWRConfig } from "swr";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 import {
   Search,
   Plus,
-  Filter,
   Edit3,
   Trash2,
   X,
@@ -15,65 +17,22 @@ import {
   List as ListIcon,
   CheckCircle2,
   CircleDashed,
+  Star,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
 } from "lucide-react";
 
-// --- MOCK DATA ---
-const INITIAL_CATEGORIES = [
-  {
-    id: 1,
-    name: "Smartphones",
-    slug: "smartphones",
-    parent: "None",
-    count: 120,
-    status: "Active",
-  },
-  {
-    id: 2,
-    name: "Laptops",
-    slug: "laptops",
-    parent: "None",
-    count: 45,
-    status: "Active",
-  },
-  {
-    id: 3,
-    name: "Audio Gear",
-    slug: "audio-gear",
-    parent: "None",
-    count: 80,
-    status: "Active",
-  },
-  {
-    id: 4,
-    name: "Headphones",
-    slug: "headphones",
-    parent: "Audio Gear",
-    count: 32,
-    status: "Hidden",
-  },
-  {
-    id: 5,
-    name: "Gaming",
-    slug: "gaming",
-    parent: "None",
-    count: 15,
-    status: "Draft",
-  },
-  {
-    id: 6,
-    name: "Cameras",
-    slug: "cameras",
-    parent: "None",
-    count: 12,
-    status: "Active",
-  },
-];
-
-export default function SmoothCategoriesPage() {
+export default function CategoriesPage() {
   const containerRef = useRef(null);
-  const [categories, setCategories] = useState(INITIAL_CATEGORIES);
-  const [searchTerm, setSearchTerm] = useState("");
+  const { data: session } = useSession();
+  const { mutate } = useSWRConfig();
   const [viewMode, setViewMode] = useState("grid"); // 'grid' | 'list'
+  
+  // --- PAGINATION & SEARCH STATE ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   // --- MODAL STATES ---
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -90,11 +49,45 @@ export default function SmoothCategoriesPage() {
   // --- FORM DATA ---
   const [formData, setFormData] = useState({
     name: "",
-    slug: "",
-    parent: "None",
-    status: "Active",
     description: "",
+    is_active: 1,
+    is_featured: 0,
   });
+
+  // --- API FETCHING ---
+  const fetcher = async (url) => {
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${session?.accessToken}`,
+        Accept: "application/json",
+      },
+    });
+    if (!res.ok) throw new Error("Failed to fetch data");
+    return res.json();
+  };
+
+  // Debounce search
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1); // Reset to page 1 on search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const { data: apiResponse, error, isLoading } = useSWR(
+    session?.accessToken
+      ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories?page=${currentPage}&search=${debouncedSearch}`, session.accessToken]
+      : null,
+    ([url]) => fetcher(url),
+    {
+      keepPreviousData: true,
+    }
+  );
+
+  const categories = apiResponse?.data?.data || [];
+  const totalPages = apiResponse?.data?.last_page || 1;
+  const totalItems = apiResponse?.data?.total || 0;
 
   // ------------------------------------------------------------------
   // 1. PAGE LOAD ANIMATION
@@ -107,7 +100,7 @@ export default function SmoothCategoriesPage() {
       tl.fromTo(
         ".animate-header",
         { y: -20, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.8, stagger: 0.1 },
+        { y: 0, opacity: 1, duration: 0.8, stagger: 0.1 }
       );
 
       // Toolbar fades in
@@ -115,20 +108,22 @@ export default function SmoothCategoriesPage() {
         ".animate-toolbar",
         { y: 10, opacity: 0, scale: 0.98 },
         { y: 0, opacity: 1, scale: 1, duration: 0.6 },
-        "-=0.4",
+        "-=0.4"
       );
     },
-    { scope: containerRef },
+    { scope: containerRef }
   );
 
   // ------------------------------------------------------------------
-  // 2. GRID/LIST SWITCH ANIMATION (The key to smoothness)
+  // 2. GRID/LIST SWITCH ANIMATION
   // ------------------------------------------------------------------
   useGSAP(() => {
-    // Kill any existing animations on these items to prevent glitches
+    if (isLoading) return; // Don't animate if loading
+    
+    // Kill any existing animations
     gsap.killTweensOf(".category-item");
 
-    // Animate items in with a satisfying "pop" and stagger
+    // Animate items in
     gsap.fromTo(
       ".category-item",
       {
@@ -141,29 +136,27 @@ export default function SmoothCategoriesPage() {
         opacity: 1,
         scale: 1,
         duration: 0.6,
-        stagger: 0.04, // Very tight stagger for premium feel
-        ease: "expo.out", // Starts fast, settles very slowly (Smooth!)
-        clearProps: "all", // Cleanup CSS after animation
-      },
+        stagger: 0.04,
+        ease: "expo.out",
+        clearProps: "all",
+      }
     );
-  }, [viewMode, categories, searchTerm]);
+  }, [viewMode, categories, isLoading]);
 
   // ------------------------------------------------------------------
   // 3. FORM DRAWER ANIMATION
   // ------------------------------------------------------------------
   useGSAP(() => {
     if (isFormOpen && formContentRef.current) {
-      // Overlay Fade
       gsap.fromTo(
         formOverlayRef.current,
         { opacity: 0 },
-        { opacity: 1, duration: 0.4, ease: "power2.out" },
+        { opacity: 1, duration: 0.4, ease: "power2.out" }
       );
-      // Drawer Slide (Elastic-ish but professional)
       gsap.fromTo(
         formContentRef.current,
         { x: "100%" },
-        { x: "0%", duration: 0.6, ease: "power4.out" },
+        { x: "0%", duration: 0.6, ease: "power4.out" }
       );
     }
   }, [isFormOpen]);
@@ -176,23 +169,21 @@ export default function SmoothCategoriesPage() {
       gsap.fromTo(
         deleteOverlayRef.current,
         { opacity: 0 },
-        { opacity: 1, duration: 0.3 },
+        { opacity: 1, duration: 0.3 }
       );
       gsap.fromTo(
         deleteContentRef.current,
         { scale: 0.9, opacity: 0, y: 20 },
-        { scale: 1, opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.4)" },
+        { scale: 1, opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.4)" }
       );
     }
   }, [isDeleteOpen]);
 
-  // --- HANDLERS WITH EXIT ANIMATIONS ---
+  // --- HANDLERS ---
 
   const closeFormWithAnim = () => {
     if (!formContentRef.current) return;
     const tl = gsap.timeline({ onComplete: () => setIsFormOpen(false) });
-
-    // Slide out slightly faster than slide in
     tl.to(formContentRef.current, {
       x: "100%",
       duration: 0.4,
@@ -203,7 +194,6 @@ export default function SmoothCategoriesPage() {
   const closeDeleteWithAnim = () => {
     if (!deleteContentRef.current) return;
     const tl = gsap.timeline({ onComplete: () => setIsDeleteOpen(false) });
-
     tl.to(deleteContentRef.current, {
       scale: 0.95,
       opacity: 0,
@@ -216,10 +206,9 @@ export default function SmoothCategoriesPage() {
     setFormMode("create");
     setFormData({
       name: "",
-      slug: "",
-      parent: "None",
-      status: "Active",
       description: "",
+      is_active: 1,
+      is_featured: 0,
     });
     setIsFormOpen(true);
   };
@@ -227,7 +216,12 @@ export default function SmoothCategoriesPage() {
   const handleOpenEdit = (category) => {
     setFormMode("edit");
     setSelectedCategory(category);
-    setFormData({ ...category, description: "Sample description..." });
+    setFormData({
+      name: category.name,
+      description: category.description || "",
+      is_active: category.is_active ? 1 : 0,
+      is_featured: category.is_featured ? 1 : 0,
+    });
     setIsFormOpen(true);
   };
 
@@ -236,47 +230,82 @@ export default function SmoothCategoriesPage() {
     setIsDeleteOpen(true);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formMode === "create") {
-      const newId = Math.max(...categories.map((c) => c.id)) + 1;
-      setCategories([
-        ...categories,
-        { id: newId, count: 0, ...formData },
-      ]);
-    } else {
-      setCategories(
-        categories.map((c) =>
-          c.id === selectedCategory.id ? { ...c, ...formData } : c,
-        ),
+    const loadingToast = toast.loading(
+      formMode === "create" ? "Creating category..." : "Updating category..."
+    );
+
+    try {
+      const url =
+        formMode === "create"
+          ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories`
+          : `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories/${selectedCategory.id}`;
+
+      const method = formMode === "create" ? "POST" : "PUT";
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.accessToken}`,
+          Accept: "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Something went wrong");
+      }
+
+      toast.success(
+        formMode === "create"
+          ? "Category created successfully"
+          : "Category updated successfully",
+        { id: loadingToast }
       );
+      
+      mutate([`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories?page=${currentPage}&search=${debouncedSearch}`, session.accessToken]);
+      closeFormWithAnim();
+    } catch (error) {
+      toast.error(error.message, { id: loadingToast });
     }
-    closeFormWithAnim();
   };
 
-  const handleDeleteConfirm = () => {
-    // Animate the item out before removing it from state?
-    // For simplicity in this demo, we just remove and the list re-renders.
-    // The "stagger" effect in the useGSAP hook will handle the re-layout smoothly.
-    setCategories(categories.filter((c) => c.id !== selectedCategory.id));
-    closeDeleteWithAnim();
+  const handleDeleteConfirm = async () => {
+    const loadingToast = toast.loading("Deleting category...");
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories/${selectedCategory.id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${session?.accessToken}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Failed to delete");
+      }
+
+      toast.success("Category deleted successfully", { id: loadingToast });
+      mutate([`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories?page=${currentPage}&search=${debouncedSearch}`, session.accessToken]);
+      closeDeleteWithAnim();
+    } catch (error) {
+      toast.error(error.message, { id: loadingToast });
+    }
   };
 
-  const handleNameChange = (e) => {
-    const val = e.target.value;
-    setFormData((prev) => ({
-      ...prev,
-      name: val,
-      slug: val
-        .toLowerCase()
-        .replace(/ /g, "-")
-        .replace(/[^\w-]+/g, ""),
-    }));
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
   };
-
-  const filteredCategories = categories.filter((c) =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
 
   return (
     <div
@@ -309,7 +338,7 @@ export default function SmoothCategoriesPage() {
         {/* 2. TOOLBAR */}
         <div className="animate-toolbar sticky top-4 z-30 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 shadow-lg shadow-slate-200/50 dark:shadow-indigo-900/10 rounded-2xl p-2 flex flex-col sm:flex-row gap-3 items-center justify-between will-change-transform">
           <div className="relative w-full sm:w-96 group">
-            <div className="absolute  inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
             </div>
             <input
@@ -324,41 +353,55 @@ export default function SmoothCategoriesPage() {
           <div className="flex items-center gap-2 w-full sm:w-auto p-1 bg-slate-100/50 dark:bg-slate-900/50 rounded-xl">
             <button
               onClick={() => setViewMode("grid")}
-              className={`p-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${viewMode === "grid" ? "bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400 scale-100" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"}`}
+              className={`p-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                viewMode === "grid"
+                  ? "bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400 scale-100"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+              }`}
             >
-              <LayoutGrid className="w-4 h-4" />{" "}
-              <span className="hidden sm:inline">Grid</span>
+              <LayoutGrid className="w-4 h-4" /> <span className="hidden sm:inline">Grid</span>
             </button>
             <button
               onClick={() => setViewMode("list")}
-              className={`p-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${viewMode === "list" ? "bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400 scale-100" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"}`}
+              className={`p-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                viewMode === "list"
+                  ? "bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400 scale-100"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+              }`}
             >
-              <ListIcon className="w-4 h-4" />{" "}
-              <span className="hidden sm:inline">List</span>
+              <ListIcon className="w-4 h-4" /> <span className="hidden sm:inline">List</span>
             </button>
           </div>
         </div>
 
         {/* 3. CONTENT AREA */}
         <div className="mt-8 min-h-[500px]">
-          {filteredCategories.length === 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
+            </div>
+          ) : error ? (
+            <div className="text-center py-20 bg-white dark:bg-slate-800 border border-dashed border-red-200 dark:border-red-900/50 rounded-3xl">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 dark:bg-red-900/20 mb-4">
+                <AlertCircle className="w-6 h-6 text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Failed to load categories</h3>
+              <p className="text-slate-500 dark:text-slate-400 mt-1">Please try again later.</p>
+            </div>
+          ) : categories.length === 0 ? (
             <div className="text-center py-20 bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 rounded-3xl animate-header">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-900 mb-4">
                 <Search className="w-6 h-6 text-slate-400" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                No categories found
-              </h3>
-              <p className="text-slate-500 dark:text-slate-400 mt-1">
-                Try adjusting your search terms.
-              </p>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">No categories found</h3>
+              <p className="text-slate-500 dark:text-slate-400 mt-1">Try adjusting your search terms or create a new one.</p>
             </div>
           ) : (
             <>
               {viewMode === "grid" ? (
                 /* GRID VIEW */
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {filteredCategories.map((cat) => (
+                  {categories.map((cat) => (
                     <div
                       key={cat.id}
                       className="category-item group relative bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 hover:border-indigo-100 dark:hover:border-indigo-900/50 shadow-sm hover:shadow-xl hover:shadow-indigo-900/5 transition-all duration-500 ease-out cursor-pointer flex flex-col h-full will-change-transform"
@@ -366,33 +409,44 @@ export default function SmoothCategoriesPage() {
                       {/* Text Area */}
                       <div className="flex-1">
                         <div className="flex justify-between items-start mb-4">
-                          <h3 className="font-bold text-xl text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">
+                          <h3 className="font-bold text-xl text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300 line-clamp-1">
                             {cat.name}
                           </h3>
-                          <span
-                            className={`px-2.5 py-1 rounded-full text-xs font-bold border ${cat.status === "Active" ? "text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/50" : "text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-700"}`}
-                          >
-                            {cat.status}
+                          <div className="flex flex-col gap-1 items-end">
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+                                cat.is_active
+                                  ? "text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/50"
+                                  : "text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-700"
+                              }`}
+                            >
+                              {cat.is_active ? "Active" : "Inactive"}
+                            </span>
+                            {cat.is_featured && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 flex items-center gap-1">
+                                <Star className="w-3 h-3 fill-current" /> Featured
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 mb-4">
+                          <span className="bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-md text-slate-600 dark:text-slate-400 font-mono">
+                            {cat.slug}
                           </span>
                         </div>
                         
-                        <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 mb-4">
-                          <span className="bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-md text-slate-600 dark:text-slate-400">
-                            {cat.slug}
-                          </span>
-                          {cat.parent !== "None" && (
-                            <span className="text-indigo-500 dark:text-indigo-400 flex items-center gap-1">
-                              <span className="w-1 h-1 rounded-full bg-indigo-400 dark:bg-indigo-500"></span>{" "}
-                              {cat.parent}
-                            </span>
-                          )}
-                        </div>
+                        {cat.description && (
+                          <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4">
+                            {cat.description}
+                          </p>
+                        )}
                       </div>
 
                       {/* Footer / Actions */}
                       <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-700/50 mt-auto">
                         <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
-                          {cat.count} products
+                          ID: {cat.id}
                         </span>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
                           <button
@@ -428,19 +482,16 @@ export default function SmoothCategoriesPage() {
                           Category
                         </th>
                         <th className="p-5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                          Parent
-                        </th>
-                        <th className="p-5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                           Status
                         </th>
-                        <th className="p-5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right">
-                          Items
+                        <th className="p-5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                          Featured
                         </th>
                         <th className="p-5 pr-8"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                      {filteredCategories.map((cat) => (
+                      {categories.map((cat) => (
                         <tr
                           key={cat.id}
                           className="category-item group hover:bg-slate-50/80 dark:hover:bg-slate-700/80 transition-colors duration-200"
@@ -457,27 +508,30 @@ export default function SmoothCategoriesPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="p-4 text-sm font-medium text-slate-600 dark:text-slate-400">
-                            {cat.parent === "None" ? (
-                              <span className="opacity-30">—</span>
-                            ) : (
-                              cat.parent
-                            )}
-                          </td>
                           <td className="p-4">
                             <div
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${cat.status === "Active" ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50" : "bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700"}`}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${
+                                cat.is_active
+                                  ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50"
+                                  : "bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+                              }`}
                             >
-                              {cat.status === "Active" ? (
+                              {cat.is_active ? (
                                 <CheckCircle2 className="w-3 h-3" />
                               ) : (
                                 <CircleDashed className="w-3 h-3" />
                               )}
-                              {cat.status}
+                              {cat.is_active ? "Active" : "Inactive"}
                             </div>
                           </td>
-                          <td className="p-4 text-right text-sm font-bold text-slate-700 dark:text-slate-300">
-                            {cat.count}
+                          <td className="p-4">
+                            {cat.is_featured ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800/30">
+                                <Star className="w-3 h-3 fill-current" /> Featured
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 dark:text-slate-600 text-xs">-</span>
+                            )}
                           </td>
                           <td className="p-4 pr-8 text-right">
                             <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -501,6 +555,58 @@ export default function SmoothCategoriesPage() {
                   </table>
                 </div>
               )}
+
+              {/* PAGINATION */}
+              <div className="mt-8 flex items-center justify-between border-t border-slate-200 dark:border-slate-700 pt-6">
+                <div className="text-sm text-slate-500 dark:text-slate-400">
+                  Showing <span className="font-bold text-slate-900 dark:text-white">{categories.length}</span> of{" "}
+                  <span className="font-bold text-slate-900 dark:text-white">{totalItems}</span> results
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`w-10 h-10 rounded-lg text-sm font-bold transition-colors ${
+                            currentPage === pageNum
+                              ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
+                              : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
             </>
           )}
         </div>
@@ -524,12 +630,10 @@ export default function SmoothCategoriesPage() {
               <div className="px-6 py-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 flex items-start justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                    {formMode === "create"
-                      ? "Create Category"
-                      : "Edit Category"}
+                    {formMode === "create" ? "Create Category" : "Edit Category"}
                   </h2>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    Configure category details and hierarchy.
+                    Configure category details.
                   </p>
                 </div>
                 <button
@@ -542,7 +646,6 @@ export default function SmoothCategoriesPage() {
 
               {/* Drawer Body */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
@@ -552,7 +655,7 @@ export default function SmoothCategoriesPage() {
                       required
                       type="text"
                       value={formData.name}
-                      onChange={handleNameChange}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all"
                       placeholder="e.g. Wireless Headphones"
                     />
@@ -561,48 +664,34 @@ export default function SmoothCategoriesPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
-                        Slug
-                      </label>
-                      <input
-                        type="text"
-                        readOnly
-                        value={formData.slug}
-                        className="w-full bg-slate-100 dark:bg-slate-900 border-transparent text-slate-500 dark:text-slate-400 rounded-xl px-4 py-3 text-sm cursor-not-allowed outline-none font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
                         Status
                       </label>
                       <select
-                        value={formData.status}
+                        value={formData.is_active}
                         onChange={(e) =>
-                          setFormData({ ...formData, status: e.target.value })
+                          setFormData({ ...formData, is_active: parseInt(e.target.value) })
                         }
                         className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:border-indigo-500 outline-none appearance-none"
                       >
-                        <option className="dark:bg-slate-800" value="Active">Active</option>
-                        <option className="dark:bg-slate-800" value="Draft">Draft</option>
-                        <option className="dark:bg-slate-800" value="Hidden">Hidden</option>
+                        <option className="dark:bg-slate-800" value={1}>Active</option>
+                        <option className="dark:bg-slate-800" value={0}>Inactive</option>
                       </select>
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
-                      Parent Category
-                    </label>
-                    <select
-                      value={formData.parent}
-                      onChange={(e) =>
-                        setFormData({ ...formData, parent: e.target.value })
-                      }
-                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:border-indigo-500 outline-none"
-                    >
-                      <option className="dark:bg-slate-800" value="None">No Parent (Top Level)</option>
-                      <option className="dark:bg-slate-800" value="Electronics">Electronics</option>
-                      <option className="dark:bg-slate-800" value="Fashion">Fashion</option>
-                    </select>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
+                        Featured
+                      </label>
+                      <select
+                        value={formData.is_featured}
+                        onChange={(e) =>
+                          setFormData({ ...formData, is_featured: parseInt(e.target.value) })
+                        }
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:border-indigo-500 outline-none appearance-none"
+                      >
+                        <option className="dark:bg-slate-800" value={0}>No</option>
+                        <option className="dark:bg-slate-800" value={1}>Yes</option>
+                      </select>
+                    </div>
                   </div>
 
                   <div>
@@ -670,7 +759,7 @@ export default function SmoothCategoriesPage() {
               <span className="font-bold text-slate-900 dark:text-white">
                 "{selectedCategory?.name}"
               </span>
-              ? All products within this category will be uncategorized.
+              ? This action cannot be undone.
             </p>
             <div className="flex gap-3">
               <button
