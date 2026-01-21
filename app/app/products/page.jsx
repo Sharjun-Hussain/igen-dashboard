@@ -1,8 +1,11 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
+import useSWR, { useSWRConfig } from "swr";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 import {
   Search,
   Plus,
@@ -19,156 +22,82 @@ import {
   DollarSign,
   TrendingUp,
   ShoppingCart,
-  Calendar,
-  User,
   ArrowRight,
+  Loader2,
+  Image as ImageIcon,
+  Layers,
+  Tag,
+  Box,
+  ChevronLeft,
+  ChevronRight,
+  Info,
 } from "lucide-react";
 import Link from "next/link";
+import { Trash2 } from "lucide-react";
 
-// --- MOCK DATA ---
-const PRODUCTS = [
-  {
-    id: 1,
-    name: "Sony WH-1000XM5",
-    sku: "AUD-001",
-    category: "Audio",
-    price: 349.0,
-    stock: 45,
-    status: "Published",
-    image:
-      "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=500&q=80",
-  },
-  {
-    id: 2,
-    name: "MacBook Pro 14",
-    sku: "LAP-002",
-    category: "Laptops",
-    price: 1999.0,
-    stock: 12,
-    status: "Published",
-    image:
-      "https://images.unsplash.com/photo-1517336714731-489689fd1ca4?w=500&q=80",
-  },
-  {
-    id: 3,
-    name: "Fujifilm X-T5",
-    sku: "CAM-045",
-    category: "Cameras",
-    price: 1699.0,
-    stock: 3,
-    status: "Low Stock",
-    image:
-      "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=500&q=80",
-  },
-  {
-    id: 4,
-    name: "Keychron Q1 Pro",
-    sku: "ACC-099",
-    category: "Accessories",
-    price: 199.0,
-    stock: 0,
-    status: "Out of Stock",
-    image:
-      "https://images.unsplash.com/photo-1595225476474-87563907a212?w=500&q=80",
-  },
-  {
-    id: 5,
-    name: "Herman Miller Aeron",
-    sku: "FUR-101",
-    category: "Furniture",
-    price: 1250.0,
-    stock: 8,
-    status: "Draft",
-    image:
-      "https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?w=500&q=80",
-  },
-  {
-    id: 6,
-    name: "iPad Air 5",
-    sku: "TAB-202",
-    category: "Tablets",
-    price: 599.0,
-    stock: 120,
-    status: "Published",
-    image:
-      "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=500&q=80",
-  },
-];
-
-// --- MOCK ORDERS GENERATOR ---
-const generateMockOrders = (productId) => {
-  return Array.from({ length: 5 }).map((_, i) => ({
-    id: `#ORD-${1000 + i + productId}`,
-    customer: [
-      "Alex Morgan",
-      "Sarah Chen",
-      "Mike Ross",
-      "Emma Watson",
-      "John Doe",
-    ][i],
-    date: `Jan ${12 + i}, 2024`,
-    amount: (Math.random() * 500 + 100).toFixed(2),
-    status: ["Completed", "Processing", "Completed", "Shipped", "Completed"][i],
-  }));
-};
-
-// --- CHART GENERATOR (SVG Sparkline) ---
-const Sparkline = ({ data, color = "#4f46e5" }) => {
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const points = data
-    .map((val, i) => {
-      const x = (i / (data.length - 1)) * 100;
-      const y = 100 - ((val - min) / (max - min)) * 100;
-      return `${x},${y}`;
-    })
-    .join(" L");
-
-  return (
-    <svg
-      viewBox="0 0 100 100"
-      className="w-full h-full overflow-visible preserve-3d"
-    >
-      <path d={`M0,100 L${points} L100,100 Z`} fill={color} fillOpacity="0.1" />
-      <path
-        d={`M${points}`}
-        fill="none"
-        stroke={color}
-        strokeWidth="2"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
-  );
+// --- HELPER: Image URL ---
+const getImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith("http")) return path;
+  // Assuming the API base URL is like https://api.com/api/v1
+  // We want https://api.com/
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "");
+  return `${baseUrl}/${path}`;
 };
 
 // --- COMPONENT: PRODUCT SHEET ---
-const ProductSheet = ({ product, onClose }) => {
+const ProductSheet = ({ product: initialProduct, onClose }) => {
   const sheetRef = useRef(null);
   const contentRef = useRef(null);
+  const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Mock Stats specific to opened product
+  // --- FETCH DETAILED DATA ---
+  const fetcher = async (url) => {
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${session?.accessToken}`,
+        Accept: "application/json",
+      },
+    });
+    if (!res.ok) throw new Error("Failed to fetch product details");
+    return res.json();
+  };
+
+  const { data: apiResponse, isLoading } = useSWR(
+    session?.accessToken && initialProduct?.id
+      ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/${initialProduct.id}`, session.accessToken]
+      : null,
+    ([url]) => fetcher(url)
+  );
+
+  // Use fetched data if available, otherwise fallback to initial data (for smooth transition)
+  const productData = apiResponse?.data || initialProduct;
+
+  // Calculate stock from variants if available in detailed data
+  const stock = productData.variants?.reduce((sum, v) => sum + v.stock_quantity, 0) || productData.stock || 0;
+  
+  // Ensure price is a number
+  const price = parseFloat(productData.price || productData.variants?.[0]?.price || 0);
+
+  // Mock Stats (placeholder)
   const stats = {
-    revenue: (product.price * 142).toLocaleString(),
+    revenue: (price * 142).toLocaleString(),
     sold: 142,
     returns: "2.4%",
     views: "1.2k",
   };
 
-  const orders = generateMockOrders(product.id);
-
   useGSAP(() => {
-    // Slide In
     gsap.fromTo(
       sheetRef.current,
       { x: "100%" },
-      { x: "0%", duration: 0.5, ease: "power3.out" },
+      { x: "0%", duration: 0.5, ease: "power3.out" }
     );
-    // Content Stagger
     gsap.fromTo(
       ".sheet-animate",
       { y: 20, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.4, stagger: 0.05, delay: 0.2 },
+      { y: 0, opacity: 1, duration: 0.4, stagger: 0.05, delay: 0.2 }
     );
   }, []);
 
@@ -183,13 +112,11 @@ const ProductSheet = ({ product, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Backdrop */}
       <div
         onClick={handleClose}
         className="absolute inset-0 bg-slate-900/20 dark:bg-slate-950/50 backdrop-blur-sm transition-opacity opacity-100"
       />
 
-      {/* Sheet Panel */}
       <div
         ref={sheetRef}
         className="relative w-full max-w-2xl h-full bg-white dark:bg-slate-800 shadow-2xl flex flex-col overflow-hidden border-l border-slate-200 dark:border-slate-700"
@@ -202,17 +129,20 @@ const ProductSheet = ({ product, onClose }) => {
                 Product Details
               </span>
               <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${product.status === "Published" ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800/50" : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600"}`}
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                  (productData.status === "published" || productData.is_active)
+                    ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800/50"
+                    : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600"
+                }`}
               >
-                {product.status}
+                {productData.status || (productData.is_active ? "published" : "draft")}
               </span>
             </div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">{product.name}</h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+              {productData.name}
+            </h2>
           </div>
           <div className="flex items-center gap-2">
-            <button className="p-2 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors">
-              <MoreHorizontal className="w-5 h-5" />
-            </button>
             <button
               onClick={handleClose}
               className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
@@ -227,205 +157,325 @@ const ProductSheet = ({ product, onClose }) => {
           ref={contentRef}
           className="flex-1 overflow-y-auto bg-slate-50/50 dark:bg-slate-900/50 p-6 space-y-6"
         >
-          {/* Hero Section */}
-          <div className="sheet-animate bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row gap-6">
-            <div className="w-32 h-32 bg-slate-100 dark:bg-slate-700 rounded-xl overflow-hidden shrink-0 border border-slate-100 dark:border-slate-600">
-              <img
-                src={product.image}
-                className="w-full h-full object-cover"
-                alt="Product"
-              />
-            </div>
-            <div className="flex-1 flex flex-col justify-center">
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <p className="text-xs text-slate-500 mb-1">Price</p>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                    ${product.price}
-                  </p>
+          {isLoading && !apiResponse ? (
+             <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+             </div>
+          ) : (
+            <>
+              {/* Hero Section */}
+              <div className="sheet-animate bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row gap-6">
+                <div className="w-32 h-32 bg-slate-100 dark:bg-slate-700 rounded-xl overflow-hidden shrink-0 border border-slate-100 dark:border-slate-600 flex items-center justify-center">
+                  {productData.primary_image_path || productData.image ? (
+                    <img
+                      src={getImageUrl(productData.primary_image_path || productData.image)}
+                      className="w-full h-full object-cover"
+                      alt="Product"
+                    />
+                  ) : (
+                    <ImageIcon className="w-10 h-10 text-slate-300 dark:text-slate-600" />
+                  )}
                 </div>
-                <div>
-                  <p className="text-xs text-slate-500 mb-1">Stock Level</p>
-                  <div className="flex items-center gap-2">
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                      {product.stock}
-                    </p>
-                    <div
-                      className={`w-2.5 h-2.5 rounded-full ${product.stock > 10 ? "bg-emerald-500" : "bg-amber-500"}`}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <button className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-sm font-bold shadow-md shadow-indigo-200 transition-colors">
-                  Edit Product
-                </button>
-                <button className="px-4 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-bold transition-colors">
-                  Preview
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Tabs */}
-          <div className="sheet-animate flex gap-6 border-b border-slate-200 dark:border-slate-700 px-2">
-            <button
-              onClick={() => setActiveTab("overview")}
-              className={`pb-3 text-sm font-bold transition-colors relative ${activeTab === "overview" ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}
-            >
-              Overview
-              {activeTab === "overview" && (
-                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 rounded-t-full"></div>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab("orders")}
-              className={`pb-3 text-sm font-bold transition-colors relative ${activeTab === "orders" ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}
-            >
-              Orders History
-              {activeTab === "orders" && (
-                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 rounded-t-full"></div>
-              )}
-            </button>
-          </div>
-
-          {/* Tab Content: Overview */}
-          {activeTab === "overview" && (
-            <div className="space-y-6">
-              {/* Statistics Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="sheet-animate bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
-                      <DollarSign className="w-4 h-4" />
+                <div className="flex-1 flex flex-col justify-center">
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <p className="text-xs text-slate-500 mb-1">Price</p>
+                      <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                        ${price.toFixed(2)}
+                      </p>
                     </div>
-                    <span className="text-[10px] font-bold bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded flex items-center gap-1">
-                      <TrendingUp className="w-3 h-3" /> +12%
-                    </span>
-                  </div>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                    ${stats.revenue}
-                  </p>
-                  <p className="text-xs text-slate-500 font-medium">
-                    Total Lifetime Revenue
-                  </p>
-                </div>
-                <div className="sheet-animate bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
-                      <ShoppingCart className="w-4 h-4" />
-                    </div>
-                  </div>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {stats.sold}
-                  </p>
-                  <p className="text-xs text-slate-500 font-medium">
-                    Units Sold
-                  </p>
-                </div>
-              </div>
-
-              {/* Sales Chart */}
-              <div className="sheet-animate bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-bold text-slate-900 dark:text-white text-sm">
-                    Sales Trend (30 Days)
-                  </h3>
-                  <select className="text-xs bg-slate-50 dark:bg-slate-900 border-none rounded-lg text-slate-600 dark:text-slate-400 font-bold outline-none cursor-pointer">
-                    <option>Last 30 Days</option>
-                    <option>Last 90 Days</option>
-                  </select>
-                </div>
-                <div className="h-32 w-full">
-                  {/* Using our SVG Sparkline Component */}
-                  <Sparkline
-                    data={[10, 25, 18, 40, 35, 50, 45, 70, 65, 80, 75, 95]}
-                  />
-                </div>
-              </div>
-
-              {/* Details Grid */}
-              <div className="sheet-animate bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
-                  <h3 className="font-bold text-slate-900 dark:text-white text-sm">
-                    Product Specifications
-                  </h3>
-                </div>
-                <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                  <div className="flex justify-between p-4 text-sm">
-                    <span className="text-slate-500">SKU</span>
-                    <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
-                      {product.sku}
-                    </span>
-                  </div>
-                  <div className="flex justify-between p-4 text-sm">
-                    <span className="text-slate-500">Category</span>
-                    <span className="font-bold text-slate-700 dark:text-slate-300">
-                      {product.category}
-                    </span>
-                  </div>
-                  <div className="flex justify-between p-4 text-sm">
-                    <span className="text-slate-500">Supplier</span>
-                    <span className="font-bold text-slate-700 dark:text-slate-300">
-                      Global Tech Distributors
-                    </span>
-                  </div>
-                  <div className="flex justify-between p-4 text-sm">
-                    <span className="text-slate-500">Added On</span>
-                    <span className="font-bold text-slate-700 dark:text-slate-300">
-                      Oct 24, 2023
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Tab Content: Orders */}
-          {activeTab === "orders" && (
-            <div className="sheet-animate bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
-                  <tr>
-                    <th className="p-4 font-bold">Order ID</th>
-                    <th className="p-4 font-bold">Customer</th>
-                    <th className="p-4 font-bold text-right">Amount</th>
-                    <th className="p-4 font-bold text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                  {orders.map((order, i) => (
-                    <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                      <td className="p-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                        {order.id}
-                      </td>
-                      <td className="p-4 text-slate-700 dark:text-slate-300">{order.customer}</td>
-                      <td className="p-4 text-right font-bold text-slate-900 dark:text-white">
-                        ${order.amount}
-                      </td>
-                      <td className="p-4 text-right">
-                        <span
-                          className={`text-[10px] font-bold px-2 py-1 rounded-full ${
-                            order.status === "Completed"
-                              ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
-                              : order.status === "Processing"
-                                ? "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
-                                : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                    <div>
+                      <p className="text-xs text-slate-500 mb-1">Total Stock</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                          {stock}
+                        </p>
+                        <div
+                          className={`w-2.5 h-2.5 rounded-full ${
+                            stock > 10 ? "bg-emerald-500" : "bg-amber-500"
                           }`}
-                        >
-                          {order.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="p-4 border-t border-slate-100 dark:border-slate-700 text-center">
-                <button className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center justify-center gap-1 mx-auto">
-                  View All Orders <ArrowRight className="w-3 h-3" />
-                </button>
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <button className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-sm font-bold shadow-md shadow-indigo-200 transition-colors">
+                      Edit Product
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+
+              {/* Tabs */}
+              <div className="sheet-animate flex gap-6 border-b border-slate-200 dark:border-slate-700 px-2 overflow-x-auto">
+                {["overview", "variants", "gallery", "orders"].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`pb-3 text-sm font-bold transition-colors relative capitalize whitespace-nowrap ${
+                      activeTab === tab
+                        ? "text-indigo-600 dark:text-indigo-400"
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                    }`}
+                  >
+                    {tab}
+                    {activeTab === tab && (
+                      <div className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 rounded-t-full"></div>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Tab Content: Overview */}
+              {activeTab === "overview" && (
+                <div className="space-y-6">
+                  {/* Basic Info */}
+                  <div className="sheet-animate bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                    <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 flex items-center gap-2">
+                       <Info className="w-4 h-4 text-indigo-500" />
+                      <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+                        Basic Information
+                      </h3>
+                    </div>
+                    <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                      <div className="flex justify-between p-4 text-sm">
+                        <span className="text-slate-500">Code</span>
+                        <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                          {productData.code}
+                        </span>
+                      </div>
+                      <div className="flex justify-between p-4 text-sm">
+                        <span className="text-slate-500">Brand</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-300">
+                          {productData.brand?.name || "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between p-4 text-sm">
+                        <span className="text-slate-500">Type</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-300 capitalize">
+                          {productData.type}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dynamic Specifications */}
+                  {productData.specifications?.length > 0 && (
+                    <div className="sheet-animate bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                      <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 flex items-center gap-2">
+                        <Layers className="w-4 h-4 text-indigo-500" />
+                        <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+                          Specifications
+                        </h3>
+                      </div>
+                      <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                        {productData.specifications.map((spec) => (
+                          <div key={spec.id} className="flex justify-between p-4 text-sm">
+                            <span className="text-slate-500">{spec.specification_name}</span>
+                            <span className="font-bold text-slate-700 dark:text-slate-300 text-right">
+                              {spec.specification_value}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Features */}
+                  {productData.features?.length > 0 && (
+                    <div className="sheet-animate bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                         <CheckCircle2 className="w-4 h-4 text-indigo-500" />
+                         <h3 className="font-bold text-slate-900 dark:text-white text-sm">Features</h3>
+                      </div>
+                      <ul className="space-y-2">
+                        {productData.features.map((feature) => (
+                          <li key={feature.id} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0"></div>
+                            <span>{feature.name}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Tags */}
+                  {productData.tags?.length > 0 && (
+                    <div className="sheet-animate">
+                      <h3 className="font-bold text-slate-900 dark:text-white text-sm mb-3 px-1">Tags</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {productData.tags.map((tag) => (
+                          <span key={tag.id} className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold border border-slate-200 dark:border-slate-700 flex items-center gap-1">
+                            <Tag className="w-3 h-3" />
+                            {tag.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Description */}
+                  {productData.full_description && (
+                     <div className="sheet-animate bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4">
+                        <h3 className="font-bold text-slate-900 dark:text-white text-sm mb-2">Description</h3>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                          {productData.full_description}
+                        </p>
+                     </div>
+                  )}
+                </div>
+              )}
+
+              {/* Tab Content: Variants (Accordion Style) */}
+              {activeTab === "variants" && (
+                <div className="space-y-4">
+                  <div className="flex justify-end">
+                     <button className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
+                        <Plus className="w-3 h-3" /> Add Variant
+                     </button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {productData.variants?.map((variant) => (
+                      <details
+                        key={variant.id}
+                        className="sheet-animate group bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden"
+                      >
+                        <summary className="flex items-center justify-between p-4 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xs">
+                                {variant.storage_size?.replace(/"/g, "") || "V"}
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-slate-900 dark:text-white text-sm">
+                                    {variant.variant_name.replace(/"/g, "")}
+                                </h4>
+                                <p className="text-xs text-slate-500 font-mono">{variant.sku.replace(/"/g, "")}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                             <div className="text-right">
+                                <p className="font-bold text-slate-900 dark:text-white text-sm">${parseFloat(variant.price).toFixed(2)}</p>
+                                <p className={`text-[10px] font-bold ${variant.stock_quantity > 0 ? "text-emerald-600" : "text-red-600"}`}>
+                                    {variant.stock_quantity} in stock
+                                </p>
+                             </div>
+                             <ChevronRight className="w-5 h-5 text-slate-400 group-open:rotate-90 transition-transform" />
+                          </div>
+                        </summary>
+                        
+                        <div className="p-4 pt-0 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+                            <div className="grid grid-cols-2 gap-4 mt-4">
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Storage</p>
+                                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{variant.storage_size?.replace(/"/g, "") || "N/A"}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">RAM</p>
+                                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{variant.ram_size?.replace(/"/g, "") || "N/A"}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Color</p>
+                                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{variant.color?.replace(/"/g, "") || "N/A"}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Barcode</p>
+                                    <p className="text-sm font-mono text-slate-700 dark:text-slate-300">{variant.barcode?.replace(/"/g, "") || "N/A"}</p>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Pricing</p>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between text-xs">
+                                            <span className="text-slate-500">Regular Price:</span>
+                                            <span className="font-medium">${parseFloat(variant.price).toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs">
+                                            <span className="text-slate-500">Sales Price:</span>
+                                            <span className="font-medium">${parseFloat(variant.sales_price).toFixed(2)}</span>
+                                        </div>
+                                        {variant.is_offer && (
+                                            <div className="flex justify-between text-xs text-amber-600 font-bold">
+                                                <span>Offer Price:</span>
+                                                <span>${parseFloat(variant.offer_price).toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Status</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {variant.is_active && <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">Active</span>}
+                                        {variant.is_trending && <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700">Trending</span>}
+                                        {variant.is_featured && <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">Featured</span>}
+                                        {variant.is_offer && <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">Offer</span>}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                      </details>
+                    ))}
+                    {(!productData.variants || productData.variants.length === 0) && (
+                        <div className="p-8 text-center text-slate-500 bg-slate-50 dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                            No variants found.
+                        </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab Content: Gallery */}
+              {activeTab === "gallery" && (
+                <div className="space-y-4">
+                   <div className="flex justify-end">
+                     <button className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
+                        <Plus className="w-3 h-3" /> Add Image
+                     </button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {productData.images?.map((img) => (
+                      <div
+                        key={img.id}
+                        className="sheet-animate aspect-square rounded-xl bg-slate-100 dark:bg-slate-700 overflow-hidden border border-slate-200 dark:border-slate-600 relative group"
+                      >
+                        <img
+                          src={getImageUrl(img.image_path)}
+                          className="w-full h-full object-cover"
+                          alt="Gallery"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <button className="p-2 bg-white/20 hover:bg-white/40 rounded-lg text-white backdrop-blur-sm transition-colors">
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
+                      </div>
+                    ))}
+                     {(!productData.images || productData.images.length === 0) && (
+                        <div className="col-span-full py-10 text-center text-slate-500 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl">
+                            No gallery images.
+                        </div>
+                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab Content: Orders (Placeholder) */}
+              {activeTab === "orders" && (
+                <div className="sheet-animate bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-8 text-center">
+                  <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <ShoppingCart className="w-6 h-6 text-slate-400" />
+                  </div>
+                  <h3 className="font-bold text-slate-900 dark:text-white">
+                    No orders yet
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    Orders for this product will appear here.
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -436,11 +486,64 @@ const ProductSheet = ({ product, onClose }) => {
 // --- MAIN PAGE COMPONENT ---
 export default function ProductsPage() {
   const containerRef = useRef(null);
+  const { data: session } = useSession();
   const [viewMode, setViewMode] = useState("list");
   const [searchTerm, setSearchTerm] = useState("");
-
-  // NEW STATE: Selected Product for Sheet
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedProduct, setSelectedProduct] = useState(null);
+
+  // --- API FETCHING ---
+  const fetcher = async (url) => {
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${session?.accessToken}`,
+        Accept: "application/json",
+      },
+    });
+    if (!res.ok) throw new Error("Failed to fetch data");
+    return res.json();
+  };
+
+  // Debounce search
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const { data: apiResponse, error, isLoading } = useSWR(
+    session?.accessToken
+      ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products?page=${currentPage}&search=${debouncedSearch}`, session.accessToken]
+      : null,
+    ([url]) => fetcher(url),
+    { keepPreviousData: true }
+  );
+
+  const productsData = apiResponse?.data?.data || [];
+  const totalPages = apiResponse?.data?.last_page || 1;
+  const totalItems = apiResponse?.data?.total || 0;
+
+  // Transform Data
+  const products = useMemo(() => {
+    return productsData.map((p) => {
+      // Calculate total stock from variants
+      const totalStock = p.variants?.reduce((sum, v) => sum + v.stock_quantity, 0) || 0;
+      
+      // Get price from first variant or default
+      const price = p.variants?.[0]?.price || 0;
+
+      return {
+        ...p,
+        stock: totalStock,
+        price: parseFloat(price),
+        image: getImageUrl(p.primary_image_path),
+        status: p.is_active ? "published" : "draft", // Map boolean to string for UI
+      };
+    });
+  }, [productsData]);
 
   // --- ANIMATIONS ---
   useGSAP(
@@ -449,23 +552,18 @@ export default function ProductsPage() {
       tl.fromTo(
         ".animate-up",
         { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.8, stagger: 0.05 },
+        { y: 0, opacity: 1, duration: 0.8, stagger: 0.05 }
       );
     },
-    { scope: containerRef },
+    { scope: containerRef }
   );
 
-  // Helpers
   const getStatusColor = (status) => {
     switch (status) {
-      case "Published":
+      case "published":
         return "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border-emerald-100 dark:border-emerald-800/50";
-      case "Draft":
+      case "draft":
         return "text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700";
-      case "Low Stock":
-        return "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border-amber-100 dark:border-amber-800/50";
-      case "Out of Stock":
-        return "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border-red-100 dark:border-red-800/50";
       default:
         return "text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800";
     }
@@ -477,11 +575,11 @@ export default function ProductsPage() {
     return "bg-emerald-500";
   };
 
-  const filteredProducts = PRODUCTS.filter(
-    (p) =>
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.sku.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
 
   return (
     <div
@@ -518,12 +616,12 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {/* 2. STATS OVERVIEW */}
+        {/* 2. STATS OVERVIEW (Placeholder values for now) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
             {
               label: "Total Products",
-              val: "1,240",
+              val: totalItems.toLocaleString(),
               icon: Package,
               color: "text-indigo-600",
             },
@@ -587,13 +685,21 @@ export default function ProductsPage() {
             <div className="flex bg-slate-100/50 dark:bg-slate-900 rounded-lg p-1">
               <button
                 onClick={() => setViewMode("list")}
-                className={`p-2 rounded-md transition-all ${viewMode === "list" ? "bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}`}
+                className={`p-2 rounded-md transition-all ${
+                  viewMode === "list"
+                    ? "bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                }`}
               >
                 <ListIcon className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewMode("grid")}
-                className={`p-2 rounded-md transition-all ${viewMode === "grid" ? "bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}`}
+                className={`p-2 rounded-md transition-all ${
+                  viewMode === "grid"
+                    ? "bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                }`}
               >
                 <LayoutGrid className="w-4 h-4" />
               </button>
@@ -603,7 +709,23 @@ export default function ProductsPage() {
 
         {/* 4. CONTENT AREA */}
         <div className="min-h-[500px]">
-          {filteredProducts.length === 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
+            </div>
+          ) : error ? (
+            <div className="text-center py-20 bg-white dark:bg-slate-800 border border-dashed border-red-200 dark:border-red-900/50 rounded-3xl">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 dark:bg-red-900/20 mb-4">
+                <AlertTriangle className="w-6 h-6 text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                Failed to load products
+              </h3>
+              <p className="text-slate-500 dark:text-slate-400 mt-1">
+                Please try again later.
+              </p>
+            </div>
+          ) : products.length === 0 ? (
             <div className="text-center py-20 bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 rounded-3xl animate-up">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-900 mb-4">
                 <Search className="w-6 h-6 text-slate-400 dark:text-slate-500" />
@@ -623,7 +745,7 @@ export default function ProductsPage() {
                           Product
                         </th>
                         <th className="p-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                          SKU
+                          Code
                         </th>
                         <th className="p-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                           Stock
@@ -638,7 +760,7 @@ export default function ProductsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                      {filteredProducts.map((product) => (
+                      {products.map((product) => (
                         <tr
                           key={product.id}
                           onClick={() => setSelectedProduct(product)}
@@ -646,25 +768,29 @@ export default function ProductsPage() {
                         >
                           <td className="p-4 pl-6">
                             <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-700 overflow-hidden shrink-0 border border-slate-200 dark:border-slate-600">
-                                <img
-                                  src={product.image}
-                                  alt=""
-                                  className="w-full h-full object-cover"
-                                />
+                              <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-700 overflow-hidden shrink-0 border border-slate-200 dark:border-slate-600 flex items-center justify-center">
+                                {product.image ? (
+                                  <img
+                                    src={product.image}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <ImageIcon className="w-5 h-5 text-slate-300 dark:text-slate-600" />
+                                )}
                               </div>
                               <div>
                                 <div className="font-bold text-slate-900 dark:text-white text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                                   {product.name}
                                 </div>
                                 <div className="text-xs text-slate-500 dark:text-slate-400">
-                                  {product.category}
+                                  {product.brand?.name || "No Brand"}
                                 </div>
                               </div>
                             </div>
                           </td>
                           <td className="p-4 text-sm font-mono text-slate-500 dark:text-slate-400">
-                            {product.sku}
+                            {product.code}
                           </td>
                           <td className="p-4">
                             <div className="w-32">
@@ -675,7 +801,9 @@ export default function ProductsPage() {
                               </div>
                               <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                                 <div
-                                  className={`h-full rounded-full ${getStockColor(product.stock)}`}
+                                  className={`h-full rounded-full ${getStockColor(
+                                    product.stock
+                                  )}`}
                                   style={{
                                     width: `${Math.min(product.stock, 100)}%`,
                                   }}
@@ -688,9 +816,11 @@ export default function ProductsPage() {
                           </td>
                           <td className="p-4">
                             <span
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${getStatusColor(product.status)}`}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${getStatusColor(
+                                product.status
+                              )}`}
                             >
-                              {product.status === "Published" && (
+                              {product.status === "published" && (
                                 <CheckCircle2 className="w-3 h-3" />
                               )}
                               {product.status}
@@ -708,21 +838,27 @@ export default function ProductsPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {filteredProducts.map((product) => (
+                  {products.map((product) => (
                     <div
                       key={product.id}
                       onClick={() => setSelectedProduct(product)}
                       className="product-item group bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 p-3 hover:border-indigo-100 dark:hover:border-indigo-900/50 hover:shadow-xl hover:shadow-indigo-900/5 dark:hover:shadow-indigo-900/20 transition-all duration-300 cursor-pointer"
                     >
-                      <div className="relative aspect-square rounded-2xl bg-slate-100 dark:bg-slate-700 overflow-hidden mb-3">
-                        <img
-                          src={product.image}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          alt={product.name}
-                        />
+                      <div className="relative aspect-square rounded-2xl bg-slate-100 dark:bg-slate-700 overflow-hidden mb-3 flex items-center justify-center">
+                        {product.image ? (
+                          <img
+                            src={product.image}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            alt={product.name}
+                          />
+                        ) : (
+                          <ImageIcon className="w-10 h-10 text-slate-300 dark:text-slate-600" />
+                        )}
                         <div className="absolute top-3 right-3">
                           <span
-                            className={`backdrop-blur-md px-2 py-1 rounded-full text-xs font-bold border ${getStatusColor(product.status)}`}
+                            className={`backdrop-blur-md px-2 py-1 rounded-full text-xs font-bold border ${getStatusColor(
+                              product.status
+                            )}`}
                           >
                             {product.status}
                           </span>
@@ -739,13 +875,15 @@ export default function ProductsPage() {
                         </div>
                         <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 mb-3">
                           <span className="font-mono bg-slate-50 dark:bg-slate-900 px-1.5 py-0.5 rounded">
-                            {product.sku}
+                            {product.code}
                           </span>
-                          <span>{product.category}</span>
+                          <span>{product.brand?.name || "No Brand"}</span>
                         </div>
                         <div className="flex items-center gap-2 pt-3 border-t border-slate-50 dark:border-slate-700">
                           <div
-                            className={`w-2 h-2 rounded-full ${getStockColor(product.stock)}`}
+                            className={`w-2 h-2 rounded-full ${getStockColor(
+                              product.stock
+                            )}`}
                           ></div>
                           <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
                             {product.stock > 0
@@ -758,6 +896,65 @@ export default function ProductsPage() {
                   ))}
                 </div>
               )}
+
+              {/* PAGINATION */}
+              <div className="mt-8 flex items-center justify-between border-t border-slate-200 dark:border-slate-700 pt-6">
+                <div className="text-sm text-slate-500 dark:text-slate-400">
+                  Showing{" "}
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {products.length}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {totalItems}
+                  </span>{" "}
+                  results
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`w-10 h-10 rounded-lg text-sm font-bold transition-colors ${
+                            currentPage === pageNum
+                              ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
+                              : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
             </>
           )}
         </div>
