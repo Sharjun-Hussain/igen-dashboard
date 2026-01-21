@@ -32,7 +32,164 @@ import {
   FileText,
   Image as ImageIcon,
   Check,
+  ShoppingCart,
 } from "lucide-react";
+
+const ProductRelationshipSelector = ({
+  title,
+  description,
+  selectedIds,
+  onUpdate,
+  searchTerm,
+  onSearchChange,
+  results,
+}) => {
+  const toggleProduct = (id) => {
+    if (selectedIds.includes(id)) {
+      onUpdate(selectedIds.filter((item) => item !== id));
+    } else {
+      onUpdate([...selectedIds, id]);
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+      <div className="mb-6">
+        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">
+          {title}
+        </h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          {description}
+        </p>
+      </div>
+
+      <div className="space-y-6">
+        {/* Search Input */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search products by name or code..."
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-indigo-500 transition-all dark:text-white text-sm"
+          />
+        </div>
+
+        {/* Search Results */}
+        {searchTerm.length > 2 && (
+          <div className="space-y-2">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Search Results
+            </p>
+            <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-2 no-scrollbar">
+              {results.length === 0 ? (
+                <p className="text-xs text-slate-500 py-4 text-center">
+                  No products found.
+                </p>
+              ) : (
+                results.map((product) => (
+                  <div
+                    key={product.id}
+                    className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-700/50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        {product.primary_image_path ? (
+                          <img
+                            src={`${process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "")}/${product.primary_image_path}`}
+                            className="w-full h-full object-cover"
+                            alt=""
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-300">
+                            <ImageIcon className="w-5 h-5" />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white">
+                          {product.name}
+                        </p>
+                        <p className="text-[10px] text-slate-500 font-mono">
+                          {product.code}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => toggleProduct(product.id)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        selectedIds.includes(product.id)
+                          ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100"
+                          : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-600/20"
+                      }`}
+                    >
+                      {selectedIds.includes(product.id) ? "Remove" : "Add"}
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Selected Products */}
+        <div className="space-y-3">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            Selected Products ({selectedIds.length})
+          </p>
+          {selectedIds.length === 0 ? (
+            <div className="p-8 text-center bg-slate-50 dark:bg-slate-900 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+              <Box className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+              <p className="text-slate-400 text-xs">No products selected yet.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-2">
+              {results
+                .filter((p) => selectedIds.includes(p.id))
+                .map((product) => (
+                  <div
+                    key={product.id}
+                    className="flex items-center justify-between p-3 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-900/30"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        {product.primary_image_path ? (
+                          <img
+                            src={`${process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "")}/${product.primary_image_path}`}
+                            className="w-full h-full object-cover"
+                            alt=""
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-300">
+                            <ImageIcon className="w-5 h-5" />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white">
+                          {product.name}
+                        </p>
+                        <p className="text-[10px] text-slate-500 font-mono">
+                          {product.code}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => toggleProduct(product.id)}
+                      className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const CustomCheckbox = ({ id, checked, onCheckedChange }) => {
   return (
@@ -79,6 +236,8 @@ export default function CreateProductPage() {
     is_featured: false,
     is_trending: false,
     is_active: true,
+    bundled_product_ids: [],
+    compatible_product_ids: [],
   });
 
   // MEDIA STATE
@@ -90,7 +249,7 @@ export default function CreateProductPage() {
   // VARIANTS STATE
   const [variants, setVariants] = useState([]);
   const [currentVariant, setCurrentVariant] = useState({
-    variant_name: "",
+    variant_name: "Brand New",
     sku: "",
     barcode: "",
     storage_size: "",
@@ -121,6 +280,37 @@ export default function CreateProductPage() {
   // Tag/Feature autocomplete
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [showFeatureSuggestions, setShowFeatureSuggestions] = useState(false);
+
+  // Product Relationship Search State
+  const [productSearchTerm, setProductSearchTerm] = useState("");
+  const [debouncedProductSearch, setDebouncedProductSearch] = useState("");
+  const [productSearchResults, setProductSearchResults] = useState([]);
+  const [isSearchingProducts, setIsSearchingProducts] = useState(false);
+
+  // Debounce product search
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedProductSearch(productSearchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [productSearchTerm]);
+
+  // Fetch products for relationship search
+  const { data: searchResponse } = useSWR(
+    session?.accessToken && debouncedProductSearch.length > 2
+      ? [
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products?search=${debouncedProductSearch}`,
+          session.accessToken,
+        ]
+      : null,
+    ([url]) => fetcher(url)
+  );
+
+  React.useEffect(() => {
+    if (searchResponse?.data?.data) {
+      setProductSearchResults(searchResponse.data.data);
+    }
+  }, [searchResponse]);
 
   // --- API FETCHING ---
   const fetcher = async (url) => {
@@ -308,9 +498,14 @@ export default function CreateProductPage() {
       return;
     }
 
-    setVariants([...variants, { ...currentVariant, id: Date.now() }]);
+    const variantToAdd = { ...currentVariant };
+    if (variantToAdd.ram_size && !variantToAdd.ram_size.toUpperCase().endsWith("GB")) {
+      variantToAdd.ram_size = `${variantToAdd.ram_size}GB`;
+    }
+
+    setVariants([...variants, { ...variantToAdd, id: Date.now() }]);
     setCurrentVariant({
-      variant_name: "",
+      variant_name: "Brand New",
       sku: "",
       barcode: "",
       storage_size: "",
@@ -416,6 +611,14 @@ export default function CreateProductPage() {
         `variants[${index}][is_featured]`,
         variant.is_featured ? "1" : "0",
       );
+    });
+
+    // Product Relationships
+    formData.bundled_product_ids.forEach((id) => {
+      data.append("bundled_product_ids[]", id);
+    });
+    formData.compatible_product_ids.forEach((id) => {
+      data.append("compatible_product_ids[]", id);
     });
 
     return data;
@@ -540,6 +743,8 @@ export default function CreateProductPage() {
               { id: "media", label: "Media Gallery", icon: ImageIcon },
               { id: "variants", label: "Pricing & Variants", icon: Layers },
               { id: "specs", label: "Specs & Features", icon: Smartphone },
+              { id: "buy_together", label: "Buy Together", icon: ShoppingCart },
+              { id: "related", label: "Related Items", icon: Box },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -1122,6 +1327,38 @@ export default function CreateProductPage() {
                 </div>
               </div>
             )}
+            {activeTab === "buy_together" && (
+              <div className="space-y-6 animate-fade-up">
+                <ProductRelationshipSelector
+                  title="Buy Together Products"
+                  description="Select products that are frequently bought together with this one (e.g. accessories)."
+                  selectedIds={formData.bundled_product_ids}
+                  onUpdate={(ids) =>
+                    setFormData({ ...formData, bundled_product_ids: ids })
+                  }
+                  searchTerm={productSearchTerm}
+                  onSearchChange={setProductSearchTerm}
+                  results={productSearchResults}
+                />
+              </div>
+            )}
+
+            {/* TAB CONTENT: RELATED ITEMS */}
+            {activeTab === "related" && (
+              <div className="space-y-6 animate-fade-up">
+                <ProductRelationshipSelector
+                  title="Related Products"
+                  description="Select products that are similar or compatible with this one."
+                  selectedIds={formData.compatible_product_ids}
+                  onUpdate={(ids) =>
+                    setFormData({ ...formData, compatible_product_ids: ids })
+                  }
+                  searchTerm={productSearchTerm}
+                  onSearchChange={setProductSearchTerm}
+                  results={productSearchResults}
+                />
+              </div>
+            )}
 
             {/* TAB CONTENT: VARIANTS */}
             {activeTab === "variants" && (
@@ -1138,8 +1375,7 @@ export default function CreateProductPage() {
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
                           Condition
                         </label>
-                        <input
-                          type="text"
+                        <select
                           value={currentVariant.variant_name}
                           onChange={(e) =>
                             setCurrentVariant({
@@ -1147,9 +1383,12 @@ export default function CreateProductPage() {
                               variant_name: e.target.value,
                             })
                           }
-                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
-                          placeholder="256GB Natural Titanium"
-                        />
+                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        >
+                          <option value="Brand New">Brand New</option>
+                          <option value="Used">Used</option>
+                          <option value="Refurbished">Refurbished</option>
+                        </select>
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
@@ -1206,18 +1445,27 @@ export default function CreateProductPage() {
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
                           RAM
                         </label>
-                        <input
-                          type="text"
-                          value={currentVariant.ram_size}
-                          onChange={(e) =>
-                            setCurrentVariant({
-                              ...currentVariant,
-                              ram_size: e.target.value,
-                            })
-                          }
-                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
-                          placeholder="8GB"
-                        />
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="0"
+                            value={currentVariant.ram_size}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === "" || Number(val) >= 0) {
+                                setCurrentVariant({
+                                  ...currentVariant,
+                                  ram_size: val,
+                                });
+                              }
+                            }}
+                            className="w-full px-3 py-2 pr-10 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                            placeholder="8"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                            GB
+                          </span>
+                        </div>
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
@@ -1243,35 +1491,45 @@ export default function CreateProductPage() {
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
                           Price *
                         </label>
-                        <input
-                          type="number"
-                          value={currentVariant.price}
-                          onChange={(e) =>
-                            setCurrentVariant({
-                              ...currentVariant,
-                              price: e.target.value,
-                            })
-                          }
-                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
-                          placeholder="149900"
-                        />
+                        <div className="relative">
+                          <input
+                            type="number"
+                            value={currentVariant.price}
+                            onChange={(e) =>
+                              setCurrentVariant({
+                                ...currentVariant,
+                                price: e.target.value,
+                              })
+                            }
+                            className="w-full px-3 py-2 pl-10 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                            placeholder="149900"
+                          />
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                            Rs.
+                          </span>
+                        </div>
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
                           Sales Price
                         </label>
-                        <input
-                          type="number"
-                          value={currentVariant.sales_price}
-                          onChange={(e) =>
-                            setCurrentVariant({
-                              ...currentVariant,
-                              sales_price: e.target.value,
-                            })
-                          }
-                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
-                          placeholder="144900"
-                        />
+                        <div className="relative">
+                          <input
+                            type="number"
+                            value={currentVariant.sales_price}
+                            onChange={(e) =>
+                              setCurrentVariant({
+                                ...currentVariant,
+                                sales_price: e.target.value,
+                              })
+                            }
+                            className="w-full px-3 py-2 pl-10 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                            placeholder="144900"
+                          />
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                            Rs.
+                          </span>
+                        </div>
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
@@ -1324,18 +1582,23 @@ export default function CreateProductPage() {
                         <span className="text-sm">On Offer</span>
                       </label>
                       {currentVariant.is_offer && (
-                        <input
-                          type="number"
-                          value={currentVariant.offer_price}
-                          onChange={(e) =>
-                            setCurrentVariant({
-                              ...currentVariant,
-                              offer_price: e.target.value,
-                            })
-                          }
-                          className="px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
-                          placeholder="Offer Price"
-                        />
+                        <div className="relative">
+                          <input
+                            type="number"
+                            value={currentVariant.offer_price}
+                            onChange={(e) =>
+                              setCurrentVariant({
+                                ...currentVariant,
+                                offer_price: e.target.value,
+                              })
+                            }
+                            className="w-full px-3 py-2 pl-10 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                            placeholder="799.00"
+                          />
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                            Rs.
+                          </span>
+                        </div>
                       )}
                       <label className="flex items-center gap-2 cursor-pointer">
                         <CustomCheckbox
