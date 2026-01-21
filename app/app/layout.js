@@ -23,7 +23,7 @@ export default function AdminLayout({ children }) {
       <div className="lg:pl-64 flex flex-col min-h-screen transition-all duration-300">
 
         {/* TOP HEADER */}
-        <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+        <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
 
           <div className="flex items-center gap-4">
             {/* Mobile Toggle */}

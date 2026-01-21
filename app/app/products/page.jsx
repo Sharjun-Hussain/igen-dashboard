@@ -784,7 +784,7 @@ export default function ProductsPage() {
         </div>
 
         {/* 3. TOOLBAR */}
-        <div className="animate-up sticky top-4 z-30 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50 rounded-2xl p-2 flex flex-col sm:flex-row gap-3 items-center justify-between mb-8">
+        <div className="animate-up sticky top-4 z-20 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50 rounded-2xl p-2 flex flex-col sm:flex-row gap-3 items-center justify-between mb-8">
           <div className="relative w-full sm:w-96 group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
             <input
