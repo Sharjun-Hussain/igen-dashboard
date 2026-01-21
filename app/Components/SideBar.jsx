@@ -209,10 +209,10 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             </div>
             <div>
               <h1 className="font-bold text-lg tracking-tight leading-none text-slate-900 dark:text-white">
-                NexusAdmin
+                Igen
               </h1>
               <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 tracking-widest uppercase">
-                CMS Edition
+                Admin Dashboard
               </span>
             </div>
           </Link>

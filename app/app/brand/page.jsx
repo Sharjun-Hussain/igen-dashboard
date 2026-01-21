@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import useSWR, { useSWRConfig } from "swr";
 import { toast } from "sonner";
@@ -38,6 +39,7 @@ export default function BrandManagementPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("grid"); // 'grid' | 'list'
   const [loading, setLoading] = useState(true);
+  const searchParams = useSearchParams();
 
   // --- PAGINATION & SORTING STATES ---
   const [currentPage, setCurrentPage] = useState(1);
@@ -342,6 +344,16 @@ export default function BrandManagementPage() {
     setSelectedBrand(brand);
     setIsDeleteOpen(true);
   };
+
+  // Handle Quick Action from Header
+  useEffect(() => {
+    if (searchParams.get("action") === "create") {
+      handleOpenCreate();
+      // Clean up URL to prevent re-opening on refresh
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, "", newUrl);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

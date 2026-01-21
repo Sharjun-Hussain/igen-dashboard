@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import useSWR, { useSWRConfig } from "swr";
@@ -28,6 +29,7 @@ export default function CategoriesPage() {
   const { data: session } = useSession();
   const { mutate } = useSWRConfig();
   const [viewMode, setViewMode] = useState("grid"); // 'grid' | 'list'
+  const searchParams = useSearchParams();
   
   // --- PAGINATION & SEARCH STATE ---
   const [currentPage, setCurrentPage] = useState(1);
@@ -229,6 +231,16 @@ export default function CategoriesPage() {
     setSelectedCategory(category);
     setIsDeleteOpen(true);
   };
+
+  // Handle Quick Action from Header
+  useEffect(() => {
+    if (searchParams.get("action") === "create") {
+      handleOpenCreate();
+      // Clean up URL to prevent re-opening on refresh
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, "", newUrl);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

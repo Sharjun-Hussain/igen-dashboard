@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import {
@@ -79,6 +80,7 @@ export default function CouponsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+  const searchParams = useSearchParams();
 
   // Form State
   const [formData, setFormData] = useState({
@@ -186,6 +188,16 @@ export default function CouponsPage() {
       setSelectedProducts([]);
     }, 1000);
   };
+
+  // Handle Quick Action from Header
+  useEffect(() => {
+    if (searchParams.get("action") === "create") {
+      setIsModalOpen(true);
+      // Clean up URL to prevent re-opening on refresh
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, "", newUrl);
+    }
+  }, [searchParams]);
 
   const handleDelete = (id) => {
     if (confirm("Delete this coupon?"))
