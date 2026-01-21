@@ -1,9 +1,12 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
-import { z } from "zod";
+import useSWR from "swr";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Save,
@@ -31,93 +34,116 @@ import {
   Check,
 } from "lucide-react";
 
-// --- ZOD SCHEMA ---
-const productSchema = z.object({
-  name: z.string().min(3, "Name is too short"),
-  slug: z.string().min(3, "Slug is required"),
-  brand: z.string().min(1, "Brand is required"),
-  description: z.string().min(10, "Full description is required"),
-  shortDescription: z
-    .string()
-    .max(160, "Short description too long")
-    .optional(),
-  images: z.array(z.string()).min(1, "At least one image is required"),
-  heroImage: z.string().min(1, "Hero image is required"),
-  variants: z
-    .array(
-      z.object({
-        sku: z.string().min(1, "SKU is required"),
-        price: z.string().min(1, "Price is required"),
-        stock: z.string(),
-      }),
-    )
-    .min(1, "Add at least one variant"),
-});
-
 export default function CreateProductPage() {
   const containerRef = useRef(null);
+  const router = useRouter();
+  const { data: session } = useSession();
 
   // --- STATE ---
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [activeTab, setActiveTab] = useState("general"); // general | variants | seo | specs
+  const [activeTab, setActiveTab] = useState("general");
 
   // MAIN DATA STORE
   const [formData, setFormData] = useState({
-    // Basic
     name: "",
-    slug: "",
-    brand: "Samsung",
-    category: "Smartphones",
-    type: "Physical", // Physical | Digital
-    condition: "Brand New",
-    status: "Draft", // Draft | Published | Archived
-
-    // Descriptions
-    shortDescription: "", // Excerpt
-    description: "", // HTML/Rich Text
-
-    // Badges & Offers
-    isFeatured: false,
-    isTrending: false,
-    isOfferProduct: false,
-
-    // Inventory & Warranty
-    warrantyType: "Manufacturer",
-    warrantyPeriod: "12 Months",
-
-    // Lists
-    tags: [], // Array of strings
-    features: [], // Array of strings (bullets)
-    specifications: [], // Array of { key, value }
-
-    // SEO
-    metaTitle: "",
-    metaDescription: "",
-    metaKeywords: "",
+    code: "",
+    category_id: "",
+    brand_id: "",
+    type: "physical",
+    status: "draft",
+    short_description: "",
+    full_description: "",
+    is_featured: false,
+    is_trending: false,
+    is_active: true,
   });
 
   // MEDIA STATE
-  const [heroImage, setHeroImage] = useState(null);
-  const [galleryImages, setGalleryImages] = useState([]);
+  const [heroImageFile, setHeroImageFile] = useState(null);
+  const [heroImagePreview, setHeroImagePreview] = useState(null);
+  const [galleryImageFiles, setGalleryImageFiles] = useState([]);
+  const [galleryImagePreviews, setGalleryImagePreviews] = useState([]);
 
   // VARIANTS STATE
   const [variants, setVariants] = useState([]);
   const [currentVariant, setCurrentVariant] = useState({
+    variant_name: "",
     sku: "",
-    color: "Black",
-    storage: "128GB",
+    barcode: "",
+    storage_size: "",
+    ram_size: "",
+    color: "",
     price: "",
-    salePrice: "",
-    stock: "10",
-    isDefault: false,
-    imageIndex: null, // Link to a gallery image
+    sales_price: "",
+    stock_quantity: "",
+    low_stock_threshold: "5",
+    is_offer: false,
+    offer_price: "",
+    is_trending: false,
+    is_active: true,
+    is_featured: false,
   });
 
-  // INPUT BUFFERS (For Tags, Features, Specs)
+  // INPUT BUFFERS
   const [tagInput, setTagInput] = useState("");
   const [featureInput, setFeatureInput] = useState("");
-  const [specInput, setSpecInput] = useState({ key: "", value: "" });
+  const [specInput, setSpecInput] = useState({ specification_name: "", specification_value: "" });
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [selectedFeatures, setSelectedFeatures] = useState([]);
+  const [specifications, setSpecifications] = useState([]);
+
+  // Tag/Feature autocomplete
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const [showFeatureSuggestions, setShowFeatureSuggestions] = useState(false);
+
+  // --- API FETCHING ---
+  const fetcher = async (url) => {
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${session?.accessToken}`,
+        Accept: "application/json",
+      },
+    });
+    if (!res.ok) throw new Error("Failed to fetch");
+    return res.json();
+  };
+
+  const { data: categoriesData } = useSWR(
+    session?.accessToken ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories`, session.accessToken] : null,
+    ([url]) => fetcher(url)
+  );
+
+  const { data: brandsData } = useSWR(
+    session?.accessToken ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/brands`, session.accessToken] : null,
+    ([url]) => fetcher(url)
+  );
+
+  const { data: tagsData } = useSWR(
+    session?.accessToken ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/get/tags`, session.accessToken] : null,
+    ([url]) => fetcher(url)
+  );
+
+  const { data: featuresData } = useSWR(
+    session?.accessToken ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/get/features`, session.accessToken] : null,
+    ([url]) => fetcher(url)
+  );
+
+  const categories = categoriesData?.data?.data || [];
+  const brands = brandsData?.data?.data || [];
+  const availableTags = tagsData?.data || [];
+  const availableFeatures = featuresData?.data || [];
+
+  // Filter suggestions based on input
+  const filteredTags = availableTags.filter(tag => 
+    tag.name.toLowerCase().includes(tagInput.toLowerCase()) && 
+    !selectedTags.find(t => t.id === tag.id)
+  );
+
+  const filteredFeatures = availableFeatures.filter(feature => 
+    feature.name.toLowerCase().includes(featureInput.toLowerCase()) && 
+    !selectedFeatures.find(f => f.id === feature.id)
+  );
 
   // --- ANIMATIONS ---
   useGSAP(
@@ -133,103 +159,225 @@ export default function CreateProductPage() {
 
   // --- LOGIC HANDLERS ---
 
-  // Slug Generator
-  const generateSlug = () => {
-    const slug = formData.name
-      .toLowerCase()
-      .replace(/[^a-z0-9 -]/g, "")
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-");
-    setFormData((prev) => ({ ...prev, slug }));
+  // Code Generator
+  const generateCode = () => {
+    const code = formData.name
+      .toUpperCase()
+      .replace(/[^A-Z0-9 -]/g, "")
+      .replace(/\\s+/g, "-")
+      .replace(/-+/g, "-")
+      .substring(0, 20);
+    setFormData((prev) => ({ ...prev, code }));
   };
 
   // Image Handlers
   const handleHeroUpload = (e) => {
     const file = e.target.files[0];
-    if (file) setHeroImage(URL.createObjectURL(file));
+    if (file) {
+      setHeroImageFile(file);
+      setHeroImagePreview(URL.createObjectURL(file));
+    }
   };
 
   const handleGalleryUpload = (e) => {
     const files = Array.from(e.target.files);
-    const newUrls = files.map((file) => URL.createObjectURL(file));
-    setGalleryImages((prev) => [...prev, ...newUrls]);
+    setGalleryImageFiles((prev) => [...prev, ...files]);
+    const newPreviews = files.map((file) => URL.createObjectURL(file));
+    setGalleryImagePreviews((prev) => [...prev, ...newPreviews]);
   };
 
   const moveGalleryImage = (index, direction) => {
-    const newImages = [...galleryImages];
+    const newFiles = [...galleryImageFiles];
+    const newPreviews = [...galleryImagePreviews];
+    
     if (direction === "left" && index > 0) {
-      [newImages[index], newImages[index - 1]] = [
-        newImages[index - 1],
-        newImages[index],
-      ];
-    } else if (direction === "right" && index < newImages.length - 1) {
-      [newImages[index], newImages[index + 1]] = [
-        newImages[index + 1],
-        newImages[index],
-      ];
+      [newFiles[index], newFiles[index - 1]] = [newFiles[index - 1], newFiles[index]];
+      [newPreviews[index], newPreviews[index - 1]] = [newPreviews[index - 1], newPreviews[index]];
+    } else if (direction === "right" && index < newFiles.length - 1) {
+      [newFiles[index], newFiles[index + 1]] = [newFiles[index + 1], newFiles[index]];
+      [newPreviews[index], newPreviews[index + 1]] = [newPreviews[index + 1], newPreviews[index]];
     }
-    setGalleryImages(newImages);
+    
+    setGalleryImageFiles(newFiles);
+    setGalleryImagePreviews(newPreviews);
   };
 
-  // Tag Handler
-  const handleAddTag = (e) => {
-    if (e.key === "Enter" && tagInput.trim()) {
-      e.preventDefault();
-      if (!formData.tags.includes(tagInput.trim())) {
-        setFormData((prev) => ({
-          ...prev,
-          tags: [...prev.tags, tagInput.trim()],
-        }));
-      }
-      setTagInput("");
+  // Tag Handler with autocomplete
+  const handleAddTag = (tag) => {
+    if (!selectedTags.find(t => t.id === tag.id)) {
+      setSelectedTags([...selectedTags, tag]);
+    }
+    setTagInput("");
+    setShowTagSuggestions(false);
+  };
+
+  const handleTagInputChange = (value) => {
+    setTagInput(value);
+    setShowTagSuggestions(value.length > 0);
+  };
+
+  // Feature Handler with autocomplete
+  const handleAddFeature = (feature) => {
+    if (!selectedFeatures.find(f => f.id === feature.id)) {
+      setSelectedFeatures([...selectedFeatures, feature]);
+    }
+    setFeatureInput("");
+    setShowFeatureSuggestions(false);
+  };
+
+  const handleFeatureInputChange = (value) => {
+    setFeatureInput(value);
+    setShowFeatureSuggestions(value.length > 0);
+  };
+
+  // Specification Handler
+  const handleAddSpec = () => {
+    if (specInput.specification_name && specInput.specification_value) {
+      setSpecifications([...specifications, specInput]);
+      setSpecInput({ specification_name: "", specification_value: "" });
     }
   };
 
   // Variant Handler
   const addVariant = () => {
-    if (!currentVariant.price || !currentVariant.sku)
-      return alert("Price and SKU required");
+    if (!currentVariant.variant_name || !currentVariant.sku || !currentVariant.price) {
+      toast.error("Variant name, SKU, and price are required");
+      return;
+    }
 
     setVariants([...variants, { ...currentVariant, id: Date.now() }]);
-    // Reset but keep some common fields
-    setCurrentVariant((prev) => ({
-      ...prev,
+    setCurrentVariant({
+      variant_name: "",
       sku: "",
+      barcode: "",
+      storage_size: "",
+      ram_size: "",
+      color: "",
       price: "",
-      salePrice: "",
-      isDefault: false,
-    }));
+      sales_price: "",
+      stock_quantity: "",
+      low_stock_threshold: "5",
+      is_offer: false,
+      offer_price: "",
+      is_trending: false,
+      is_active: true,
+      is_featured: false,
+    });
+  };
+
+  // Build FormData for API
+  const buildFormData = () => {
+    const data = new FormData();
+
+    // Basic fields
+    data.append("name", formData.name);
+    data.append("code", formData.code);
+    data.append("category_id", formData.category_id);
+    data.append("brand_id", formData.brand_id);
+    data.append("type", formData.type);
+    data.append("status", formData.status);
+    data.append("short_description", formData.short_description);
+    data.append("full_description", formData.full_description);
+    data.append("is_trending", formData.is_trending ? "1" : "0");
+    data.append("is_active", formData.is_active ? "1" : "0");
+    data.append("is_featured", formData.is_featured ? "1" : "0");
+
+    // Images
+    if (heroImageFile) {
+      data.append("primary_image_path", heroImageFile);
+    }
+    galleryImageFiles.forEach((file) => {
+      data.append("images[]", file);
+    });
+
+    // Features (comma-separated names)
+    if (selectedFeatures.length > 0) {
+      data.append("feature_name", selectedFeatures.map(f => f.name).join(","));
+    }
+
+    // Tags (comma-separated)
+    if (selectedTags.length > 0) {
+      data.append("tags", selectedTags.map(t => t.name).join(","));
+    }
+
+    // Specifications
+    specifications.forEach((spec, index) => {
+      data.append(`specifications[${index}][specification_name]`, spec.specification_name);
+      data.append(`specifications[${index}][specification_value]`, spec.specification_value);
+    });
+
+    // Variants
+    variants.forEach((variant, index) => {
+      data.append(`variants[${index}][variant_name]`, variant.variant_name);
+      data.append(`variants[${index}][sku]`, variant.sku);
+      data.append(`variants[${index}][barcode]`, variant.barcode || "");
+      data.append(`variants[${index}][storage_size]`, variant.storage_size || "");
+      data.append(`variants[${index}][ram_size]`, variant.ram_size || "");
+      data.append(`variants[${index}][color]`, variant.color || "");
+      data.append(`variants[${index}][price]`, variant.price);
+      data.append(`variants[${index}][sales_price]`, variant.sales_price || variant.price);
+      data.append(`variants[${index}][stock_quantity]`, variant.stock_quantity || "0");
+      data.append(`variants[${index}][low_stock_threshold]`, variant.low_stock_threshold || "5");
+      data.append(`variants[${index}][is_offer]`, variant.is_offer ? "1" : "0");
+      data.append(`variants[${index}][offer_price]`, variant.offer_price || "");
+      data.append(`variants[${index}][is_trending]`, variant.is_trending ? "1" : "0");
+      data.append(`variants[${index}][is_active]`, variant.is_active ? "1" : "0");
+      data.append(`variants[${index}][is_featured]`, variant.is_featured ? "1" : "0");
+    });
+
+    return data;
   };
 
   // Save Function
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsLoading(true);
     setErrors({});
 
-    // Construct final payload
-    const payload = {
-      ...formData,
-      heroImage,
-      images: galleryImages,
-      variants,
-    };
+    // Basic validation
+    if (!formData.name || !formData.code || !formData.category_id || !formData.brand_id) {
+      toast.error("Please fill in all required fields");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!heroImageFile) {
+      toast.error("Please upload a primary image");
+      setIsLoading(false);
+      return;
+    }
+
+    if (variants.length === 0) {
+      toast.error("Please add at least one variant");
+      setIsLoading(false);
+      return;
+    }
+
+    const loadingToast = toast.loading("Creating product...");
 
     try {
-      productSchema.parse(payload);
-      setTimeout(() => {
-        setIsLoading(false);
-        alert("Product Published Successfully!");
-      }, 1500);
-    } catch (err) {
-      setIsLoading(false);
-      if (err instanceof z.ZodError) {
-        const fieldErrors = {};
-        err.errors.forEach((e) => {
-          fieldErrors[e.path[0]] = e.message;
-        });
-        setErrors(fieldErrors);
-        window.scrollTo({ top: 0, behavior: "smooth" });
+      const formDataPayload = buildFormData();
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session?.accessToken}`,
+          Accept: "application/json",
+        },
+        body: formDataPayload,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to create product");
       }
+
+      toast.success("Product created successfully!", { id: loadingToast });
+      router.push("/app/products");
+    } catch (error) {
+      toast.error(error.message, { id: loadingToast });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -243,7 +391,10 @@ export default function CreateProductPage() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
-              <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors text-slate-500 dark:text-slate-400">
+              <button 
+                onClick={() => router.back()}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors text-slate-500 dark:text-slate-400"
+              >
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
@@ -252,7 +403,7 @@ export default function CreateProductPage() {
                 </h1>
                 <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                   <span
-                    className={`w-2 h-2 rounded-full ${formData.status === "Published" ? "bg-green-500" : "bg-amber-500"}`}
+                    className={`w-2 h-2 rounded-full ${formData.status === "published" ? "bg-green-500" : "bg-amber-500"}`}
                   ></span>
                   {formData.status} Mode
                 </div>
@@ -260,8 +411,10 @@ export default function CreateProductPage() {
             </div>
 
             <div className="flex items-center gap-3">
-             
-              <button className="hidden sm:flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm font-semibold">
+              <button 
+                onClick={() => setFormData({...formData, status: "draft"})}
+                className="hidden sm:flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm font-semibold"
+              >
                 <Save className="w-4 h-4" /> Save Draft
               </button>
               <button
@@ -286,7 +439,6 @@ export default function CreateProductPage() {
               { id: "media", label: "Media Gallery", icon: ImageIcon },
               { id: "variants", label: "Pricing & Variants", icon: Layers },
               { id: "specs", label: "Specs & Features", icon: Smartphone },
-              { id: "seo", label: "SEO Metadata", icon: Globe },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -315,7 +467,6 @@ export default function CreateProductPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* --- LEFT CONTENT (8 cols) --- */}
           <div className="lg:col-span-8 space-y-8">
-            {/* TABS */}
 
 
             {/* TAB CONTENT: GENERAL */}
@@ -327,8 +478,8 @@ export default function CreateProductPage() {
                   </h3>
                   <div className="space-y-4">
                     <div>
-                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
-                        Product Name
+                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 block">
+                        Product Name *
                       </label>
                       <input
                         type="text"
@@ -336,33 +487,28 @@ export default function CreateProductPage() {
                         onChange={(e) =>
                           setFormData({ ...formData, name: e.target.value })
                         }
-                        className={`w-full p-3 bg-slate-50 dark:bg-slate-900 border rounded-xl outline-none focus:border-indigo-500 transition-all dark:text-white ${errors.name ? "border-red-300 dark:border-red-700" : "border-slate-200 dark:border-slate-700"}`}
-                        placeholder="e.g. Sony WH-1000XM5 Headphones"
+                        className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-indigo-500 transition-all dark:text-white"
+                        placeholder="e.g. Apple iPhone 15 Pro"
                       />
-                      {errors.name && (
-                        <p className="text-xs text-red-500 mt-1">
-                          {errors.name}
-                        </p>
-                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
-                          Slug (URL)
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 block">
+                          Product Code *
                         </label>
                         <div className="flex gap-2">
                           <input
                             type="text"
-                            value={formData.slug}
+                            value={formData.code}
                             onChange={(e) =>
-                              setFormData({ ...formData, slug: e.target.value })
+                              setFormData({ ...formData, code: e.target.value })
                             }
                             className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-600 dark:text-slate-300 text-sm"
-                            placeholder="sony-headphones-xm5"
+                            placeholder="APL-IP15P-TIT"
                           />
                           <button
-                            onClick={generateSlug}
+                            onClick={generateCode}
                             className="px-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl text-slate-600 dark:text-slate-300 text-xs font-bold"
                           >
                             Generate
@@ -370,8 +516,8 @@ export default function CreateProductPage() {
                         </div>
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
-                          Product Type
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 block">
+                          Product Type *
                         </label>
                         <select
                           value={formData.type}
@@ -380,69 +526,134 @@ export default function CreateProductPage() {
                           }
                           className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none dark:text-white"
                         >
-                          <option>Physical Product</option>
-                          <option>Digital Asset</option>
-                          <option>Service</option>
+                          <option value="physical">Physical Product</option>
+                          <option value="digital">Digital Asset</option>
+                          <option value="service">Service</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 block">
+                          Category *
+                        </label>
+                        <select
+                          value={formData.category_id}
+                          onChange={(e) =>
+                            setFormData({ ...formData, category_id: e.target.value })
+                          }
+                          className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none dark:text-white"
+                        >
+                          <option value="">Select Category</option>
+                          {categories.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 block">
+                          Brand *
+                        </label>
+                        <select
+                          value={formData.brand_id}
+                          onChange={(e) =>
+                            setFormData({ ...formData, brand_id: e.target.value })
+                          }
+                          className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none dark:text-white"
+                        >
+                          <option value="">Select Brand</option>
+                          {brands.map((brand) => (
+                            <option key={brand.id} value={brand.id}>
+                              {brand.name}
+                            </option>
+                          ))}
                         </select>
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-xs font-bold text-slate-500 uppercase mb-1">
+                      <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">
                         Short Description (Excerpt)
                       </label>
                       <textarea
                         rows="2"
-                        value={formData.shortDescription}
+                        value={formData.short_description}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            shortDescription: e.target.value,
+                            short_description: e.target.value,
                           })
                         }
                         className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-sm dark:text-white"
                         placeholder="Brief summary for list views..."
+                        maxLength="160"
                       ></textarea>
                       <p className="text-[10px] text-right text-slate-400">
-                        {formData.shortDescription.length}/160
+                        {formData.short_description.length}/160
                       </p>
                     </div>
 
                     <div>
-                      <label className="text-xs font-bold text-slate-500 uppercase mb-1">
+                      <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">
                         Full Description
                       </label>
-                      <div className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl min-h-[200px] p-4 relative group cursor-text">
-                        <textarea
-                          className="w-full h-full bg-transparent outline-none resize-none text-sm z-10 relative dark:text-white"
-                          placeholder="Write your rich text description here..."
-                          value={formData.description}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              description: e.target.value,
-                            })
-                          }
-                          rows="8"
-                        ></textarea>
-                        {/* Placeholder for WYSIWYG Tooltip */}
-                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="p-1 bg-white dark:bg-slate-800 border dark:border-slate-600 rounded text-xs dark:text-slate-300">
-                            B
-                          </div>
-                          <div className="p-1 bg-white dark:bg-slate-800 border dark:border-slate-600 rounded text-xs dark:text-slate-300">
-                            I
-                          </div>
-                          <div className="p-1 bg-white dark:bg-slate-800 border dark:border-slate-600 rounded text-xs dark:text-slate-300">
-                            List
-                          </div>
-                        </div>
+                      <textarea
+                        className="w-full p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none resize-none text-sm dark:text-white"
+                        placeholder="Write your full product description here..."
+                        value={formData.full_description}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            full_description: e.target.value,
+                          })
+                        }
+                        rows="8"
+                      ></textarea>
+                    </div>
+
+                    {/* Badges */}
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">
+                        Product Badges
+                      </label>
+                      <div className="flex flex-wrap gap-3">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.is_featured}
+                            onChange={(e) =>
+                              setFormData({ ...formData, is_featured: e.target.checked })
+                            }
+                            className="w-4 h-4 rounded border-slate-300"
+                          />
+                          <span className="text-sm">Featured</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.is_trending}
+                            onChange={(e) =>
+                              setFormData({ ...formData, is_trending: e.target.checked })
+                            }
+                            className="w-4 h-4 rounded border-slate-300"
+                          />
+                          <span className="text-sm">Trending</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.is_active}
+                            onChange={(e) =>
+                              setFormData({ ...formData, is_active: e.target.checked })
+                            }
+                            className="w-4 h-4 rounded border-slate-300"
+                          />
+                          <span className="text-sm">Active</span>
+                        </label>
                       </div>
-                      {errors.description && (
-                        <p className="text-xs text-red-500 mt-1">
-                          {errors.description}
-                        </p>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -455,14 +666,13 @@ export default function CreateProductPage() {
                 {/* Hero Image */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                   <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-                    <Star className="w-4 h-4 text-amber-500" /> Hero Image
-                    (Thumbnail)
+                    <Star className="w-4 h-4 text-amber-500" /> Primary Image *
                   </h3>
                   <div className="flex gap-6 items-start">
                     <div className="w-40 h-40 bg-slate-50 dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl flex items-center justify-center relative overflow-hidden group">
-                      {heroImage ? (
+                      {heroImagePreview ? (
                         <img
-                          src={heroImage}
+                          src={heroImagePreview}
                           alt="Hero"
                           className="w-full h-full object-cover"
                         />
@@ -513,7 +723,7 @@ export default function CreateProductPage() {
                     </label>
                   </div>
 
-                  {galleryImages.length === 0 ? (
+                  {galleryImagePreviews.length === 0 ? (
                     <div className="p-8 text-center bg-slate-50 dark:bg-slate-900 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
                       <ImageIcon className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                       <p className="text-slate-400 text-sm">
@@ -522,7 +732,7 @@ export default function CreateProductPage() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {galleryImages.map((img, idx) => (
+                      {galleryImagePreviews.map((img, idx) => (
                         <div
                           key={idx}
                           className="relative aspect-square group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700"
@@ -540,11 +750,10 @@ export default function CreateProductPage() {
                               <MoveLeft className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() =>
-                                setGalleryImages(
-                                  galleryImages.filter((_, i) => i !== idx),
-                                )
-                              }
+                              onClick={() => {
+                                setGalleryImageFiles(galleryImageFiles.filter((_, i) => i !== idx));
+                                setGalleryImagePreviews(galleryImagePreviews.filter((_, i) => i !== idx));
+                              }}
                               className="p-1 bg-white dark:bg-slate-800 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -570,67 +779,127 @@ export default function CreateProductPage() {
             {/* TAB CONTENT: SPECS & FEATURES */}
             {activeTab === "specs" && (
               <div className="space-y-6 animate-fade-up">
-                {/* Bullet Points */}
+                {/* Features with Autocomplete */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                   <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">
-                    Key Features (Bullet Points)
+                    Key Features
                   </h3>
-                  <div className="flex gap-2 mb-4">
-                    <input
-                      type="text"
-                      className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm outline-none dark:text-white"
-                      placeholder="e.g. Active Noise Cancellation..."
-                      value={featureInput}
-                      onChange={(e) => setFeatureInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          setFormData((p) => ({
-                            ...p,
-                            features: [...p.features, featureInput],
-                          }));
-                          setFeatureInput("");
-                        }
-                      }}
-                    />
-                    <button
-                      onClick={() => {
-                        if (featureInput) {
-                          setFormData((p) => ({
-                            ...p,
-                            features: [...p.features, featureInput],
-                          }));
-                          setFeatureInput("");
-                        }
-                      }}
-                      className="bg-indigo-600 text-white px-4 rounded-xl"
-                    >
-                      <Plus className="w-5 h-5" />
-                    </button>
-                  </div>
-                  <ul className="space-y-2">
-                    {formData.features.map((feat, idx) => (
-                      <li
-                        key={idx}
-                        className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg group"
-                      >
-                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
-                        <span className="flex-1 text-sm text-slate-700 dark:text-slate-300">
-                          {feat}
-                        </span>
-                        <button
-                          onClick={() =>
-                            setFormData((p) => ({
-                              ...p,
-                              features: p.features.filter((_, i) => i !== idx),
-                            }))
+                  <div className="relative mb-4">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm outline-none dark:text-white"
+                        placeholder="Type to search features..."
+                        value={featureInput}
+                        onChange={(e) => handleFeatureInputChange(e.target.value)}
+                        onFocus={() => setShowFeatureSuggestions(featureInput.length > 0)}
+                      />
+                      <button
+                        onClick={() => {
+                          if (featureInput && filteredFeatures.length > 0) {
+                            handleAddFeature(filteredFeatures[0]);
                           }
-                          className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100"
+                        }}
+                        className="bg-indigo-600 text-white px-4 rounded-xl"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
+                    </div>
+                    
+                    {/* Autocomplete Suggestions */}
+                    {showFeatureSuggestions && filteredFeatures.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-48 overflow-y-auto z-10">
+                        {filteredFeatures.map((feature) => (
+                          <button
+                            key={feature.id}
+                            onClick={() => handleAddFeature(feature)}
+                            className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm transition-colors"
+                          >
+                            {feature.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {selectedFeatures.map((feat) => (
+                      <span
+                        key={feat.id}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 rounded-lg text-sm font-medium"
+                      >
+                        {feat.name}
+                        <button
+                          onClick={() => setSelectedFeatures(selectedFeatures.filter(f => f.id !== feat.id))}
+                          className="hover:text-red-500"
                         >
-                          <X className="w-4 h-4" />
+                          <X className="w-3 h-3" />
                         </button>
-                      </li>
+                      </span>
                     ))}
-                  </ul>
+                  </div>
+                </div>
+
+                {/* Tags with Autocomplete */}
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">
+                    Product Tags
+                  </h3>
+                  <div className="relative mb-4">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm outline-none dark:text-white"
+                        placeholder="Type to search tags..."
+                        value={tagInput}
+                        onChange={(e) => handleTagInputChange(e.target.value)}
+                        onFocus={() => setShowTagSuggestions(tagInput.length > 0)}
+                      />
+                      <button
+                        onClick={() => {
+                          if (tagInput && filteredTags.length > 0) {
+                            handleAddTag(filteredTags[0]);
+                          }
+                        }}
+                        className="bg-indigo-600 text-white px-4 rounded-xl"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
+                    </div>
+                    
+                    {/* Autocomplete Suggestions */}
+                    {showTagSuggestions && filteredTags.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-48 overflow-y-auto z-10">
+                        {filteredTags.map((tag) => (
+                          <button
+                            key={tag.id}
+                            onClick={() => handleAddTag(tag)}
+                            className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm transition-colors"
+                          >
+                            {tag.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {selectedTags.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium"
+                      >
+                        <Tag className="w-3 h-3" />
+                        {tag.name}
+                        <button
+                          onClick={() => setSelectedTags(selectedTags.filter(t => t.id !== tag.id))}
+                          className="hover:text-red-500"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Specs Table */}
@@ -646,10 +915,10 @@ export default function CreateProductPage() {
                       <input
                         type="text"
                         className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm outline-none dark:text-white"
-                        placeholder="e.g. Battery Life"
-                        value={specInput.key}
+                        placeholder="e.g. Display"
+                        value={specInput.specification_name}
                         onChange={(e) =>
-                          setSpecInput({ ...specInput, key: e.target.value })
+                          setSpecInput({ ...specInput, specification_name: e.target.value })
                         }
                       />
                     </div>
@@ -660,23 +929,15 @@ export default function CreateProductPage() {
                       <input
                         type="text"
                         className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm outline-none dark:text-white"
-                        placeholder="e.g. 30 Hours"
-                        value={specInput.value}
+                        placeholder="e.g. 6.1-inch OLED"
+                        value={specInput.specification_value}
                         onChange={(e) =>
-                          setSpecInput({ ...specInput, value: e.target.value })
+                          setSpecInput({ ...specInput, specification_value: e.target.value })
                         }
                       />
                     </div>
                     <button
-                      onClick={() => {
-                        if (specInput.key && specInput.value) {
-                          setFormData((p) => ({
-                            ...p,
-                            specifications: [...p.specifications, specInput],
-                          }));
-                          setSpecInput({ key: "", value: "" });
-                        }
-                      }}
+                      onClick={handleAddSpec}
                       className="bg-indigo-600 text-white px-4 py-2 rounded-xl h-[38px]"
                     >
                       <Plus className="w-5 h-5" />
@@ -693,23 +954,18 @@ export default function CreateProductPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                        {formData.specifications.map((spec, idx) => (
+                        {specifications.map((spec, idx) => (
                           <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
                             <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">
-                              {spec.key}
+                              {spec.specification_name}
                             </td>
                             <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
-                              {spec.value}
+                              {spec.specification_value}
                             </td>
                             <td className="px-4 py-3 text-right">
                               <button
                                 onClick={() =>
-                                  setFormData((p) => ({
-                                    ...p,
-                                    specifications: p.specifications.filter(
-                                      (_, i) => i !== idx,
-                                    ),
-                                  }))
+                                  setSpecifications(specifications.filter((_, i) => i !== idx))
                                 }
                                 className="text-slate-400 hover:text-red-500"
                               >
@@ -730,15 +986,32 @@ export default function CreateProductPage() {
               <div className="space-y-6 animate-fade-up">
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                   <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6">
-                    Manage Variants
+                    Manage Variants *
                   </h3>
 
                   {/* Variant Adder */}
                   <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 mb-6">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          SKU (Unique ID)
+                          Variant Name *
+                        </label>
+                        <input
+                          type="text"
+                          value={currentVariant.variant_name}
+                          onChange={(e) =>
+                            setCurrentVariant({
+                              ...currentVariant,
+                              variant_name: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
+                          placeholder="256GB Natural Titanium"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                          SKU *
                         </label>
                         <input
                           type="text"
@@ -750,23 +1023,58 @@ export default function CreateProductPage() {
                             })
                           }
                           className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
-                          placeholder="S24-BLK-128"
+                          placeholder="IP15P-256-NT"
                         />
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          Storage / Size
+                          Barcode
                         </label>
                         <input
                           type="text"
-                          value={currentVariant.storage}
+                          value={currentVariant.barcode}
                           onChange={(e) =>
                             setCurrentVariant({
                               ...currentVariant,
-                              storage: e.target.value,
+                              barcode: e.target.value,
                             })
                           }
                           className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
+                          placeholder="195949000123"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                          Storage
+                        </label>
+                        <input
+                          type="text"
+                          value={currentVariant.storage_size}
+                          onChange={(e) =>
+                            setCurrentVariant({
+                              ...currentVariant,
+                              storage_size: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
+                          placeholder="256GB"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                          RAM
+                        </label>
+                        <input
+                          type="text"
+                          value={currentVariant.ram_size}
+                          onChange={(e) =>
+                            setCurrentVariant({
+                              ...currentVariant,
+                              ram_size: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
+                          placeholder="8GB"
                         />
                       </div>
                       <div>
@@ -783,34 +1091,15 @@ export default function CreateProductPage() {
                             })
                           }
                           className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
+                          placeholder="Natural Titanium"
                         />
                       </div>
-                      <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          Linked Image
-                        </label>
-                        <select
-                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
-                          onChange={(e) =>
-                            setCurrentVariant({
-                              ...currentVariant,
-                              imageIndex: e.target.value,
-                            })
-                          }
-                        >
-                          <option value="">No specific image</option>
-                          {galleryImages.map((_, idx) => (
-                            <option key={idx} value={idx}>
-                              Image #{idx + 1}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          Price
+                          Price *
                         </label>
                         <input
                           type="number"
@@ -822,222 +1111,164 @@ export default function CreateProductPage() {
                             })
                           }
                           className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
-                          placeholder="0.00"
+                          placeholder="149900"
                         />
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-green-600 dark:text-green-400 mb-1 block">
-                          Sale Price
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                          Sales Price
                         </label>
                         <input
                           type="number"
-                          value={currentVariant.salePrice}
+                          value={currentVariant.sales_price}
                           onChange={(e) =>
                             setCurrentVariant({
                               ...currentVariant,
-                              salePrice: e.target.value,
+                              sales_price: e.target.value,
                             })
                           }
-                          className="w-full px-3 py-2 border border-green-200 dark:border-green-800 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
-                          placeholder="Optional"
+                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
+                          placeholder="144900"
                         />
                       </div>
-                      <div className="flex items-center gap-2 pb-2">
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                          Stock Quantity
+                        </label>
+                        <input
+                          type="number"
+                          value={currentVariant.stock_quantity}
+                          onChange={(e) =>
+                            setCurrentVariant({
+                              ...currentVariant,
+                              stock_quantity: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
+                          placeholder="50"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                          Low Stock Alert
+                        </label>
+                        <input
+                          type="number"
+                          value={currentVariant.low_stock_threshold}
+                          onChange={(e) =>
+                            setCurrentVariant({
+                              ...currentVariant,
+                              low_stock_threshold: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
+                          placeholder="5"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 mb-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
-                          id="defVar"
-                          checked={currentVariant.isDefault}
+                          checked={currentVariant.is_offer}
                           onChange={(e) =>
                             setCurrentVariant({
                               ...currentVariant,
-                              isDefault: e.target.checked,
+                              is_offer: e.target.checked,
                             })
                           }
-                          className="w-4 h-4 accent-indigo-600"
+                          className="w-4 h-4 rounded"
                         />
-                        <label
-                          htmlFor="defVar"
-                          className="text-sm font-medium text-slate-700 dark:text-slate-300"
-                        >
-                          Default Variant
-                        </label>
-                      </div>
-                      <button
-                        onClick={addVariant}
-                        className="bg-indigo-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-indigo-700"
-                      >
-                        Add Variant
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* List */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 font-bold border-b border-slate-200 dark:border-slate-700">
-                        <tr>
-                          <th className="px-4 py-3">Image</th>
-                          <th className="px-4 py-3">SKU</th>
-                          <th className="px-4 py-3">Variant</th>
-                          <th className="px-4 py-3">Price</th>
-                          <th className="px-4 py-3 text-right">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                        {variants.map((v) => (
-                          <tr key={v.id}>
-                            <td className="px-4 py-3">
-                              {v.imageIndex !== null &&
-                              galleryImages[v.imageIndex] ? (
-                                <img
-                                  src={galleryImages[v.imageIndex]}
-                                  className="w-8 h-8 rounded border object-cover"
-                                  alt=""
-                                />
-                              ) : (
-                                <div className="w-8 h-8 bg-slate-100 dark:bg-slate-700 rounded border dark:border-slate-600"></div>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 font-mono text-xs dark:text-slate-300">
-                              {v.sku}{" "}
-                              {v.isDefault && (
-                                <span className="ml-2 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] rounded font-bold">
-                                  DEFAULT
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 dark:text-slate-300">
-                              {v.storage} - {v.color}
-                            </td>
-                            <td className="px-4 py-3 dark:text-slate-300">
-                              {v.salePrice ? (
-                                <span>
-                                  <span className="line-through text-slate-400 text-xs mr-2">
-                                    {v.price}
-                                  </span>
-                                  <span className="text-green-600 dark:text-green-400 font-bold">
-                                    {v.salePrice}
-                                  </span>
-                                </span>
-                              ) : (
-                                v.price
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <button
-                                onClick={() =>
-                                  setVariants(
-                                    variants.filter((i) => i.id !== v.id),
-                                  )
-                                }
-                                className="text-slate-400 hover:text-red-500"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB CONTENT: SEO */}
-            {activeTab === "seo" && (
-              <div className="space-y-6 animate-fade-up">
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6">
-                    Search Engine Optimization
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
-                          Meta Title
-                        </label>
+                        <span className="text-sm">On Offer</span>
+                      </label>
+                      {currentVariant.is_offer && (
                         <input
-                          type="text"
-                          className="w-full p-3 bg-slate-50 dark:bg-slate-900 border dark:border-slate-700 rounded-xl outline-none text-sm dark:text-white"
-                          value={formData.metaTitle}
+                          type="number"
+                          value={currentVariant.offer_price}
                           onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              metaTitle: e.target.value,
+                            setCurrentVariant({
+                              ...currentVariant,
+                              offer_price: e.target.value,
                             })
                           }
-                          placeholder={formData.name}
+                          className="px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white"
+                          placeholder="Offer Price"
                         />
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
-                          Meta Description
-                        </label>
-                        <textarea
-                          rows="4"
-                          className="w-full p-3 bg-slate-50 dark:bg-slate-900 border dark:border-slate-700 rounded-xl outline-none text-sm dark:text-white"
-                          value={formData.metaDescription}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              metaDescription: e.target.value,
-                            })
-                          }
-                          placeholder="Brief description for search results..."
-                        ></textarea>
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
-                          Keywords
-                        </label>
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer">
                         <input
-                          type="text"
-                          className="w-full p-3 bg-slate-50 dark:bg-slate-900 border dark:border-slate-700 rounded-xl outline-none text-sm dark:text-white"
-                          value={formData.metaKeywords}
+                          type="checkbox"
+                          checked={currentVariant.is_trending}
                           onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              metaKeywords: e.target.value,
+                            setCurrentVariant({
+                              ...currentVariant,
+                              is_trending: e.target.checked,
                             })
                           }
-                          placeholder="electronics, sony, headphones, audio"
+                          className="w-4 h-4 rounded"
                         />
-                      </div>
+                        <span className="text-sm">Trending</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={currentVariant.is_featured}
+                          onChange={(e) =>
+                            setCurrentVariant({
+                              ...currentVariant,
+                              is_featured: e.target.checked,
+                            })
+                          }
+                          className="w-4 h-4 rounded"
+                        />
+                        <span className="text-sm">Featured</span>
+                      </label>
                     </div>
 
-                    {/* Preview Card */}
-                    <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
-                      <h4 className="text-xs font-bold text-slate-400 uppercase mb-4 flex items-center gap-2">
-                        <Search className="w-3 h-3" /> Google Snippet Preview
+                    <button
+                      onClick={addVariant}
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-bold transition-colors"
+                    >
+                      <Plus className="w-4 h-4 inline mr-2" />
+                      Add Variant
+                    </button>
+                  </div>
+
+                  {/* Variants List */}
+                  {variants.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-bold text-sm text-slate-600 dark:text-slate-400">
+                        Added Variants ({variants.length})
                       </h4>
-                      <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="w-6 h-6 bg-gray-200 rounded-full"></div>
-                          <div className="flex flex-col">
-                            <span className="text-xs text-slate-800 dark:text-slate-200">
-                              yourstore.com
-                            </span>
-                            <span className="text-[10px] text-slate-400">
-                              https://yourstore.com/product/
-                              {formData.slug || "product-slug"}
-                            </span>
+                      {variants.map((variant, idx) => (
+                        <div
+                          key={variant.id}
+                          className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h5 className="font-bold text-slate-900 dark:text-white">
+                                {variant.variant_name}
+                              </h5>
+                              <p className="text-xs text-slate-500 font-mono">{variant.sku}</p>
+                              <div className="mt-2 flex gap-4 text-sm">
+                                <span>Price: ${variant.price}</span>
+                                <span>Stock: {variant.stock_quantity}</span>
+                                {variant.is_offer && <span className="text-amber-600">On Offer</span>}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => setVariants(variants.filter((_, i) => i !== idx))}
+                              className="text-slate-400 hover:text-red-500"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
-                        <h3 className="text-xl text-blue-800 hover:underline cursor-pointer mb-1 truncate">
-                          {formData.metaTitle ||
-                            formData.name ||
-                            "Product Title"}
-                        </h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
-                          {formData.metaDescription ||
-                            formData.description ||
-                            "This is how your product description will look in search engine results."}
-                        </p>
-                      </div>
+                      ))}
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1045,175 +1276,47 @@ export default function CreateProductPage() {
 
           {/* --- RIGHT SIDEBAR (4 cols) --- */}
           <div className="lg:col-span-4 space-y-6">
-            {/* 1. STATUS */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase mb-4">
-                Organization
+            {/* Status Card */}
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm sticky top-32">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">
+                Publish Settings
               </h3>
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-2 block">
                     Status
                   </label>
                   <select
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm dark:text-white"
                     value={formData.status}
                     onChange={(e) =>
                       setFormData({ ...formData, status: e.target.value })
                     }
+                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none dark:text-white"
                   >
-                    <option>Published</option>
-                    <option>Draft</option>
-                    <option>Archived</option>
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
                   </select>
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1">
-                    Brand
-                  </label>
-                  <select
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm dark:text-white"
-                    value={formData.brand}
-                    onChange={(e) =>
-                      setFormData({ ...formData, brand: e.target.value })
-                    }
-                  >
-                    <option>Samsung</option>
-                    <option>Apple</option>
-                    <option>Sony</option>
-                    <option>Xiaomi</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1">
-                    Category
-                  </label>
-                  <select
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm dark:text-white"
-                    value={formData.category}
-                    onChange={(e) =>
-                      setFormData({ ...formData, category: e.target.value })
-                    }
-                  >
-                    <option>Smartphones</option>
-                    <option>Audio</option>
-                    <option>Wearables</option>
-                  </select>
-                </div>
-              </div>
-            </div>
 
-            {/* 2. TAGS */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase mb-4 flex items-center gap-2">
-                <Tag className="w-4 h-4" /> Tags
-              </h3>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {formData.tags.map((tag, i) => (
-                  <span
-                    key={i}
-                    className="px-2 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-xs font-bold rounded-md flex items-center gap-1"
-                  >
-                    {tag}{" "}
-                    <button
-                      onClick={() =>
-                        setFormData((p) => ({
-                          ...p,
-                          tags: p.tags.filter((_, idx) => idx !== i),
-                        }))
-                      }
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-              <input
-                type="text"
-                placeholder="Type & hit Enter..."
-                className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:border-indigo-500 dark:text-white"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={handleAddTag}
-              />
-            </div>
-
-            {/* 3. OFFERS & BADGES */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase mb-4">
-                Marketing
-              </h3>
-              <div className="space-y-3">
-                {[
-                  {
-                    id: "isTrending",
-                    label: "Trending",
-                    icon: Flame,
-                    color: "text-amber-500",
-                  },
-                  {
-                    id: "isFeatured",
-                    label: "Featured",
-                    icon: Star,
-                    color: "text-indigo-500",
-                  },
-                  {
-                    id: "isOfferProduct",
-                    label: "Offer / Deal",
-                    icon: TrendingUp,
-                    color: "text-green-500",
-                  },
-                ].map((item) => (
-                  <label
-                    key={item.id}
-                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData[item.id]}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          [item.id]: e.target.checked,
-                        })
-                      }
-                      className="w-4 h-4 accent-indigo-600 rounded"
-                    />
-                    <div className="flex-1 font-bold text-sm text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                      <item.icon className={`w-4 h-4 ${item.color}`} />{" "}
-                      {item.label}
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                    Quick Stats
+                  </p>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-600 dark:text-slate-400">Variants:</span>
+                      <span className="font-bold">{variants.length}</span>
                     </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* 4. COUPONS / OFFERS (Mockup) */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm opacity-70">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase mb-4">
-                Coupons
-              </h3>
-              <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 text-center text-sm text-slate-500 dark:text-slate-400">
-                No active coupons available.
-                <br />
-                <span className="text-xs text-indigo-600 dark:text-indigo-400 font-bold cursor-pointer hover:underline">
-                  Create Coupon
-                </span>
-              </div>
-            </div>
-
-            {/* 5. RELATIONS (Mockup) */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase mb-4">
-                Compatible Items
-              </h3>
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search accessories..."
-                  className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm dark:text-white"
-                />
+                    <div className="flex justify-between">
+                      <span className="text-slate-600 dark:text-slate-400">Images:</span>
+                      <span className="font-bold">{galleryImagePreviews.length + (heroImagePreview ? 1 : 0)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600 dark:text-slate-400">Specs:</span>
+                      <span className="font-bold">{specifications.length}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
