@@ -892,14 +892,16 @@ function CreateProductContent() {
     try {
       const formDataPayload = buildFormData();
 
+      if (isEditMode) {
+        formDataPayload.append("_method", "PUT");
+      }
+
       const url = isEditMode
         ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/${productId}`
         : `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products`;
 
-      const method = isEditMode ? "PUT" : "POST";
-
       const res = await fetch(url, {
-        method,
+        method: "POST",
         headers: {
           Authorization: `Bearer ${session?.accessToken}`,
           Accept: "application/json",
