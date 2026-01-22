@@ -557,12 +557,8 @@ function CreateProductContent() {
 
   // Variant Handler
   const addVariant = () => {
-    if (
-      !currentVariant.variant_name ||
-      !currentVariant.sku ||
-      !currentVariant.price
-    ) {
-      toast.error("Variant name, SKU, and price are required");
+    if (!currentVariant.price) {
+      toast.error("Variant price is required");
       return;
     }
 
@@ -1595,7 +1591,7 @@ function CreateProductContent() {
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          SKU *
+                          SKU
                         </label>
                         <input
                           type="text"
