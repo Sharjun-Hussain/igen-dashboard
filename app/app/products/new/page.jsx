@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, Suspense } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -33,6 +33,9 @@ import {
   Image as ImageIcon,
   Check,
   ShoppingCart,
+  Pencil,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 const ProductRelationshipSelector = ({
@@ -193,29 +196,32 @@ const ProductRelationshipSelector = ({
 
 const CustomCheckbox = ({ id, checked, onCheckedChange }) => {
   return (
-    <div
-      onClick={() => onCheckedChange(!checked)}
-      className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all cursor-pointer ${
-        checked
-          ? "bg-indigo-600 border-indigo-600 shadow-lg shadow-indigo-600/20"
-          : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 hover:border-indigo-400"
-      }`}
-    >
-      {checked && <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />}
+    <div className="relative w-5 h-5 shrink-0">
       <input
         type="checkbox"
         id={id}
         checked={checked}
-        onChange={() => {}}
-        className="sr-only"
+        onChange={(e) => onCheckedChange(e.target.checked)}
+        className="absolute inset-0 opacity-0 cursor-pointer z-10"
       />
+      <div
+        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+          checked
+            ? "bg-indigo-600 border-indigo-600 shadow-lg shadow-indigo-600/20"
+            : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 hover:border-indigo-400"
+        }`}
+      >
+        {checked && <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />}
+      </div>
     </div>
   );
 };
 
-export default function CreateProductPage() {
+function CreateProductContent() {
   const containerRef = useRef(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const draftId = searchParams.get("draftId");
   const { data: session } = useSession();
 
   // --- STATE ---
@@ -281,6 +287,10 @@ export default function CreateProductPage() {
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [showFeatureSuggestions, setShowFeatureSuggestions] = useState(false);
 
+  // Variant Editing State
+  const [editingVariantId, setEditingVariantId] = useState(null);
+  const [expandedVariantId, setExpandedVariantId] = useState(null);
+
   // Product Relationship Search State
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [debouncedProductSearch, setDebouncedProductSearch] = useState("");
@@ -311,6 +321,62 @@ export default function CreateProductPage() {
       setProductSearchResults(searchResponse.data.data);
     }
   }, [searchResponse]);
+
+  // Load draft from localStorage
+  React.useEffect(() => {
+    if (draftId) {
+      try {
+        const drafts = JSON.parse(
+          localStorage.getItem("igen_product_drafts") || "[]",
+        );
+        const draft = drafts.find((d) => d.id === draftId);
+        if (draft) {
+          setFormData(draft.formData);
+          setVariants(draft.variants);
+          setSpecifications(draft.specifications);
+          setSelectedTags(draft.selectedTags);
+          setSelectedFeatures(draft.selectedFeatures);
+          toast.info("Draft loaded from local storage");
+        }
+      } catch (error) {
+        console.error("Error loading draft:", error);
+      }
+    }
+  }, [draftId]);
+
+  // --- UNSAVED CHANGES WARNING ---
+  React.useEffect(() => {
+    const isDirty =
+      formData.name !== "" ||
+      formData.short_description !== "" ||
+      formData.full_description !== "" ||
+      variants.length > 0 ||
+      specifications.length > 0 ||
+      selectedTags.length > 0 ||
+      selectedFeatures.length > 0 ||
+      heroImageFile !== null ||
+      galleryImageFiles.length > 0;
+
+    const handleBeforeUnload = (e) => {
+      if (isDirty && !isLoading) {
+        e.preventDefault();
+        e.returnValue = "You have unsaved changes. Are you sure you want to leave?";
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [
+    formData,
+    variants,
+    specifications,
+    selectedTags,
+    selectedFeatures,
+    heroImageFile,
+    galleryImageFiles,
+    isLoading,
+  ]);
 
   // --- API FETCHING ---
   const fetcher = async (url) => {
@@ -453,8 +519,9 @@ export default function CreateProductPage() {
 
   // Tag Handler with autocomplete
   const handleAddTag = (tag) => {
-    if (!selectedTags.find((t) => t.id === tag.id)) {
-      setSelectedTags([...selectedTags, tag]);
+    const tagToAdd = typeof tag === "string" ? { id: `new-${Date.now()}`, name: tag } : tag;
+    if (!selectedTags.find((t) => t.name.toLowerCase() === tagToAdd.name.toLowerCase())) {
+      setSelectedTags([...selectedTags, tagToAdd]);
     }
     setTagInput("");
     setShowTagSuggestions(false);
@@ -467,8 +534,9 @@ export default function CreateProductPage() {
 
   // Feature Handler with autocomplete
   const handleAddFeature = (feature) => {
-    if (!selectedFeatures.find((f) => f.id === feature.id)) {
-      setSelectedFeatures([...selectedFeatures, feature]);
+    const featureToAdd = typeof feature === "string" ? { id: `new-${Date.now()}`, name: feature } : feature;
+    if (!selectedFeatures.find((f) => f.name.toLowerCase() === featureToAdd.name.toLowerCase())) {
+      setSelectedFeatures([...selectedFeatures, featureToAdd]);
     }
     setFeatureInput("");
     setShowFeatureSuggestions(false);
@@ -503,7 +571,46 @@ export default function CreateProductPage() {
       variantToAdd.ram_size = `${variantToAdd.ram_size}GB`;
     }
 
-    setVariants([...variants, { ...variantToAdd, id: Date.now() }]);
+    if (editingVariantId) {
+      setVariants(variants.map(v => v.id === editingVariantId ? { ...variantToAdd, id: editingVariantId } : v));
+      setEditingVariantId(null);
+      toast.success("Variant updated");
+    } else {
+      setVariants([...variants, { ...variantToAdd, id: Date.now() }]);
+      toast.success("Variant added");
+    }
+
+    setCurrentVariant({
+      variant_name: "Brand New",
+      sku: "",
+      barcode: "",
+      storage_size: "",
+      ram_size: "",
+      color: "",
+      price: "",
+      sales_price: "",
+      stock_quantity: "",
+      low_stock_threshold: "5",
+      is_offer: false,
+      offer_price: "",
+      is_trending: false,
+      is_active: true,
+      is_featured: false,
+    });
+  };
+
+  const editVariant = (variant) => {
+    setEditingVariantId(variant.id);
+    setCurrentVariant({ ...variant });
+    // Scroll to variant form
+    const element = document.getElementById("variant-form");
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
+
+  const cancelEditVariant = () => {
+    setEditingVariantId(null);
     setCurrentVariant({
       variant_name: "Brand New",
       sku: "",
@@ -625,6 +732,43 @@ export default function CreateProductPage() {
   };
 
   // Save Function
+  // Save Draft to LocalStorage
+  const handleSaveDraft = () => {
+    try {
+      const draftId = `draft-${Date.now()}`;
+      const draftData = {
+        id: draftId,
+        name: formData.name || "Untitled Product",
+        code: formData.code || "DRAFT-" + Date.now(),
+        status: "draft",
+        is_local_draft: true,
+        formData,
+        variants,
+        specifications,
+        selectedTags,
+        selectedFeatures,
+        createdAt: new Date().toISOString(),
+      };
+
+      const existingDrafts = JSON.parse(
+        localStorage.getItem("igen_product_drafts") || "[]",
+      );
+      const otherDrafts = existingDrafts.filter((d) => d.id !== draftId);
+      localStorage.setItem(
+        "igen_product_drafts",
+        JSON.stringify([draftData, ...otherDrafts]),
+      );
+
+      toast.success("Draft saved to local storage!");
+      // Set isLoading to true briefly to bypass the beforeunload warning
+      setIsLoading(true);
+      router.push("/app/products");
+    } catch (error) {
+      console.error("Draft save error:", error);
+      toast.error("Failed to save draft locally. Storage might be full.");
+    }
+  };
+
   const handleSave = async () => {
     setIsLoading(true);
     setErrors({});
@@ -676,6 +820,22 @@ export default function CreateProductPage() {
         throw new Error(data.message || "Failed to create product");
       }
 
+      // If it was a draft, remove it from localStorage
+      if (draftId) {
+        try {
+          const drafts = JSON.parse(
+            localStorage.getItem("igen_product_drafts") || "[]",
+          );
+          const updatedDrafts = drafts.filter((d) => d.id !== draftId);
+          localStorage.setItem(
+            "igen_product_drafts",
+            JSON.stringify(updatedDrafts),
+          );
+        } catch (e) {
+          console.error("Error removing draft:", e);
+        }
+      }
+
       toast.success("Product created successfully!", { id: loadingToast });
       router.push("/app/products");
     } catch (error) {
@@ -702,8 +862,18 @@ export default function CreateProductPage() {
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-                  Create Product
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 max-w-[200px] sm:max-w-[400px] md:max-w-[600px]">
+                  <span className="shrink-0">Create Product</span>
+                  {formData.name && (
+                    <>
+                      <span className="text-slate-300 dark:text-slate-600 font-light">
+                        |
+                      </span>
+                      <span className="truncate text-indigo-600 dark:text-indigo-400">
+                        {formData.name}
+                      </span>
+                    </>
+                  )}
                 </h1>
                 <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                   <span
@@ -716,8 +886,8 @@ export default function CreateProductPage() {
 
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setFormData({ ...formData, status: "draft" })}
-                className="hidden sm:flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm font-semibold"
+                onClick={handleSaveDraft}
+                className="hidden sm:flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm font-semibold transition-all active:scale-95"
               >
                 <Save className="w-4 h-4" /> Save Draft
               </button>
@@ -1111,22 +1281,28 @@ export default function CreateProductPage() {
                       <input
                         type="text"
                         className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white"
-                        placeholder="Type to search features..."
+                        placeholder="Type to search or add features..."
                         value={featureInput}
                         onChange={(e) =>
                           handleFeatureInputChange(e.target.value)
                         }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && featureInput.trim()) {
+                            e.preventDefault();
+                            handleAddFeature(featureInput.trim());
+                          }
+                        }}
                         onFocus={() =>
                           setShowFeatureSuggestions(featureInput.length > 0)
                         }
                       />
                       <button
                         onClick={() => {
-                          if (featureInput && filteredFeatures.length > 0) {
-                            handleAddFeature(filteredFeatures[0]);
+                          if (featureInput.trim()) {
+                            handleAddFeature(featureInput.trim());
                           }
                         }}
-                        className="bg-indigo-600 text-white px-4 rounded-xl"
+                        className="bg-indigo-600 text-white px-4 rounded-xl hover:bg-indigo-700 transition-colors"
                       >
                         <Plus className="w-5 h-5" />
                       </button>
@@ -1180,20 +1356,26 @@ export default function CreateProductPage() {
                       <input
                         type="text"
                         className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white"
-                        placeholder="Type to search tags..."
+                        placeholder="Type to search or add tags..."
                         value={tagInput}
                         onChange={(e) => handleTagInputChange(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && tagInput.trim()) {
+                            e.preventDefault();
+                            handleAddTag(tagInput.trim());
+                          }
+                        }}
                         onFocus={() =>
                           setShowTagSuggestions(tagInput.length > 0)
                         }
                       />
                       <button
                         onClick={() => {
-                          if (tagInput && filteredTags.length > 0) {
-                            handleAddTag(filteredTags[0]);
+                          if (tagInput.trim()) {
+                            handleAddTag(tagInput.trim());
                           }
                         }}
-                        className="bg-indigo-600 text-white px-4 rounded-xl"
+                        className="bg-indigo-600 text-white px-4 rounded-xl hover:bg-indigo-700 transition-colors"
                       >
                         <Plus className="w-5 h-5" />
                       </button>
@@ -1369,7 +1551,28 @@ export default function CreateProductPage() {
                   </h3>
 
                   {/* Variant Adder */}
-                  <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 mb-6">
+                  <div
+                    id="variant-form"
+                    className={`p-4 rounded-xl border transition-all duration-300 ${
+                      editingVariantId
+                        ? "bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-200 dark:border-indigo-800 shadow-lg shadow-indigo-500/5"
+                        : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+                    } mb-6`}
+                  >
+                    {editingVariantId && (
+                      <div className="flex items-center justify-between mb-4 pb-4 border-b border-indigo-100 dark:border-indigo-900/30">
+                        <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                          <Pencil className="w-4 h-4" />
+                          <span className="text-sm font-bold">Editing Variant</span>
+                        </div>
+                        <button
+                          onClick={cancelEditVariant}
+                          className="text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline underline-offset-2"
+                        >
+                          Cancel Editing
+                        </button>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
@@ -1628,13 +1831,32 @@ export default function CreateProductPage() {
                       </label>
                     </div>
 
-                    <button
-                      onClick={addVariant}
-                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-bold transition-colors"
-                    >
-                      <Plus className="w-4 h-4 inline mr-2" />
-                      Add Variant
-                    </button>
+                    <div className="flex gap-3">
+                      {editingVariantId && (
+                        <button
+                          onClick={cancelEditVariant}
+                          className="flex-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 py-2.5 rounded-xl font-bold transition-all"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                      <button
+                        onClick={addVariant}
+                        className="flex-[2] py-2.5 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20"
+                      >
+                        {editingVariantId ? (
+                          <>
+                            <Check className="w-4 h-4" />
+                            Update Variant
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-4 h-4" />
+                            Add Variant
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Variants List */}
@@ -1646,37 +1868,169 @@ export default function CreateProductPage() {
                       {variants.map((variant, idx) => (
                         <div
                           key={variant.id}
-                          className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700"
+                          className={`bg-white dark:bg-slate-800 rounded-xl border transition-all duration-300 overflow-hidden ${
+                            expandedVariantId === variant.id
+                              ? "border-indigo-500 shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-500/20"
+                              : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm"
+                          }`}
                         >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h5 className="font-bold text-slate-900 dark:text-white">
-                                {variant.variant_name}
-                              </h5>
-                              <p className="text-xs text-slate-500 font-mono">
-                                {variant.sku}
-                              </p>
-                              <div className="mt-2 flex gap-4 text-sm">
-                                <span>Price: ${variant.price}</span>
-                                <span>Stock: {variant.stock_quantity}</span>
-                                {variant.is_offer && (
-                                  <span className="text-amber-600">
-                                    On Offer
-                                  </span>
+                          {/* Accordion Header */}
+                          <div
+                            onClick={() =>
+                              setExpandedVariantId(
+                                expandedVariantId === variant.id
+                                  ? null
+                                  : variant.id,
+                              )
+                            }
+                            className="flex items-center justify-between p-4 cursor-pointer select-none"
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400">
+                                <Layers className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <h5 className="font-bold text-slate-900 dark:text-white leading-tight">
+                                  {variant.variant_name}
+                                </h5>
+                                <p className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">
+                                  {variant.sku}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1 mr-2">
+                                <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                  Rs. {variant.price}
+                                </span>
+                                <span className="text-[10px] text-slate-400">
+                                  • {variant.stock_quantity} in stock
+                                </span>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  editVariant(variant);
+                                }}
+                                className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                                title="Edit Variant"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setVariants(
+                                    variants.filter((_, i) => i !== idx),
+                                  );
+                                }}
+                                className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                                title="Delete Variant"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                              <div className="ml-2 text-slate-400">
+                                {expandedVariantId === variant.id ? (
+                                  <ChevronUp className="w-4 h-4" />
+                                ) : (
+                                  <ChevronDown className="w-4 h-4" />
                                 )}
                               </div>
                             </div>
-                            <button
-                              onClick={() =>
-                                setVariants(
-                                  variants.filter((_, i) => i !== idx),
-                                )
-                              }
-                              className="text-slate-400 hover:text-red-500"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
                           </div>
+
+                          {/* Accordion Content */}
+                          {expandedVariantId === variant.id && (
+                            <div className="px-4 pb-4 pt-2 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/20">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="space-y-1">
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                    Barcode
+                                  </p>
+                                  <p className="text-xs text-slate-700 dark:text-slate-300 font-mono">
+                                    {variant.barcode || "N/A"}
+                                  </p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                    Storage
+                                  </p>
+                                  <p className="text-xs text-slate-700 dark:text-slate-300">
+                                    {variant.storage_size || "N/A"}
+                                  </p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                    RAM
+                                  </p>
+                                  <p className="text-xs text-slate-700 dark:text-slate-300">
+                                    {variant.ram_size || "N/A"}
+                                  </p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                    Color
+                                  </p>
+                                  <p className="text-xs text-slate-700 dark:text-slate-300">
+                                    {variant.color || "N/A"}
+                                  </p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                    Sales Price
+                                  </p>
+                                  <p className="text-xs text-slate-700 dark:text-slate-300">
+                                    Rs. {variant.sales_price || variant.price}
+                                  </p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                    Low Stock Alert
+                                  </p>
+                                  <p className="text-xs text-slate-700 dark:text-slate-300">
+                                    {variant.low_stock_threshold} units
+                                  </p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                    Offer Price
+                                  </p>
+                                  <p className="text-xs text-amber-600 font-bold">
+                                    {variant.is_offer
+                                      ? `Rs. ${variant.offer_price}`
+                                      : "No Offer"}
+                                  </p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                    Badges
+                                  </p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {variant.is_trending && (
+                                      <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-[8px] font-bold rounded uppercase">
+                                        Trending
+                                      </span>
+                                    )}
+                                    {variant.is_featured && (
+                                      <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[8px] font-bold rounded uppercase">
+                                        Featured
+                                      </span>
+                                    )}
+                                    {variant.is_active ? (
+                                      <span className="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[8px] font-bold rounded uppercase">
+                                        Active
+                                      </span>
+                                    ) : (
+                                      <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-500 text-[8px] font-bold rounded uppercase">
+                                        Inactive
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1765,5 +2119,19 @@ export default function CreateProductPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function CreateProductPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900">
+          <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
+        </div>
+      }
+    >
+      <CreateProductContent />
+    </Suspense>
   );
 }

@@ -33,6 +33,7 @@ import {
   Info,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 
 // --- HELPER: Image URL ---
@@ -569,6 +570,7 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
 // --- MAIN PAGE COMPONENT ---
 export default function ProductsPage() {
   const containerRef = useRef(null);
+  const router = useRouter();
   const { data: session } = useSession();
   const [viewMode, setViewMode] = useState("list");
   const [searchTerm, setSearchTerm] = useState("");
@@ -577,6 +579,7 @@ export default function ProductsPage() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [deleteProduct, setDeleteProduct] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [localDrafts, setLocalDrafts] = useState([]);
   const { mutate } = useSWRConfig();
 
   // --- API FETCHING ---
@@ -600,6 +603,19 @@ export default function ProductsPage() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
+  // Load local drafts
+  React.useEffect(() => {
+    const drafts = JSON.parse(localStorage.getItem("igen_product_drafts") || "[]");
+    setLocalDrafts(drafts);
+  }, []);
+
+  const handleDeleteLocalDraft = (id) => {
+    const updatedDrafts = localDrafts.filter((d) => d.id !== id);
+    localStorage.setItem("igen_product_drafts", JSON.stringify(updatedDrafts));
+    setLocalDrafts(updatedDrafts);
+    toast.success("Local draft removed");
+  };
+
   const { data: apiResponse, error, isLoading } = useSWR(
     session?.accessToken
       ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products?page=${currentPage}&search=${debouncedSearch}`, session.accessToken]
@@ -614,7 +630,7 @@ export default function ProductsPage() {
 
   // Transform Data
   const products = useMemo(() => {
-    return productsData.map((p) => {
+    const apiProducts = productsData.map((p) => {
       // Calculate total stock from variants
       const totalStock = p.variants?.reduce((sum, v) => sum + v.stock_quantity, 0) || 0;
       
@@ -629,7 +645,22 @@ export default function ProductsPage() {
         status: p.is_active ? "published" : "draft", // Map boolean to string for UI
       };
     });
-  }, [productsData]);
+
+    // Merge local drafts if on first page and no search
+    if (currentPage === 1 && !debouncedSearch) {
+      const formattedDrafts = localDrafts.map((d) => ({
+        ...d,
+        stock: d.variants?.reduce((sum, v) => sum + parseInt(v.stock_quantity || 0), 0) || 0,
+        price: parseFloat(d.variants?.[0]?.price || 0),
+        image: null, // Local drafts don't have persistent image URLs
+        status: "draft",
+        is_local_draft: true,
+      }));
+      return [...formattedDrafts, ...apiProducts];
+    }
+
+    return apiProducts;
+  }, [productsData, localDrafts, currentPage, debouncedSearch]);
 
   // --- ANIMATIONS ---
   useGSAP(
@@ -669,6 +700,13 @@ export default function ProductsPage() {
 
   const handleDeleteProduct = async () => {
     if (!deleteProduct) return;
+
+    if (deleteProduct.is_local_draft) {
+      handleDeleteLocalDraft(deleteProduct.id);
+      setDeleteProduct(null);
+      return;
+    }
+
     setIsDeleting(true);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/${deleteProduct.id}`, {
@@ -881,7 +919,13 @@ export default function ProductsPage() {
                       {products.map((product) => (
                         <tr
                           key={product.id}
-                          onClick={() => setSelectedProduct(product)}
+                          onClick={() => {
+                            if (product.is_local_draft) {
+                              router.push(`/app/products/new?draftId=${product.id}`);
+                            } else {
+                              setSelectedProduct(product);
+                            }
+                          }}
                           className="product-item group hover:bg-slate-50/80 dark:hover:bg-slate-700/80 transition-colors cursor-pointer"
                         >
                           <td className="p-4 pl-6">
@@ -938,10 +982,19 @@ export default function ProductsPage() {
                                 product.status
                               )}`}
                             >
-                              {product.status === "published" && (
-                                <CheckCircle2 className="w-3 h-3" />
+                              {product.is_local_draft ? (
+                                <>
+                                  <Clock className="w-3 h-3" />
+                                  Local Draft
+                                </>
+                              ) : (
+                                <>
+                                  {product.status === "published" && (
+                                    <CheckCircle2 className="w-3 h-3" />
+                                  )}
+                                  {product.status}
+                                </>
                               )}
-                              {product.status}
                             </span>
                           </td>
                           <td className="p-4 pr-6 text-right">
@@ -965,7 +1018,13 @@ export default function ProductsPage() {
                   {products.map((product) => (
                     <div
                       key={product.id}
-                      onClick={() => setSelectedProduct(product)}
+                      onClick={() => {
+                        if (product.is_local_draft) {
+                          router.push(`/app/products/new?draftId=${product.id}`);
+                        } else {
+                          setSelectedProduct(product);
+                        }
+                      }}
                       className="product-item group bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 p-3 hover:border-indigo-100 dark:hover:border-indigo-900/50 hover:shadow-xl hover:shadow-indigo-900/5 dark:hover:shadow-indigo-900/20 transition-all duration-300 cursor-pointer"
                     >
                       <div className="relative aspect-square rounded-2xl bg-slate-100 dark:bg-slate-700 overflow-hidden mb-3 flex items-center justify-center">
@@ -993,7 +1052,14 @@ export default function ProductsPage() {
                               product.status
                             )}`}
                           >
-                            {product.status}
+                            {product.is_local_draft ? (
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                Local Draft
+                              </span>
+                            ) : (
+                              product.status
+                            )}
                           </span>
                         </div>
                       </div><div className="px-1 pb-2">
