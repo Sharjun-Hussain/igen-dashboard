@@ -222,6 +222,8 @@ function CreateProductContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const draftId = searchParams.get("draftId");
+  const productId = searchParams.get("productId");
+  const isEditMode = !!productId;
   const { data: session } = useSession();
 
   // --- STATE ---
@@ -343,6 +345,95 @@ function CreateProductContent() {
       }
     }
   }, [draftId]);
+
+  // Load product data for editing
+  React.useEffect(() => {
+    if (productId && session?.accessToken) {
+      const fetchProduct = async () => {
+        try {
+          const res = await fetch(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/${productId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${session.accessToken}`,
+                Accept: "application/json",
+              },
+            }
+          );
+          if (!res.ok) throw new Error("Failed to fetch product");
+          const data = await res.json();
+          const product = data.data;
+
+          // Pre-fill form data
+          setFormData({
+            name: product.name || "",
+            code: product.code || "",
+            category_id: product.category_id || "",
+            brand_id: product.brand_id || "",
+            type: product.type || "physical",
+            status: product.is_active ? "published" : "draft",
+            short_description: product.short_description || "",
+            full_description: product.full_description || "",
+            is_featured: product.is_featured || false,
+            is_trending: product.is_trending || false,
+            is_active: product.is_active || false,
+            bundled_product_ids: product.bundled_products?.map(p => p.id) || [],
+            compatible_product_ids: product.compatible_products?.map(p => p.id) || [],
+          });
+
+          // Load variants
+          if (product.variants && product.variants.length > 0) {
+            setVariants(product.variants.map(v => ({
+              ...v,
+              variant_name: v.variant_name || "Brand New",
+            })));
+          }
+
+          // Load specifications
+          if (product.specifications && product.specifications.length > 0) {
+            setSpecifications(product.specifications);
+          }
+
+          // Load tags
+          if (product.tags && product.tags.length > 0) {
+            setSelectedTags(product.tags);
+          }
+
+          // Load features
+          if (product.features && product.features.length > 0) {
+            setSelectedFeatures(product.features);
+          }
+
+          // Load primary image
+          if (product.primary_image_path) {
+            const imageUrl = getImageUrl(product.primary_image_path);
+            setHeroImagePreview(imageUrl);
+          }
+
+          // Load gallery images
+          if (product.images && product.images.length > 0) {
+            const galleryUrls = product.images.map(img => getImageUrl(img.image_path));
+            setGalleryImagePreviews(galleryUrls);
+          }
+
+          toast.success("Product loaded for editing");
+        } catch (error) {
+          console.error("Error loading product:", error);
+          toast.error("Failed to load product data");
+        }
+      };
+
+      fetchProduct();
+    }
+  }, [productId, session]);
+
+  // Helper function to get full image URL
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith("http")) return path;
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "");
+    return `${baseUrl}/${path}`;
+  };
 
   // --- UNSAVED CHANGES WARNING ---
   React.useEffect(() => {
@@ -781,7 +872,8 @@ function CreateProductContent() {
       return;
     }
 
-    if (!heroImageFile) {
+    // Only require image for new products
+    if (!isEditMode && !heroImageFile) {
       toast.error("Please upload a primary image");
       setIsLoading(false);
       return;
@@ -793,27 +885,35 @@ function CreateProductContent() {
       return;
     }
 
-    const loadingToast = toast.loading("Creating product...");
+    const loadingToast = toast.loading(
+      isEditMode ? "Updating product..." : "Creating product..."
+    );
 
     try {
       const formDataPayload = buildFormData();
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session?.accessToken}`,
-            Accept: "application/json",
-          },
-          body: formDataPayload,
+      const url = isEditMode
+        ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/${productId}`
+        : `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products`;
+
+      const method = isEditMode ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          Authorization: `Bearer ${session?.accessToken}`,
+          Accept: "application/json",
         },
-      );
+        body: formDataPayload,
+      });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || "Failed to create product");
+        throw new Error(
+          data.message ||
+            `Failed to ${isEditMode ? "update" : "create"} product`
+        );
       }
 
       // If it was a draft, remove it from localStorage
@@ -832,7 +932,10 @@ function CreateProductContent() {
         }
       }
 
-      toast.success("Product created successfully!", { id: loadingToast });
+      toast.success(
+        `Product ${isEditMode ? "updated" : "created"} successfully!`,
+        { id: loadingToast }
+      );
       router.push("/app/products");
     } catch (error) {
       toast.error(error.message, { id: loadingToast });
@@ -859,7 +962,7 @@ function CreateProductContent() {
               </button>
               <div>
                 <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 max-w-[200px] sm:max-w-[400px] md:max-w-[600px]">
-                  <span className="shrink-0">Create Product</span>
+                  <span className="shrink-0">{isEditMode ? "Edit Product" : "Create Product"}</span>
                   {formData.name && (
                     <>
                       <span className="text-slate-300 dark:text-slate-600 font-light">
@@ -897,7 +1000,7 @@ function CreateProductContent() {
                 ) : (
                   <Check className="w-4 h-4" />
                 )}
-                Publish Product
+                {isEditMode ? "Update Product" : "Publish Product"}
               </button>
             </div>
           </div>

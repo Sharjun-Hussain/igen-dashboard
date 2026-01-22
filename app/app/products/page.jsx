@@ -273,9 +273,12 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <button className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-sm font-bold shadow-md shadow-indigo-200 transition-colors">
+                    <Link 
+                      href={`/app/products/new?productId=${productData.id}`}
+                      className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-sm font-bold shadow-md shadow-indigo-200 transition-colors text-center"
+                    >
                       Edit Product
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>
