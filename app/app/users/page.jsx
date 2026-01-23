@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import useSWR, { useSWRConfig } from "swr";
+import { fetcher as globalFetcher } from "../../../lib/fetcher";
 import { toast } from "sonner";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -74,14 +75,7 @@ export default function UsersPage() {
 
   // --- SWR FETCHING ---
   const fetcher = async (url) => {
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${session?.accessToken}`,
-        Accept: "application/json",
-      },
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "An error occurred");
+    const data = await globalFetcher(url, session?.accessToken);
     return data.data;
   };
 
@@ -296,22 +290,16 @@ export default function UsersPage() {
         body.append("_method", "PUT");
       }
 
-      const res = await fetch(url, {
-        method: "POST", // Always POST for FormData with _method override for Laravel/similar backends
-        headers: {
-          Authorization: `Bearer ${session?.accessToken}`,
-          Accept: "application/json",
-        },
+      const data = await globalFetcher(url, session?.accessToken, {
+        method: "POST",
         body,
       });
-
-      const data = await res.json();
-      if (res.ok && data.status === "success") {
+      if (data && data.status === "success") {
         toast.success(formMode === "edit" ? "User updated" : "Invitation sent");
         closeFormWithAnim();
         refreshUsers();
       } else {
-        toast.error(data.message || "Operation failed");
+        toast.error(data?.message || "Operation failed");
       }
     } catch (error) {
       toast.error("An unexpected error occurred");
@@ -320,20 +308,15 @@ export default function UsersPage() {
 
   const handleDeleteConfirm = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/users/${selectedUser.id}`, {
+      const data = await globalFetcher(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/users/${selectedUser.id}`, session?.accessToken, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${session?.accessToken}`,
-          Accept: "application/json",
-        },
       });
-      const data = await res.json();
-      if (res.ok && data.status === "success") {
+      if (data && data.status === "success") {
         toast.success("User removed");
         closeDeleteWithAnim();
         refreshUsers();
       } else {
-        toast.error(data.message || "Failed to remove user");
+        toast.error(data?.message || "Failed to remove user");
       }
     } catch (error) {
       toast.error("An error occurred while removing user");

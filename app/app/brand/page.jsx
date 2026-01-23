@@ -2,8 +2,9 @@
 
 import React, { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import useSWR, { useSWRConfig } from "swr";
+import { fetcher as globalFetcher } from "../../../lib/fetcher";
 import { toast } from "sonner";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -19,7 +20,7 @@ import {
   LayoutGrid,
   List as ListIcon,
   CheckCircle2,
-  CircleDashed,
+  Loader2,
   Globe,
   Image as ImageIcon,
   ChevronLeft,
@@ -74,14 +75,7 @@ function BrandContent() {
 
   // --- SWR FETCHING ---
   const fetcher = async (url) => {
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${session?.accessToken}`,
-        Accept: "application/json",
-      },
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "An error occurred");
+    const data = await globalFetcher(url, session?.accessToken);
     return data.data;
   };
 
@@ -373,17 +367,11 @@ function BrandContent() {
         body.append("_method", "PUT");
       }
 
-      const res = await fetch(url, {
+      const data = await globalFetcher(url, session?.accessToken, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${session?.accessToken}`,
-          Accept: "application/json",
-        },
         body,
       });
-
-      const data = await res.json();
-      if (res.ok && data.status === "success") {
+      if (data && data.status === "success") {
         toast.success(formMode === "edit" ? "Brand updated" : "Brand created");
         closeFormWithAnim();
         refreshBrands();
@@ -397,15 +385,10 @@ function BrandContent() {
 
   const handleDeleteConfirm = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/brands/${selectedBrand.id}`, {
+      const data = await globalFetcher(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/brands/${selectedBrand.id}`, session?.accessToken, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${session?.accessToken}`,
-          Accept: "application/json",
-        },
       });
-      const data = await res.json();
-      if (res.ok && data.status === "success") {
+      if (data && data.status === "success") {
         toast.success("Brand deleted");
         closeDeleteWithAnim();
         refreshBrands();
@@ -521,8 +504,7 @@ function BrandContent() {
           {loading ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
               <div className="relative">
-                <CircleDashed className="w-12 h-12 text-indigo-600 animate-spin" />
-                <div className="absolute inset-0 blur-xl bg-indigo-400/20 animate-pulse"></div>
+                <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
               </div>
               <p className="text-slate-400 font-bold text-sm animate-pulse tracking-widest uppercase">
                 Loading brands...
@@ -900,7 +882,7 @@ export default function BrandManagementPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-slate-50/50 dark:bg-slate-900 p-6 flex items-center justify-center">
-          <CircleDashed className="w-8 h-8 animate-spin text-indigo-600" />
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </div>
       }
     >

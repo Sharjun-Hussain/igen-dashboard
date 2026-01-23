@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import useSWR, { useSWRConfig } from "swr";
+import { fetcher as globalFetcher } from "../../../lib/fetcher";
 import { toast } from "sonner";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -69,14 +70,7 @@ export default function RolesPage() {
 
   // --- SWR FETCHING ---
   const fetcher = async (url) => {
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${session?.accessToken}`,
-        Accept: "application/json",
-      },
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "An error occurred");
+    const data = await globalFetcher(url, session?.accessToken);
     return data.data;
   };
 
@@ -312,17 +306,11 @@ export default function RolesPage() {
     setRoleDetails(null);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/roles/${role.id}`, {
-        headers: {
-          Authorization: `Bearer ${session?.accessToken}`,
-          Accept: "application/json",
-        },
-      });
-      const data = await res.json();
-      if (res.ok && data.status === "success") {
+      const data = await globalFetcher(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/roles/${role.id}`, session?.accessToken);
+      if (data && data.status === "success") {
         setRoleDetails(data.data);
       } else {
-        toast.error(data.message || "Failed to fetch role details");
+        toast.error(data?.message || "Failed to fetch role details");
       }
     } catch (error) {
       toast.error("An error occurred while fetching role details");
@@ -339,28 +327,24 @@ export default function RolesPage() {
         : `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/roles`;
       const method = selectedRole ? "PUT" : "POST";
 
-      const res = await fetch(url, {
+      const data = await globalFetcher(url, session?.accessToken, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.accessToken}`,
-          Accept: "application/json",
-        },
         body: JSON.stringify({
           name: formData.name,
           is_protected: formData.is_protected,
           permissions: formData.permissions,
         }),
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
 
-      const data = await res.json();
-
-      if (res.ok && data.status === "success") {
+      if (data && data.status === "success") {
         toast.success(selectedRole ? "Role updated" : "Role created");
         closeFormWithAnim();
         refreshRoles();
       } else {
-        toast.error(data.message || "Operation failed");
+        toast.error(data?.message || "Operation failed");
       }
     } catch (error) {
       toast.error("An unexpected error occurred");
@@ -369,20 +353,15 @@ export default function RolesPage() {
 
   const handleDeleteConfirm = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/roles/${selectedRole.id}`, {
+      const data = await globalFetcher(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/roles/${selectedRole.id}`, session?.accessToken, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${session?.accessToken}`,
-          Accept: "application/json",
-        },
       });
-      const data = await res.json();
-      if (res.ok && data.status === "success") {
+      if (data && data.status === "success") {
         toast.success("Role deleted");
         closeDeleteWithAnim();
         refreshRoles();
       } else {
-        toast.error(data.message || "Failed to delete role");
+        toast.error(data?.message || "Failed to delete role");
       }
     } catch (error) {
       toast.error("An error occurred while deleting role");

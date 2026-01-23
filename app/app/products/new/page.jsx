@@ -4,7 +4,8 @@ import React, { useState, useRef, Suspense } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import useSWR from "swr";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
+import { fetcher as globalFetcher } from "../../../../lib/fetcher";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -315,7 +316,7 @@ function CreateProductContent() {
           session.accessToken,
         ]
       : null,
-    ([url]) => fetcher(url)
+    ([url]) => globalFetcher(url, session?.accessToken)
   );
 
   React.useEffect(() => {
@@ -351,17 +352,10 @@ function CreateProductContent() {
     if (productId && session?.accessToken) {
       const fetchProduct = async () => {
         try {
-          const res = await fetch(
+          const data = await globalFetcher(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/${productId}`,
-            {
-              headers: {
-                Authorization: `Bearer ${session.accessToken}`,
-                Accept: "application/json",
-              },
-            }
+            session.accessToken
           );
-          if (!res.ok) throw new Error("Failed to fetch product");
-          const data = await res.json();
           const product = data.data;
 
           // Pre-fill form data
@@ -435,6 +429,15 @@ function CreateProductContent() {
     return `${baseUrl}/${path}`;
   };
 
+  // --- HELPER: Price Formatter ---
+  const formatPrice = (price) => {
+    if (!price) return "0.00";
+    return parseFloat(price).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
+
   // --- UNSAVED CHANGES WARNING ---
   React.useEffect(() => {
     const isDirty =
@@ -471,14 +474,8 @@ function CreateProductContent() {
 
   // --- API FETCHING ---
   const fetcher = async (url) => {
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${session?.accessToken}`,
-        Accept: "application/json",
-      },
-    });
-    if (!res.ok) throw new Error("Failed to fetch");
-    return res.json();
+    const data = await globalFetcher(url, session?.accessToken);
+    return data;
   };
 
   const { data: categoriesData } = useSWR(
@@ -488,7 +485,7 @@ function CreateProductContent() {
           session.accessToken,
         ]
       : null,
-    ([url]) => fetcher(url),
+    ([url]) => globalFetcher(url, session.accessToken),
   );
 
   const { data: brandsData } = useSWR(
@@ -508,7 +505,7 @@ function CreateProductContent() {
           session.accessToken,
         ]
       : null,
-    ([url]) => fetcher(url),
+    ([url]) => globalFetcher(url, session.accessToken),
   );
 
   const { data: featuresData } = useSWR(
@@ -518,7 +515,7 @@ function CreateProductContent() {
           session.accessToken,
         ]
       : null,
-    ([url]) => fetcher(url),
+    ([url]) => globalFetcher(url, session.accessToken),
   );
 
   const categories = categoriesData?.data?.data || [];
@@ -900,21 +897,14 @@ function CreateProductContent() {
         ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/${productId}`
         : `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products`;
 
-      const res = await fetch(url, {
+      const data = await globalFetcher(url, session?.accessToken, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${session?.accessToken}`,
-          Accept: "application/json",
-        },
         body: formDataPayload,
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
+      if (!data) {
         throw new Error(
-          data.message ||
-            `Failed to ${isEditMode ? "update" : "create"} product`
+          `Failed to ${isEditMode ? "update" : "create"} product`
         );
       }
 
@@ -1809,7 +1799,7 @@ function CreateProductContent() {
                             placeholder="149900"
                           />
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
-                            Rs.
+                            Rs
                           </span>
                         </div>
                       </div>
@@ -1831,7 +1821,7 @@ function CreateProductContent() {
                             placeholder="144900"
                           />
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
-                            Rs.
+                            Rs
                           </span>
                         </div>
                       </div>
@@ -1900,7 +1890,7 @@ function CreateProductContent() {
                             placeholder="799.00"
                           />
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
-                            Rs.
+                            Rs
                           </span>
                         </div>
                       )}
@@ -2003,7 +1993,7 @@ function CreateProductContent() {
                             <div className="flex items-center gap-2">
                               <div className="flex items-center gap-1 mr-2">
                                 <span className="text-xs font-bold text-slate-900 dark:text-white">
-                                  Rs. {variant.price}
+                                  Rs {formatPrice(variant.price)}
                                 </span>
                                 <span className="text-[10px] text-slate-400">
                                   • {variant.stock_quantity} in stock
@@ -2082,7 +2072,7 @@ function CreateProductContent() {
                                     Sales Price
                                   </p>
                                   <p className="text-xs text-slate-700 dark:text-slate-300">
-                                    Rs. {variant.sales_price || variant.price}
+                                    Rs {formatPrice(variant.sales_price || variant.price)}
                                   </p>
                                 </div>
                                 <div className="space-y-1">
@@ -2099,7 +2089,7 @@ function CreateProductContent() {
                                   </p>
                                   <p className="text-xs text-amber-600 font-bold">
                                     {variant.is_offer
-                                      ? `Rs. ${variant.offer_price}`
+                                      ? `Rs ${formatPrice(variant.offer_price)}`
                                       : "No Offer"}
                                   </p>
                                 </div>

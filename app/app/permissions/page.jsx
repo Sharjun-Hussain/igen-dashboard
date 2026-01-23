@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import useSWR, { useSWRConfig } from "swr";
+import { fetcher as globalFetcher } from "../../../lib/fetcher";
 import { toast } from "sonner";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -60,14 +61,7 @@ export default function PermissionsPage() {
 
   // --- SWR FETCHING ---
   const fetcher = async (url) => {
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${session?.accessToken}`,
-        Accept: "application/json",
-      },
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "An error occurred");
+    const data = await globalFetcher(url, session?.accessToken);
     return data.data;
   };
 
@@ -256,24 +250,20 @@ export default function PermissionsPage() {
         : `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/permissions`;
       const method = selectedPermission ? "PUT" : "POST";
 
-      const res = await fetch(url, {
+      const data = await globalFetcher(url, session?.accessToken, {
         method,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.accessToken}`,
-          Accept: "application/json",
         },
         body: JSON.stringify(formData),
       });
 
-      const data = await res.json();
-
-      if (res.ok && data.status === "success") {
+      if (data && data.status === "success") {
         toast.success(selectedPermission ? "Permission updated" : "Permission created");
         closeFormWithAnim();
         refreshPermissions();
       } else {
-        toast.error(data.message || "Operation failed");
+        toast.error(data?.message || "Operation failed");
       }
     } catch (error) {
       toast.error("An unexpected error occurred");
@@ -282,20 +272,15 @@ export default function PermissionsPage() {
 
   const handleDeleteConfirm = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/permissions/${selectedPermission.id}`, {
+      const data = await globalFetcher(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/permissions/${selectedPermission.id}`, session?.accessToken, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${session?.accessToken}`,
-          Accept: "application/json",
-        },
       });
-      const data = await res.json();
-      if (res.ok && data.status === "success") {
+      if (data && data.status === "success") {
         toast.success("Permission deleted");
         closeDeleteWithAnim();
         refreshPermissions();
       } else {
-        toast.error(data.message || "Failed to delete permission");
+        toast.error(data?.message || "Failed to delete permission");
       }
     } catch (error) {
       toast.error("An error occurred while deleting permission");

@@ -5,7 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import useSWR, { useSWRConfig } from "swr";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
+import { fetcher as globalFetcher } from "../../../lib/fetcher";
 import { toast } from "sonner";
 import {
   Search,
@@ -58,14 +59,8 @@ function CategoriesContent() {
 
   // --- API FETCHING ---
   const fetcher = async (url) => {
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${session?.accessToken}`,
-        Accept: "application/json",
-      },
-    });
-    if (!res.ok) throw new Error("Failed to fetch data");
-    return res.json();
+    const data = await globalFetcher(url, session?.accessToken);
+    return data;
   };
 
   // Debounce search
@@ -256,20 +251,16 @@ function CategoriesContent() {
 
       const method = formMode === "create" ? "POST" : "PUT";
 
-      const res = await fetch(url, {
+      const data = await globalFetcher(url, session?.accessToken, {
         method,
+        body: JSON.stringify(formData),
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.accessToken}`,
-          Accept: "application/json",
         },
-        body: JSON.stringify(formData),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Something went wrong");
+      if (!data) {
+        throw new Error("Something went wrong");
       }
 
       toast.success(
@@ -289,20 +280,16 @@ function CategoriesContent() {
   const handleDeleteConfirm = async () => {
     const loadingToast = toast.loading("Deleting category...");
     try {
-      const res = await fetch(
+      const data = await globalFetcher(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories/${selectedCategory.id}`,
+        session?.accessToken,
         {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${session?.accessToken}`,
-            Accept: "application/json",
-          },
         }
       );
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || "Failed to delete");
+      if (!data) {
+        throw new Error("Failed to delete");
       }
 
       toast.success("Category deleted successfully", { id: loadingToast });

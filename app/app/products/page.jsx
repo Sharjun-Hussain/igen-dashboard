@@ -4,7 +4,8 @@ import React, { useState, useRef, useMemo } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import useSWR, { useSWRConfig } from "swr";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
+import { fetcher as globalFetcher } from "../../../lib/fetcher";
 import { toast } from "sonner";
 import {
   Search,
@@ -44,6 +45,14 @@ const getImageUrl = (path) => {
   // We want https://api.com/
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "");
   return `${baseUrl}/${path}`;
+};
+
+// --- HELPER: Price Formatter ---
+const formatPrice = (price) => {
+  return parseFloat(price).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
 };
 
 // --- COMPONENT: DELETE MODAL ---
@@ -94,14 +103,8 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
 
   // --- FETCH DETAILED DATA ---
   const fetcher = async (url) => {
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${session?.accessToken}`,
-        Accept: "application/json",
-      },
-    });
-    if (!res.ok) throw new Error("Failed to fetch product details");
-    return res.json();
+    const data = await globalFetcher(url, session?.accessToken);
+    return data;
   };
 
   const { data: apiResponse, isLoading } = useSWR(
@@ -154,14 +157,9 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
     if (!deleteVariant) return;
     setIsDeleting(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/variants/${deleteVariant.id}`, {
+      const data = await globalFetcher(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/variants/${deleteVariant.id}`, session?.accessToken, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${session?.accessToken}`,
-        },
       });
-
-      if (!res.ok) throw new Error("Failed to delete variant");
 
       toast.success("Variant deleted successfully");
       mutate([`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/${initialProduct.id}`, session.accessToken]);
@@ -255,7 +253,7 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
                     <div>
                       <p className="text-xs text-slate-500 mb-1">Price</p>
                       <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                        ${price.toFixed(2)}
+                        Rs {formatPrice(price)}
                       </p>
                     </div>
                     <div>
@@ -432,7 +430,7 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
                           </div>
                           <div className="flex items-center gap-4">
                              <div className="text-right">
-                                <p className="font-bold text-slate-900 dark:text-white text-sm">${parseFloat(variant.price).toFixed(2)}</p>
+                                <p className="font-bold text-slate-900 dark:text-white text-sm">Rs {formatPrice(variant.price)}</p>
                                 <p className={`text-[10px] font-bold ${variant.stock_quantity > 0 ? "text-emerald-600" : "text-red-600"}`}>
                                     {variant.stock_quantity} in stock
                                 </p>
@@ -476,16 +474,16 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
                                     <div className="space-y-1">
                                         <div className="flex justify-between text-xs">
                                             <span className="text-slate-500">Regular Price:</span>
-                                            <span className="font-medium">${parseFloat(variant.price).toFixed(2)}</span>
+                                            <span className="font-medium">Rs {formatPrice(variant.price)}</span>
                                         </div>
                                         <div className="flex justify-between text-xs">
                                             <span className="text-slate-500">Sales Price:</span>
-                                            <span className="font-medium">${parseFloat(variant.sales_price).toFixed(2)}</span>
+                                            <span className="font-medium">Rs {formatPrice(variant.sales_price)}</span>
                                         </div>
                                         {variant.is_offer && (
                                             <div className="flex justify-between text-xs text-amber-600 font-bold">
                                                 <span>Offer Price:</span>
-                                                <span>${parseFloat(variant.offer_price).toFixed(2)}</span>
+                                                <span>Rs {formatPrice(variant.offer_price)}</span>
                                             </div>
                                         )}
                                     </div>
@@ -587,14 +585,8 @@ export default function ProductsPage() {
 
   // --- API FETCHING ---
   const fetcher = async (url) => {
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${session?.accessToken}`,
-        Accept: "application/json",
-      },
-    });
-    if (!res.ok) throw new Error("Failed to fetch data");
-    return res.json();
+    const data = await globalFetcher(url, session?.accessToken);
+    return data;
   };
 
   // Debounce search
@@ -712,14 +704,9 @@ export default function ProductsPage() {
 
     setIsDeleting(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/${deleteProduct.id}`, {
+      const data = await globalFetcher(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/${deleteProduct.id}`, session?.accessToken, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${session?.accessToken}`,
-        },
       });
-
-      if (!res.ok) throw new Error("Failed to delete product");
 
       toast.success("Product deleted successfully");
       mutate([`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products?page=${currentPage}&search=${debouncedSearch}`, session.accessToken]);
@@ -798,7 +785,7 @@ export default function ProductsPage() {
             },
             {
               label: "Avg Price",
-              val: "$245.00",
+              val: "Rs 245.00", // Placeholder, ideally this should also use formatPrice if it were dynamic
               icon: Clock,
               color: "text-emerald-600",
             },
@@ -977,7 +964,7 @@ export default function ProductsPage() {
                             </div>
                           </td>
                           <td className="p-4 text-sm font-bold text-slate-900 dark:text-white">
-                            ${product.price.toFixed(2)}
+                            Rs {formatPrice(product.price)}
                           </td>
                           <td className="p-4">
                             <span
@@ -1071,7 +1058,7 @@ export default function ProductsPage() {
                             {product.name}
                           </h3>
                           <p className="font-bold text-indigo-600 dark:text-indigo-400">
-                            ${product.price}
+                            Rs {formatPrice(product.price)}
                           </p>
                         </div>
                         <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 mb-3">
