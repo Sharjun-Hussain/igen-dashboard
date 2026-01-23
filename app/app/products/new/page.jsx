@@ -261,6 +261,8 @@ function CreateProductContent() {
     variant_name: "Brand New",
     sku: "",
     barcode: "",
+    imei: "",
+    warranty_period: "",
     storage_size: "",
     ram_size: "",
     color: "",
@@ -668,6 +670,8 @@ function CreateProductContent() {
       variant_name: "Brand New",
       sku: "",
       barcode: "",
+      imei: "",
+      warranty_period: "",
       storage_size: "",
       ram_size: "",
       color: "",
@@ -699,6 +703,8 @@ function CreateProductContent() {
       variant_name: "Brand New",
       sku: "",
       barcode: "",
+      imei: "",
+      warranty_period: "",
       storage_size: "",
       ram_size: "",
       color: "",
@@ -769,6 +775,8 @@ function CreateProductContent() {
       data.append(`variants[${index}][variant_name]`, variant.variant_name);
       data.append(`variants[${index}][sku]`, variant.sku);
       data.append(`variants[${index}][barcode]`, variant.barcode || "");
+      data.append(`variants[${index}][imei]`, variant.imei || "");
+      data.append(`variants[${index}][warranty_period]`, variant.warranty_period || "");
       data.append(
         `variants[${index}][storage_size]`,
         variant.storage_size || "",
@@ -1720,6 +1728,40 @@ function CreateProductContent() {
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                          IMEI
+                        </label>
+                        <input
+                          type="text"
+                          value={currentVariant.imei}
+                          onChange={(e) =>
+                            setCurrentVariant({
+                              ...currentVariant,
+                              imei: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          placeholder="IMEI Number"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                          Warranty Period
+                        </label>
+                        <input
+                          type="text"
+                          value={currentVariant.warranty_period}
+                          onChange={(e) =>
+                            setCurrentVariant({
+                              ...currentVariant,
+                              warranty_period: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          placeholder="e.g. 1 Year"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
                           Storage
                         </label>
                         <input
@@ -2041,6 +2083,22 @@ function CreateProductContent() {
                                   </p>
                                   <p className="text-xs text-slate-700 dark:text-slate-300 font-mono">
                                     {variant.barcode || "N/A"}
+                                  </p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                    IMEI
+                                  </p>
+                                  <p className="text-xs text-slate-700 dark:text-slate-300 font-mono">
+                                    {variant.imei || "N/A"}
+                                  </p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                    Warranty
+                                  </p>
+                                  <p className="text-xs text-slate-700 dark:text-slate-300">
+                                    {variant.warranty_period || "N/A"}
                                   </p>
                                 </div>
                                 <div className="space-y-1">
