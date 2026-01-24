@@ -258,7 +258,8 @@ function CreateProductContent() {
   // VARIANTS STATE
   const [variants, setVariants] = useState([]);
   const [currentVariant, setCurrentVariant] = useState({
-    variant_name: "Brand New",
+    variant_name: "",
+    condition: "Brand New",
     sku: "",
     barcode: "",
     imei: "",
@@ -381,7 +382,8 @@ function CreateProductContent() {
           if (product.variants && product.variants.length > 0) {
             setVariants(product.variants.map(v => ({
               ...v,
-              variant_name: v.variant_name || "Brand New",
+              condition: v.condition || "Brand New",
+              variant_name: v.variant_name || "",
             })));
           }
 
@@ -667,7 +669,8 @@ function CreateProductContent() {
     }
 
     setCurrentVariant({
-      variant_name: "Brand New",
+      variant_name: "",
+      condition: "Brand New",
       sku: "",
       barcode: "",
       imei: "",
@@ -700,7 +703,8 @@ function CreateProductContent() {
   const cancelEditVariant = () => {
     setEditingVariantId(null);
     setCurrentVariant({
-      variant_name: "Brand New",
+      variant_name: "",
+      condition: "Brand New",
       sku: "",
       barcode: "",
       imei: "",
@@ -772,7 +776,8 @@ function CreateProductContent() {
 
     // Variants
     variants.forEach((variant, index) => {
-      data.append(`variants[${index}][variant_name]`, variant.variant_name);
+      data.append(`variants[${index}][variant_name]`, variant.variant_name || "");
+      data.append(`variants[${index}][condition]`, variant.condition || "Brand New");
       data.append(`variants[${index}][sku]`, variant.sku);
       data.append(`variants[${index}][barcode]`, variant.barcode || "");
       data.append(`variants[${index}][imei]`, variant.imei || "");
@@ -1678,11 +1683,11 @@ function CreateProductContent() {
                           Condition
                         </label>
                         <select
-                          value={currentVariant.variant_name}
+                          value={currentVariant.condition}
                           onChange={(e) =>
                             setCurrentVariant({
                               ...currentVariant,
-                              variant_name: e.target.value,
+                              condition: e.target.value,
                             })
                           }
                           className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
@@ -1691,6 +1696,23 @@ function CreateProductContent() {
                           <option value="Used">Used</option>
                           <option value="Refurbished">Refurbished</option>
                         </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                          Variant Name <span className="text-slate-400 font-normal">(Optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={currentVariant.variant_name}
+                          onChange={(e) =>
+                            setCurrentVariant({
+                              ...currentVariant,
+                              variant_name: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          placeholder="e.g. Summer Edition"
+                        />
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
@@ -2024,7 +2046,7 @@ function CreateProductContent() {
                               </div>
                               <div>
                                 <h5 className="font-bold text-slate-900 dark:text-white leading-tight">
-                                  {variant.variant_name}
+                                  {variant.variant_name || variant.condition}
                                 </h5>
                                 <p className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">
                                   {variant.sku}
