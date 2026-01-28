@@ -17,10 +17,13 @@ import {
   File, // New icon
   Check,
   AlertCircle,
+  Coins, // New icon
 } from "lucide-react";
+import { useCurrency } from "../context/CurrencyContext";
 
 export default function SriLankaSettingsPage() {
   const containerRef = useRef(null);
+  const { currency, updateCurrency } = useCurrency();
 
   // --- STATE ---
   const [activeTab, setActiveTab] = useState("store");
@@ -241,6 +244,41 @@ export default function SriLankaSettingsPage() {
                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all font-medium"
                   />
                 </div>
+              </div>
+            </div>
+          </section>
+
+          {/* A2. CURRENCY SETTINGS */}
+          <section className="animate-section">
+             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-8">
+              <SectionHeader
+                icon={Coins}
+                title="Currency Settings"
+                description="Set the default currency for your store."
+                colorClass="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400"
+              />
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
+                  Store Currency
+                </label>
+                <select
+                  value={currency}
+                  onChange={(e) => {
+                    const selected = e.target.value;
+                    let sym = "Rs.";
+                    if (selected === "USD") sym = "$";
+                    if (selected === "EUR") sym = "€";
+                    if (selected === "GBP") sym = "£";
+                    updateCurrency(selected, sym);
+                    setHasChanges(true);
+                  }}
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all font-medium"
+                >
+                  <option value="LKR">Sri Lankan Rupee (LKR)</option>
+                  <option value="USD">US Dollar (USD)</option>
+                  <option value="EUR">Euro (EUR)</option>
+                  <option value="GBP">British Pound (GBP)</option>
+                </select>
               </div>
             </div>
           </section>

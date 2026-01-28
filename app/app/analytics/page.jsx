@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useCurrency } from "../context/CurrencyContext";
 import {
   Calendar,
   Filter,
@@ -22,102 +23,12 @@ import {
 } from "lucide-react";
 
 // --- MOCK DATA ---
-const KPI_DATA = [
-  {
-    label: "Online Revenue",
-    value: "Rs. 2,450,000",
-    change: "+14.2%",
-    trend: "up",
-    icon: DollarSign,
-    color: "text-indigo-600",
-    bg: "bg-indigo-50",
-  },
-  {
-    label: "Web Orders",
-    value: "3,850",
-    change: "+5.4%",
-    trend: "up",
-    icon: ShoppingBag,
-    color: "text-blue-600",
-    bg: "bg-blue-50",
-  },
-  {
-    label: "Avg. Order Value",
-    value: "Rs. 635",
-    change: "-2.1%",
-    trend: "down",
-    icon: Activity,
-    color: "text-amber-600",
-    bg: "bg-amber-50",
-  },
-  {
-    label: "Active Users",
-    value: "12,402",
-    change: "+8.4%",
-    trend: "up",
-    icon: Users,
-    color: "text-emerald-600",
-    bg: "bg-emerald-50",
-  },
-];
 
-const TOP_PRODUCTS = [
-  {
-    name: "Wireless Earbuds Pro",
-    sku: "AUD-001",
-    sales: 1240,
-    revenue: "Rs. 450,000",
-    stock: "High",
-  },
-  {
-    name: "Smart Watch Series 5",
-    sku: "WBL-023",
-    sales: 980,
-    revenue: "Rs. 890,000",
-    stock: "Medium",
-  },
-  {
-    name: "Ergonomic Office Chair",
-    sku: "FUR-101",
-    sales: 650,
-    revenue: "Rs. 1,200,000",
-    stock: "Low",
-  },
-];
 
-const LOWEST_PRODUCTS = [
-  {
-    name: "Legacy USB Hub",
-    sku: "ACC-002",
-    sales: 12,
-    revenue: "Rs. 4,500",
-    stock: "Dead Stock",
-  },
-  {
-    name: "Wired Mouse Basic",
-    sku: "ACC-099",
-    sales: 24,
-    revenue: "Rs. 8,200",
-    stock: "High",
-  },
-];
+
 
 // --- UTILS ---
-const handleExportCSV = () => {
-  // Simple CSV generation simulation
-  const headers = "Product,SKU,Sales,Revenue\n";
-  const rows = TOP_PRODUCTS.map(
-    (p) => `${p.name},${p.sku},${p.sales},${p.revenue.replace("Rs. ", "")}`,
-  ).join("\n");
-  const csvContent = "data:text/csv;charset=utf-8," + headers + rows;
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", "analytics_report.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
+
 
 const handleExportPDF = () => {
   window.print(); // Triggers browser "Save as PDF" interface
@@ -142,7 +53,104 @@ const generateSmoothPath = (data, width, height) => {
 };
 
 export default function AnalyticsPage() {
+  const { symbol } = useCurrency();
   const [activeTab, setActiveTab] = useState("Revenue");
+
+  const KPI_DATA = [
+    {
+      label: "Online Revenue",
+      value: `${symbol} 2,450,000`,
+      change: "+14.2%",
+      trend: "up",
+      icon: DollarSign,
+      color: "text-indigo-600",
+      bg: "bg-indigo-50",
+    },
+    {
+      label: "Web Orders",
+      value: "3,850",
+      change: "+5.4%",
+      trend: "up",
+      icon: ShoppingBag,
+      color: "text-blue-600",
+      bg: "bg-blue-50",
+    },
+    {
+      label: "Avg. Order Value",
+      value: `${symbol} 635`,
+      change: "-2.1%",
+      trend: "down",
+      icon: Activity,
+      color: "text-amber-600",
+      bg: "bg-amber-50",
+    },
+    {
+      label: "Active Users",
+      value: "12,402",
+      change: "+8.4%",
+      trend: "up",
+      icon: Users,
+      color: "text-emerald-600",
+      bg: "bg-emerald-50",
+    },
+  ];
+
+  const handleExportCSV = () => {
+    // Simple CSV generation simulation
+    const headers = "Product,SKU,Sales,Revenue\n";
+    const rows = TOP_PRODUCTS.map(
+      (p) => `${p.name},${p.sku},${p.sales},${p.revenue.replace(/Rs\.\s?|\$|€|£/g, "")}`,
+    ).join("\n");
+    const csvContent = "data:text/csv;charset=utf-8," + headers + rows;
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "analytics_report.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const TOP_PRODUCTS = [
+    {
+      name: "Wireless Earbuds Pro",
+      sku: "AUD-001",
+      sales: 1240,
+      revenue: `${symbol} 450,000`,
+      stock: "High",
+    },
+    {
+      name: "Smart Watch Series 5",
+      sku: "WBL-023",
+      sales: 980,
+      revenue: `${symbol} 890,000`,
+      stock: "Medium",
+    },
+    {
+      name: "Ergonomic Office Chair",
+      sku: "FUR-101",
+      sales: 650,
+      revenue: `${symbol} 1,200,000`,
+      stock: "Low",
+    },
+  ];
+
+  const LOWEST_PRODUCTS = [
+    {
+      name: "Legacy USB Hub",
+      sku: "ACC-002",
+      sales: 12,
+      revenue: `${symbol} 4,500`,
+      stock: "Dead Stock",
+    },
+    {
+      name: "Wired Mouse Basic",
+      sku: "ACC-099",
+      sales: 24,
+      revenue: `${symbol} 8,200`,
+      stock: "High",
+    },
+  ];
   const [timeRange, setTimeRange] = useState("This Month");
   const [isDateOpen, setIsDateOpen] = useState(false);
 

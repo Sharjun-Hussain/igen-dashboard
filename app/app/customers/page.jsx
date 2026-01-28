@@ -3,6 +3,11 @@
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
+import { useSession } from "next-auth/react";
+import useSWR from "swr";
+import { fetcher as globalFetcher } from "../../../lib/fetcher";
+import { toast } from "sonner";
+import { useCurrency } from "../context/CurrencyContext";
 import {
   Search,
   Filter,
@@ -22,64 +27,20 @@ import {
   ShieldAlert,
   Ban,
   CheckCircle2,
-  ShoppingBag,
   DollarSign,
   Check,
 } from "lucide-react";
 
-// --- MOCK DATA GENERATOR ---
-const generateCustomers = (count) => {
-  const statuses = ["Active", "Active", "Active", "Blocked"];
-
-  return Array.from({ length: count }, (_, i) => {
-    // Generate dates relative to today for filtering
-    const joinedDate = new Date();
-    joinedDate.setDate(joinedDate.getDate() - Math.floor(Math.random() * 365));
-
-    return {
-      id: i + 1,
-      name:
-        [
-          "Emma Watson",
-          "Liam Neeson",
-          "Olivia Wilde",
-          "Noah Centineo",
-          "Ava Gardner",
-          "James Dean",
-          "Robert Downey",
-        ][i % 7] + ` ${i}`,
-      email: `customer${i}@example.com`,
-      phone: `+1 (555) 010-${1000 + i}`,
-      location: [
-        "New York, USA",
-        "London, UK",
-        "Berlin, DE",
-        "Toronto, CA",
-        "Tokyo, JP",
-      ][i % 5],
-      ordersCount: Math.floor(Math.random() * 50),
-      totalSpent: (Math.random() * 5000).toFixed(2),
-      joinedDate: joinedDate,
-      joinedDateStr: joinedDate.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }),
-      status: statuses[i % 4],
-      avatar: `https://i.pravatar.cc/150?u=${i + 500}`,
-    };
-  });
-};
-
-const MOCK_CUSTOMERS = generateCustomers(85);
-
 export default function CustomersPage() {
+  const { data: session } = useSession();
   const containerRef = useRef(null);
+  const { symbol } = useCurrency();
 
   // --- STATE ---
-  const [customers, setCustomers] = useState(MOCK_CUSTOMERS);
+  const [customers, setCustomers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   // --- FILTER STATES ---
   const [activeTab, setActiveTab] = useState("All"); // All, Active, Blocked
@@ -95,6 +56,8 @@ export default function CustomersPage() {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(0);
+  const [lastPage, setLastPage] = useState(1);
 
   // Drawer Actions
   const [showActionsMenu, setShowActionsMenu] = useState(false);
@@ -104,17 +67,73 @@ export default function CustomersPage() {
   const drawerRef = useRef(null);
   const overlayRef = useRef(null);
 
-  // --- FILTER LOGIC ---
+  // --- DATA FETCHING ---
+  const fetcher = async (url) => {
+    const data = await globalFetcher(url, session?.accessToken);
+    return data.data;
+  };
+
+  const queryParams = new URLSearchParams({
+    page: currentPage,
+    per_page: itemsPerPage,
+    search: searchTerm,
+    status: activeTab !== "All" ? activeTab : "",
+    // Add other filters if API supports them
+  }).toString();
+
+  const { data: swrData, error: swrError, isLoading: swrLoading } = useSWR(
+    session?.accessToken
+      ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/customers?${queryParams}`
+      : null,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 5000,
+    }
+  );
+
+  useEffect(() => {
+    if (swrData) {
+      // Map API data to UI format
+      const mappedCustomers = (swrData.data || []).map((c) => ({
+        id: c.id,
+        name: c.user?.name || "Unknown",
+        email: c.user?.email || "",
+        phone: c.phone || "",
+        location: [c.city, c.state, c.country].filter(Boolean).join(", ") || "N/A",
+        ordersCount: 0, // Placeholder
+        totalSpent: "0.00", // Placeholder
+        joinedDate: new Date(c.created_at),
+        joinedDateStr: new Date(c.created_at).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }),
+        status: c.user?.is_active ? "Active" : "Blocked",
+        avatar: c.user?.profile_image || `https://ui-avatars.com/api/?name=${c.user?.name || "User"}&background=random`,
+        originalData: c, // Keep original data for reference
+      }));
+
+      setCustomers(mappedCustomers);
+      setCurrentPage(swrData.current_page || 1);
+      setLastPage(swrData.last_page || 1);
+      setTotalPages(swrData.total || 0);
+      setLoading(false);
+    }
+    if (swrError) {
+      toast.error(swrError.message || "Failed to fetch customers");
+      setLoading(false);
+    }
+    if (swrLoading) {
+      setLoading(true);
+    }
+  }, [swrData, swrError, swrLoading]);
+
+  // --- FILTER LOGIC (Client-side refinement if needed, but mainly server-side now) ---
   const filteredCustomers = useMemo(() => {
+    // Since we are fetching from API with search/filter, we might just return customers
+    // But for date range (if API doesn't support it yet) we can filter here
     return customers.filter((c) => {
-      // 1. Search
-      const matchesSearch =
-        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.email.toLowerCase().includes(searchTerm.toLowerCase());
-
-      // 2. Tab Filter (Quick Access)
-      const matchesTab = activeTab === "All" ? true : c.status === activeTab;
-
       // 3. Date Filter (Joined within X days)
       let matchesDate = true;
       if (dateRange.days !== null) {
@@ -123,28 +142,20 @@ export default function CustomersPage() {
         matchesDate = c.joinedDate >= cutoffDate;
       }
 
-      // 4. Advanced Status Filter (Multi-select)
+      // 4. Advanced Status Filter (Multi-select) - if used in addition to tabs
       let matchesStatusFilter = true;
       if (statusFilters.length > 0) {
         matchesStatusFilter = statusFilters.includes(c.status);
       }
 
-      return matchesSearch && matchesTab && matchesDate && matchesStatusFilter;
+      return matchesDate && matchesStatusFilter;
     });
-  }, [customers, searchTerm, activeTab, dateRange, statusFilters]);
-
-  // --- PAGINATION LOGIC ---
-  const paginatedCustomers = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredCustomers.slice(start, start + itemsPerPage);
-  }, [filteredCustomers, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+  }, [customers, dateRange, statusFilters]);
 
   // Reset page on filter change
   useEffect(
     () => setCurrentPage(1),
-    [searchTerm, activeTab, dateRange, statusFilters, itemsPerPage],
+    [searchTerm, activeTab, dateRange, statusFilters, itemsPerPage]
   );
 
   // --- ANIMATIONS ---
@@ -177,7 +188,7 @@ export default function CustomersPage() {
 
   // Row Transitions
   useGSAP(() => {
-    if (tableRef.current) {
+    if (tableRef.current && !loading) {
       gsap.fromTo(
         ".customer-row",
         { y: 10, opacity: 0 },
@@ -191,7 +202,7 @@ export default function CustomersPage() {
         },
       );
     }
-  }, [paginatedCustomers]);
+  }, [filteredCustomers, loading]);
 
   // Drawer Animation
   useGSAP(() => {
@@ -233,6 +244,36 @@ export default function CustomersPage() {
     }
   };
 
+  const handleExportCSV = () => {
+    if (customers.length === 0) {
+      toast.error("No customers to export");
+      return;
+    }
+
+    const headers = "ID,Name,Email,Phone,Location,Status,Joined Date\n";
+    const rows = customers.map((c) => {
+      // Handle potential commas in data by wrapping in quotes
+      const name = `"${c.name.replace(/"/g, '""')}"`;
+      const email = `"${c.email.replace(/"/g, '""')}"`;
+      const phone = `"${c.phone.replace(/"/g, '""')}"`;
+      const location = `"${c.location.replace(/"/g, '""')}"`;
+      const status = `"${c.status}"`;
+      const joined = `"${c.joinedDateStr}"`;
+      
+      return `${c.id},${name},${email},${phone},${location},${status},${joined}`;
+    }).join("\n");
+
+    const csvContent = "data:text/csv;charset=utf-8," + headers + rows;
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "customers_export.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Export started");
+  };
+
   // --- HELPERS ---
   const getStatusColor = (status) => {
     switch (status) {
@@ -265,12 +306,13 @@ export default function CustomersPage() {
           </p>
         </div>
         <div className="animate-header flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
+          <button 
+            onClick={handleExportCSV}
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+          >
             <Download className="w-4 h-4" /> Export
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20 active:scale-95">
-            <Plus className="w-4 h-4" /> Add Customer
-          </button>
+         
         </div>
       </div>
 
@@ -279,25 +321,25 @@ export default function CustomersPage() {
         {[
           {
             label: "Total Customers",
-            val: "2,543",
+            val: totalPages.toString(), // Use total from API
             icon: User,
             color: "text-indigo-600",
           },
           {
             label: "Active Members",
-            val: "1,890",
+            val: "0", // Placeholder - API doesn't provide this yet
             icon: CheckCircle2,
             color: "text-emerald-600",
           },
           {
             label: "Blocked Users",
-            val: "24",
+            val: "0", // Placeholder
             icon: Ban,
             color: "text-red-600",
           },
           {
             label: "Avg. Spend",
-            val: "$450",
+            val: `${symbol}0`, // Placeholder
             icon: DollarSign,
             color: "text-blue-600",
           },
@@ -449,6 +491,12 @@ export default function CustomersPage() {
       {/* 4. CUSTOMER TABLE */}
       <div className="animate-toolbar bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[600px]">
         <div className="overflow-x-auto flex-1">
+          {loading ? (
+             <div className="flex flex-col items-center justify-center h-full py-20">
+               <div className="w-10 h-10 border-2 border-slate-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+               <p className="text-slate-500 dark:text-slate-400 font-medium">Loading customers...</p>
+             </div>
+          ) : (
           <table className="w-full text-left border-collapse" ref={tableRef}>
             <thead className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-700">
               <tr>
@@ -477,8 +525,8 @@ export default function CustomersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-              {paginatedCustomers.length > 0 ? (
-                paginatedCustomers.map((customer) => (
+              {filteredCustomers.length > 0 ? (
+                filteredCustomers.map((customer) => (
                   <tr
                     key={customer.id}
                     onClick={() => setSelectedCustomer(customer)}
@@ -528,7 +576,7 @@ export default function CustomersPage() {
                       {customer.joinedDateStr}
                     </td>
                     <td className="p-4 text-sm font-bold text-slate-900 dark:text-white">
-                      ${customer.totalSpent}
+                      {symbol}{customer.totalSpent}
                     </td>
                     <td className="p-4 pr-6 text-right">
                       <button className="p-2 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
@@ -549,6 +597,7 @@ export default function CustomersPage() {
               )}
             </tbody>
           </table>
+          )}
         </div>
 
         {/* 5. PAGINATION FOOTER (MATCHING ORDERS PAGE) */}
@@ -574,12 +623,12 @@ export default function CustomersPage() {
                     {(currentPage - 1) * itemsPerPage + 1}-
                     {Math.min(
                       currentPage * itemsPerPage,
-                      filteredCustomers.length,
+                      totalPages,
                     )}
                   </span>{" "}
                   of{" "}
                   <span className="font-bold text-slate-900 dark:text-white">
-                    {filteredCustomers.length}
+                    {totalPages}
                   </span>
                 </>
               ) : (
@@ -597,20 +646,29 @@ export default function CustomersPage() {
               <ChevronLeft className="w-4 h-4" />
             </button>
             {/* Page Numbers */}
-            {[...Array(Math.min(3, totalPages))].map((_, i) => (
+            {[...Array(Math.min(3, lastPage))].map((_, i) => {
+               // Simple pagination logic for display
+               let pageNum = i + 1;
+               if (lastPage > 5) {
+                   // If many pages, show window around current page
+                   if (currentPage > 2) pageNum = currentPage - 1 + i;
+                   if (pageNum > lastPage) return null;
+               }
+               
+               return (
               <button
-                key={i}
-                onClick={() => setCurrentPage(i + 1)}
-                className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${currentPage === i + 1 ? "bg-indigo-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"}`}
+                key={pageNum}
+                onClick={() => setCurrentPage(pageNum)}
+                className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${currentPage === pageNum ? "bg-indigo-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"}`}
               >
-                {i + 1}
+                {pageNum}
               </button>
-            ))}
+            )})}
             <button
               onClick={() =>
-                setCurrentPage(Math.min(totalPages, currentPage + 1))
+                setCurrentPage(Math.min(lastPage, currentPage + 1))
               }
-              disabled={currentPage === totalPages || totalPages === 0}
+              disabled={currentPage === lastPage || lastPage === 0}
               className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronRight className="w-4 h-4" />
@@ -755,7 +813,7 @@ export default function CustomersPage() {
                       Lifetime Spent
                     </div>
                     <div className="text-2xl font-bold text-slate-900 dark:text-white">
-                      ${selectedCustomer.totalSpent}
+                      {symbol}{selectedCustomer.totalSpent}
                     </div>
                   </div>
                   <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-700">
