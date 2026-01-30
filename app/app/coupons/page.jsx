@@ -27,6 +27,7 @@ import {
   Clock,
   Package,
   Layers,
+  MoreVertical,
 } from "lucide-react";
 import { Suspense } from "react";
 import { useRef } from "react";
@@ -63,6 +64,8 @@ function CouponsContent() {
   };
   const [filterStatus, setFilterStatus] = useState("All");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingCouponId, setEditingCouponId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [selectedCouponId, setSelectedCouponId] = useState(null);
@@ -192,6 +195,37 @@ function CouponsContent() {
     setFormData({ ...formData, tiers: newTiers });
   };
 
+  const handleEdit = (coupon) => {
+    setIsEditMode(true);
+    setEditingCouponId(coupon.id);
+    
+    // Find original coupon data from API response to get exact fields
+    const rawCoupon = apiResponse?.data?.data?.find(c => c.id === coupon.id);
+    if (!rawCoupon) return;
+
+    setFormData({
+        code: rawCoupon.code,
+        name: rawCoupon.name,
+        description: rawCoupon.description || "",
+        type: rawCoupon.type,
+        value: rawCoupon.value || "",
+        min_purchase_amount: rawCoupon.min_purchase_amount || "",
+        start_date: rawCoupon.start_date?.split('T')[0] || "",
+        expiry_date: rawCoupon.expiry_date?.split('T')[0] || "",
+        usage_limit: rawCoupon.usage_limit || "",
+        usage_limit_per_user: rawCoupon.usage_limit_per_user || "",
+        tiers: rawCoupon.tiers?.length ? rawCoupon.tiers.map(t => ({
+            min_amount: t.min_amount,
+            max_amount: t.max_amount,
+            percentage: t.percentage
+        })) : [{ min_amount: "", max_amount: "", percentage: "" }],
+        appliesTo: "all", // TODO: Update when API supports product links
+        is_active: rawCoupon.is_active
+    });
+    
+    setIsModalOpen(true);
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -221,16 +255,23 @@ function CouponsContent() {
             payload.min_purchase_amount = parseFloat(formData.min_purchase_amount);
         }
 
-        const res = await globalFetcher(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/coupons`, session?.accessToken, {
-            method: 'POST',
+        const url = isEditMode 
+            ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/coupons/${editingCouponId}`
+            : `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/coupons`;
+            
+        const method = isEditMode ? 'PUT' : 'POST';
+
+        const res = await globalFetcher(url, session?.accessToken, {
+            method: method,
             body: JSON.stringify(payload),
             headers: { 'Content-Type': 'application/json' }
         });
 
-        if (res) { // globalFetcher throws on error usually, but checking just in case
-            toast.success("Coupon created successfully");
+        if (res) {
+            toast.success(`Coupon ${isEditMode ? 'updated' : 'created'} successfully`);
             setIsModalOpen(false);
             mutate([`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/coupons`, session?.accessToken]);
+            
             // Reset form
             setFormData({
                 code: "",
@@ -247,9 +288,11 @@ function CouponsContent() {
                 appliesTo: "all",
                 is_active: true
             });
+            setIsEditMode(false);
+            setEditingCouponId(null);
         }
     } catch (err) {
-        toast.error(err.message || "Failed to create coupon");
+        toast.error(err.message || `Failed to ${isEditMode ? 'update' : 'create'} coupon`);
     } finally {
         setIsSubmitting(false);
     }
@@ -265,10 +308,18 @@ function CouponsContent() {
     }
   }, [searchParams]);
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (confirm("Delete this coupon?")) {
-        // TODO: Implement delete API call
-        toast.error("Delete functionality not yet connected to API");
+        try {
+            await globalFetcher(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/coupons/${id}`, session?.accessToken, {
+                method: 'DELETE'
+            });
+            toast.success("Coupon deleted successfully");
+            mutate([`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/coupons`, session?.accessToken]);
+            if (selectedCouponId === id) setSelectedCouponId(null);
+        } catch (err) {
+            toast.error(err.message || "Failed to delete coupon");
+        }
     }
   };
 
@@ -302,11 +353,29 @@ function CouponsContent() {
             Manage discount codes and product-specific offers.
           </p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
-        >
-          <Plus className="w-5 h-5" /> Create Coupon
+          <button
+            onClick={() => {
+                setIsEditMode(false);
+                setFormData({
+                    code: "",
+                    name: "",
+                    description: "",
+                    type: "percentage",
+                    value: "",
+                    min_purchase_amount: "",
+                    start_date: "",
+                    expiry_date: "",
+                    usage_limit: "",
+                    usage_limit_per_user: "",
+                    tiers: [{ min_amount: "", max_amount: "", percentage: "" }],
+                    appliesTo: "all",
+                    is_active: true
+                });
+                setIsModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
+          >
+            <Plus className="w-5 h-5" /> Create Coupon
         </button>
       </div>
 
@@ -457,13 +526,23 @@ function CouponsContent() {
         ))}
       </div>
 
+      {/* 6. DETAILS SHEET */}
+      {selectedCouponId && (
+        <CouponDetailsSheet 
+            couponId={selectedCouponId} 
+            onClose={() => setSelectedCouponId(null)} 
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+        />
+      )}
+
       {/* 5. CREATE MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white/95 z-10 backdrop-blur">
               <h3 className="text-lg font-bold text-slate-900">
-                Create New Coupon
+                {isEditMode ? "Edit Coupon" : "Create New Coupon"}
               </h3>
               <button onClick={() => setIsModalOpen(false)}>
                 <X className="w-5 h-5 text-slate-400 hover:text-slate-600" />
@@ -661,8 +740,8 @@ function CouponsContent() {
                                 <div key={index} className="flex gap-2 items-end animate-in slide-in-from-left-2 fade-in duration-300">
                                     <div className="flex-1 space-y-1">
                                         <p className="text-[10px] uppercase font-bold text-slate-400">Min Spend</p>
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             placeholder="Min"
                                             value={tier.min_amount}
                                             onChange={(e) => updateTier(index, 'min_amount', e.target.value)}
@@ -671,8 +750,8 @@ function CouponsContent() {
                                     </div>
                                     <div className="flex-1 space-y-1">
                                         <p className="text-[10px] uppercase font-bold text-slate-400">Max Spend</p>
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             placeholder="Max"
                                             value={tier.max_amount}
                                             onChange={(e) => updateTier(index, 'max_amount', e.target.value)}
@@ -681,16 +760,16 @@ function CouponsContent() {
                                     </div>
                                     <div className="flex-1 space-y-1">
                                         <p className="text-[10px] uppercase font-bold text-slate-400">Discount %</p>
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             placeholder="%"
                                             value={tier.percentage}
                                             onChange={(e) => updateTier(index, 'percentage', e.target.value)}
                                             className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500"
                                         />
                                     </div>
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         onClick={() => removeTier(index)}
                                         className="p-2.5 bg-white border border-red-100 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                     >
@@ -820,18 +899,13 @@ function CouponsContent() {
         </div>
       )}
 
-      {/* 6. DETAILS SHEET */}
-      {selectedCouponId && (
-        <CouponDetailsSheet 
-            couponId={selectedCouponId} 
-            onClose={() => setSelectedCouponId(null)} 
-        />
-      )}
+
     </div>
   );
 }
 
-function CouponDetailsSheet({ couponId, onClose }) {
+
+function CouponDetailsSheet({ couponId, onClose, onEdit, onDelete }) {
   const { data: session } = useSession();
   
   const { data: apiResponse, isLoading } = useSWR(
@@ -997,6 +1071,8 @@ function CouponDetailsSheet({ couponId, onClose }) {
     </div>
   );
 }
+
+
 
 export default function CouponsPage() {
   return (
