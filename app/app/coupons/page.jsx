@@ -1,9 +1,12 @@
 "use client";
 
-import React, { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
+import useSWR, { useSWRConfig } from "swr";
+import { useSession } from "next-auth/react";
+import { fetcher as globalFetcher } from "../../../lib/fetcher";
+import { toast } from "sonner";
 import {
   Ticket,
   Plus,
@@ -25,6 +28,10 @@ import {
   Package,
   Layers,
 } from "lucide-react";
+import { Suspense } from "react";
+import { useRef } from "react";
+import { useState } from "react";
+import { useEffect } from "react";
 
 // --- MOCK PRODUCT DATA (For Search) ---
 const MOCK_PRODUCTS_DB = [
@@ -40,58 +47,69 @@ const MOCK_PRODUCTS_DB = [
 ];
 
 // --- MOCK COUPONS ---
-const INITIAL_COUPONS = [
-  {
-    id: 1,
-    code: "WELCOME2026",
-    type: "Percentage",
-    value: 10,
-    minSpend: 2500,
-    usage: 145,
-    limit: 500,
-    status: "Active",
-    expiry: "2026-12-31",
-    description: "New user sign up bonus",
-    appliesTo: "all", // 'all' or 'specific'
-    productIds: [],
-  },
-  {
-    id: 2,
-    code: "SAMSUNG500",
-    type: "Fixed",
-    value: 500,
-    minSpend: 0,
-    usage: 12,
-    limit: 100,
-    status: "Active",
-    expiry: "2026-03-01",
-    description: "Discount on Samsung Phones",
-    appliesTo: "specific",
-    productIds: [101], // Only applies to Samsung S24
-  },
-];
+
 
 function CouponsContent() {
   const containerRef = useRef(null);
 
   // --- STATE ---
-  const [coupons, setCoupons] = useState(INITIAL_COUPONS);
+  const { data: session } = useSession();
+  const { mutate } = useSWRConfig();
+
+  // --- API FETCHING ---
+  const fetcher = async (url) => {
+    const data = await globalFetcher(url, session?.accessToken);
+    return data;
+  };
   const [filterStatus, setFilterStatus] = useState("All");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+  const [selectedCouponId, setSelectedCouponId] = useState(null);
   const searchParams = useSearchParams();
 
+  // --- API DATA ---
+  const { data: apiResponse, error, isLoading } = useSWR(
+    session?.accessToken
+      ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/coupons`, session.accessToken]
+      : null,
+    ([url]) => fetcher(url),
+    {
+      keepPreviousData: true,
+    }
+  );
+
+  const coupons = (apiResponse?.data?.data || []).map(item => ({
+    id: item.id,
+    code: item.code,
+    type: item.type === 'tiered_percentage' ? 'Tiered' : (item.type === 'percentage' ? 'Percentage' : 'Fixed'),
+    value: item.value || (item.tiers?.length ? `Up to ${Math.max(...item.tiers.map(t => parseFloat(t.percentage)))}%` : 0),
+    minSpend: parseFloat(item.min_purchase_amount || 0),
+    usage: item.used_count || 0,
+    limit: item.usage_limit || "∞",
+    status: item.is_active ? "Active" : "Inactive",
+    expiry: new Date(item.expiry_date).toLocaleDateString(),
+    description: item.description || item.name,
+    appliesTo: "all", // defaulting to all as API doesn't specify yet
+    productIds: [],
+  }));
+
+  // Form State
   // Form State
   const [formData, setFormData] = useState({
     code: "",
+    name: "",
     description: "",
-    type: "Percentage",
+    type: "percentage", // percentage, fixed, tiered_percentage
     value: "",
-    minSpend: "",
-    limit: "",
-    expiry: "",
-    appliesTo: "all", // Default to store-wide
+    min_purchase_amount: "",
+    start_date: "",
+    expiry_date: "",
+    usage_limit: "",
+    usage_limit_per_user: "",
+    tiers: [{ min_amount: "", max_amount: "", percentage: "" }],
+    appliesTo: "all",
+    is_active: true
   });
 
   // Product Selection State
@@ -154,39 +172,87 @@ function CouponsContent() {
     setSelectedProducts(selectedProducts.filter((p) => p.id !== id));
   };
 
-  const handleSave = (e) => {
+  // Tier Handlers
+  const addTier = () => {
+    setFormData({
+      ...formData,
+      tiers: [...formData.tiers, { min_amount: "", max_amount: "", percentage: "" }]
+    });
+  };
+
+  const removeTier = (index) => {
+    const newTiers = [...formData.tiers];
+    newTiers.splice(index, 1);
+    setFormData({ ...formData, tiers: newTiers });
+  };
+
+  const updateTier = (index, field, value) => {
+    const newTiers = [...formData.tiers];
+    newTiers[index][field] = value;
+    setFormData({ ...formData, tiers: newTiers });
+  };
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsSubmitting(true);
 
-    setTimeout(() => {
-      const newCoupon = {
-        id: Date.now(),
-        ...formData,
-        usage: 0,
-        status: "Active",
-        limit: formData.limit || "∞",
-        productIds:
-          formData.appliesTo === "specific"
-            ? selectedProducts.map((p) => p.id)
-            : [],
-      };
+    try {
+        const payload = {
+            code: formData.code,
+            name: formData.name,
+            description: formData.description,
+            type: formData.type,
+            start_date: formData.start_date,
+            expiry_date: formData.expiry_date,
+            usage_limit: formData.usage_limit ? parseInt(formData.usage_limit) : null,
+            usage_limit_per_user: formData.usage_limit_per_user ? parseInt(formData.usage_limit_per_user) : null,
+            is_active: formData.is_active,
+            // products logic if needed later
+        };
 
-      setCoupons([newCoupon, ...coupons]);
-      setIsLoading(false);
-      setIsModalOpen(false);
-      // Reset
-      setFormData({
-        code: "",
-        description: "",
-        type: "Percentage",
-        value: "",
-        minSpend: "",
-        limit: "",
-        expiry: "",
-        appliesTo: "all",
-      });
-      setSelectedProducts([]);
-    }, 1000);
+        if (formData.type === 'tiered_percentage') {
+            payload.tiers = formData.tiers.map(t => ({
+                min_amount: parseFloat(t.min_amount),
+                max_amount: parseFloat(t.max_amount),
+                percentage: parseFloat(t.percentage)
+            }));
+        } else {
+            payload.value = parseFloat(formData.value);
+            payload.min_purchase_amount = parseFloat(formData.min_purchase_amount);
+        }
+
+        const res = await globalFetcher(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/coupons`, session?.accessToken, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (res) { // globalFetcher throws on error usually, but checking just in case
+            toast.success("Coupon created successfully");
+            setIsModalOpen(false);
+            mutate([`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/coupons`, session?.accessToken]);
+            // Reset form
+            setFormData({
+                code: "",
+                name: "",
+                description: "",
+                type: "percentage",
+                value: "",
+                min_purchase_amount: "",
+                start_date: "",
+                expiry_date: "",
+                usage_limit: "",
+                usage_limit_per_user: "",
+                tiers: [{ min_amount: "", max_amount: "", percentage: "" }],
+                appliesTo: "all",
+                is_active: true
+            });
+        }
+    } catch (err) {
+        toast.error(err.message || "Failed to create coupon");
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   // Handle Quick Action from Header
@@ -200,8 +266,10 @@ function CouponsContent() {
   }, [searchParams]);
 
   const handleDelete = (id) => {
-    if (confirm("Delete this coupon?"))
-      setCoupons(coupons.filter((c) => c.id !== id));
+    if (confirm("Delete this coupon?")) {
+        // TODO: Implement delete API call
+        toast.error("Delete functionality not yet connected to API");
+    }
   };
 
   const filteredCoupons = coupons.filter(
@@ -286,7 +354,8 @@ function CouponsContent() {
         {filteredCoupons.map((coupon) => (
           <div
             key={coupon.id}
-            className="coupon-card bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden group hover:shadow-md transition-all"
+            onClick={() => setSelectedCouponId(coupon.id)}
+            className="coupon-card bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden group hover:shadow-md transition-all cursor-pointer"
           >
             {/* Header */}
             <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-start">
@@ -327,7 +396,7 @@ function CouponsContent() {
                   <p className="text-lg font-bold text-indigo-600">
                     {coupon.type === "Percentage"
                       ? `${coupon.value}% OFF`
-                      : `Rs. ${coupon.value} OFF`}
+                      : (coupon.type === "Tiered" ? coupon.value : `Rs. ${coupon.value} OFF`)}
                   </p>
                 </div>
                 <div className="text-right">
@@ -392,7 +461,7 @@ function CouponsContent() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 sticky top-0 bg-white/95 z-10 backdrop-blur">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white/95 z-10 backdrop-blur">
               <h3 className="text-lg font-bold text-slate-900">
                 Create New Coupon
               </h3>
@@ -431,20 +500,37 @@ function CouponsContent() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 uppercase">
-                  Description
-                </label>
-                <input
-                  type="text"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  placeholder="e.g. 10% Off for new users"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500"
-                />
-              </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase">
+                      Name
+                    </label>
+                    <input
+                      required
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      placeholder="e.g. Summer Sale"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase">
+                        Description
+                    </label>
+                    <input
+                        type="text"
+                        value={formData.description}
+                        onChange={(e) =>
+                        setFormData({ ...formData, description: e.target.value })
+                        }
+                        placeholder="e.g. 10% Off for new users"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
 
               {/* PRODUCT SELECTION LOGIC */}
               <div className="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
@@ -539,74 +625,178 @@ function CouponsContent() {
               </div>
 
               {/* Value & Type */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
+              <div className="space-y-4">
+                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 uppercase">
-                    Type
+                    Discount Type
                   </label>
-                  <select
-                    value={formData.type}
-                    onChange={(e) =>
-                      setFormData({ ...formData, type: e.target.value })
-                    }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500"
-                  >
-                    <option>Percentage</option>
-                    <option>Fixed</option>
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 uppercase">
-                    Value
-                  </label>
-                  <div className="relative">
-                    <input
-                      required
-                      type="number"
-                      value={formData.value}
-                      onChange={(e) =>
-                        setFormData({ ...formData, value: e.target.value })
-                      }
-                      placeholder="0"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-indigo-500"
-                    />
-                    <div className="absolute left-3 top-2.5 text-slate-400">
-                      {formData.type === "Percentage" ? (
-                        <Percent className="w-4 h-4" />
-                      ) : (
-                        <DollarSign className="w-4 h-4" />
-                      )}
-                    </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['percentage', 'fixed', 'tiered_percentage'].map((type) => (
+                        <button
+                            key={type}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, type })}
+                            className={`py-2 text-xs font-bold rounded-lg border transition-all capitalize ${
+                                formData.type === type 
+                                ? "bg-indigo-50 border-indigo-200 text-indigo-600 shadow-sm" 
+                                : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+                            }`}
+                        >
+                            {type.replace('_', ' ')}
+                        </button>
+                    ))}
                   </div>
                 </div>
+
+                {formData.type === 'tiered_percentage' ? (
+                    <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div className="flex justify-between items-center">
+                            <label className="text-xs font-bold text-slate-700 uppercase">Discount Tiers</label>
+                            <button type="button" onClick={addTier} className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold hover:bg-indigo-200 transition-colors">
+                                + Add Tier
+                            </button>
+                        </div>
+                        <div className="space-y-3">
+                            {formData.tiers.map((tier, index) => (
+                                <div key={index} className="flex gap-2 items-end animate-in slide-in-from-left-2 fade-in duration-300">
+                                    <div className="flex-1 space-y-1">
+                                        <p className="text-[10px] uppercase font-bold text-slate-400">Min Spend</p>
+                                        <input 
+                                            type="number" 
+                                            placeholder="Min"
+                                            value={tier.min_amount}
+                                            onChange={(e) => updateTier(index, 'min_amount', e.target.value)}
+                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500"
+                                        />
+                                    </div>
+                                    <div className="flex-1 space-y-1">
+                                        <p className="text-[10px] uppercase font-bold text-slate-400">Max Spend</p>
+                                        <input 
+                                            type="number" 
+                                            placeholder="Max"
+                                            value={tier.max_amount}
+                                            onChange={(e) => updateTier(index, 'max_amount', e.target.value)}
+                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500"
+                                        />
+                                    </div>
+                                    <div className="flex-1 space-y-1">
+                                        <p className="text-[10px] uppercase font-bold text-slate-400">Discount %</p>
+                                        <input 
+                                            type="number" 
+                                            placeholder="%"
+                                            value={tier.percentage}
+                                            onChange={(e) => updateTier(index, 'percentage', e.target.value)}
+                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500"
+                                        />
+                                    </div>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => removeTier(index)}
+                                        className="p-2.5 bg-white border border-red-100 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 gap-4 animate-in fade-in zoom-in-95 duration-200">
+                         <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-slate-700 uppercase">
+                                Value
+                            </label>
+                            <div className="relative">
+                                <input
+                                required
+                                type="number"
+                                value={formData.value}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, value: e.target.value })
+                                }
+                                placeholder="0"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-indigo-500"
+                                />
+                                <div className="absolute left-3 top-2.5 text-slate-400">
+                                {formData.type === "percentage" ? (
+                                    <Percent className="w-4 h-4" />
+                                ) : (
+                                    <DollarSign className="w-4 h-4" />
+                                )}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-slate-700 uppercase">
+                                Min Spend
+                            </label>
+                            <input
+                                type="number"
+                                value={formData.min_purchase_amount}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, min_purchase_amount: e.target.value })
+                                }
+                                placeholder="0"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500"
+                            />
+                        </div>
+                    </div>
+                )}
               </div>
 
               {/* Date & Limits */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
+                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 uppercase">
-                    Usage Limit
+                    Total Usage Limit
                   </label>
                   <input
                     type="number"
-                    value={formData.limit}
+                    value={formData.usage_limit}
                     onChange={(e) =>
-                      setFormData({ ...formData, limit: e.target.value })
+                      setFormData({ ...formData, usage_limit: e.target.value })
                     }
                     placeholder="∞"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500"
                   />
                 </div>
+                 <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 uppercase">
+                    Usage Per User
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.usage_limit_per_user}
+                    onChange={(e) =>
+                      setFormData({ ...formData, usage_limit_per_user: e.target.value })
+                    }
+                    placeholder="1"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500"
+                  />
+                </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 uppercase">
-                    Expiry
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.start_date}
+                    onChange={(e) =>
+                      setFormData({ ...formData, start_date: e.target.value })
+                    }
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 uppercase">
+                    Expiry Date
                   </label>
                   <input
                     required
                     type="date"
-                    value={formData.expiry}
+                    value={formData.expiry_date}
                     onChange={(e) =>
-                      setFormData({ ...formData, expiry: e.target.value })
+                      setFormData({ ...formData, expiry_date: e.target.value })
                     }
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500"
                   />
@@ -615,10 +805,10 @@ function CouponsContent() {
 
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isSubmitting}
                 className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center gap-2"
               >
-                {isLoading ? (
+                {isSubmitting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <Plus className="w-4 h-4" />
@@ -629,6 +819,181 @@ function CouponsContent() {
           </div>
         </div>
       )}
+
+      {/* 6. DETAILS SHEET */}
+      {selectedCouponId && (
+        <CouponDetailsSheet 
+            couponId={selectedCouponId} 
+            onClose={() => setSelectedCouponId(null)} 
+        />
+      )}
+    </div>
+  );
+}
+
+function CouponDetailsSheet({ couponId, onClose }) {
+  const { data: session } = useSession();
+  
+  const { data: apiResponse, isLoading } = useSWR(
+    session?.accessToken && couponId
+      ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/coupons/${couponId}`, session.accessToken]
+      : null,
+    ([url]) => globalFetcher(url, session?.accessToken)
+  );
+
+  const coupon = apiResponse?.data;
+
+  // Animation
+  const sheetRef = useRef(null);
+  const overlayRef = useRef(null);
+  
+  useGSAP(() => {
+    gsap.fromTo(overlayRef.current, { opacity: 0 }, { opacity: 1, duration: 0.3 });
+    gsap.fromTo(sheetRef.current, { x: "100%" }, { x: "0%", duration: 0.4, ease: "power3.out" });
+  }, []);
+
+  const handleClose = () => {
+    const tl = gsap.timeline({ onComplete: onClose });
+    tl.to(sheetRef.current, { x: "100%", duration: 0.3, ease: "power3.in" });
+    tl.to(overlayRef.current, { opacity: 0, duration: 0.2 }, "-=0.2");
+  };
+
+  if (!coupon && !isLoading) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-hidden">
+      <div 
+        ref={overlayRef}
+        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+        onClick={handleClose}
+      />
+      
+      <div 
+        ref={sheetRef}
+        className="absolute inset-y-0 right-0 w-full max-w-md bg-slate-50 shadow-2xl flex flex-col h-full border-l border-slate-200"
+      >
+        {isLoading ? (
+            <div className="flex-1 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+            </div>
+        ) : (
+            <>
+                {/* Header */}
+                <div className="px-6 py-5 bg-white border-b border-slate-200 flex justify-between items-start sticky top-0 z-10">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <h2 className="text-2xl font-black text-slate-900 font-mono tracking-tight">{coupon.code}</h2>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${coupon.is_active ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-500 border-slate-200"}`}>
+                                {coupon.is_active ? "Active" : "Inactive"}
+                            </span>
+                        </div>
+                        <p className="text-sm text-slate-500">{coupon.name}</p>
+                    </div>
+                    <button onClick={handleClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                        <X className="w-5 h-5 text-slate-400" />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                    
+                    {/* Main Info */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                            <Ticket className="w-4 h-4 text-indigo-500" /> Coupon Details
+                        </h3>
+                        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-xs font-bold text-slate-400 uppercase">Type</p>
+                                    <p className="font-medium text-slate-900 capitalize">{coupon.type.replace('_', ' ')}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-slate-400 uppercase">Value</p>
+                                    <p className="font-bold text-indigo-600 text-lg">
+                                        {coupon.type === 'tiered_percentage' 
+                                            ? 'Tiered' 
+                                            : (coupon.type === 'percentage' ? `${parseFloat(coupon.value)}%` : `Rs. ${parseFloat(coupon.value)}`)}
+                                    </p>
+                                </div>
+                            </div>
+                            {coupon.description && (
+                                <div className="pt-3 border-t border-slate-100">
+                                    <p className="text-xs font-bold text-slate-400 uppercase mb-1">Description</p>
+                                    <p className="text-sm text-slate-600 leading-relaxed">{coupon.description}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Tiers Section (Only for tiered_percentage) */}
+                    {coupon.type === 'tiered_percentage' && coupon.tiers && (
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                                <Layers className="w-4 h-4 text-amber-500" /> Discount Tiers
+                            </h3>
+                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase">
+                                        <tr>
+                                            <th className="px-4 py-3">Min Spend</th>
+                                            <th className="px-4 py-3">Max Spend</th>
+                                            <th className="px-4 py-3 text-right">Discount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {coupon.tiers.map(tier => (
+                                            <tr key={tier.id}>
+                                                <td className="px-4 py-3 font-medium text-slate-700">Rs. {parseFloat(tier.min_amount).toLocaleString()}</td>
+                                                <td className="px-4 py-3 font-medium text-slate-700">Rs. {parseFloat(tier.max_amount).toLocaleString()}</td>
+                                                <td className="px-4 py-3 font-bold text-indigo-600 text-right">{parseFloat(tier.percentage)}%</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Limits & Dates */}
+                    <div className="space-y-4">
+                         <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-emerald-500" /> Limits & Dates
+                        </h3>
+                        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                             <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+                                <div>
+                                    <p className="text-xs font-bold text-slate-400 uppercase">Usage</p>
+                                    <p className="font-bold text-slate-900">{coupon.used_count} / {coupon.usage_limit}</p>
+                                </div>
+                                <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                     <div className="h-full bg-emerald-500" style={{ width: `${(coupon.used_count / coupon.usage_limit) * 100}%` }}></div>
+                                </div>
+                             </div>
+                             <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-xs font-bold text-slate-400 uppercase">Start Date</p>
+                                    <p className="text-sm font-medium text-slate-700">{new Date(coupon.start_date).toLocaleDateString()}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-slate-400 uppercase">Expiry Date</p>
+                                    <p className="text-sm font-medium text-slate-700">{new Date(coupon.expiry_date).toLocaleDateString()}</p>
+                                </div>
+                             </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                {/* Footer */}
+                <div className="p-6 bg-slate-50 border-t border-slate-200">
+                    <button onClick={handleClose} className="w-full py-3 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl shadow-sm hover:bg-slate-50 transition-colors">
+                        Close
+                    </button>
+                </div>
+            </>
+        )}
+      </div>
     </div>
   );
 }

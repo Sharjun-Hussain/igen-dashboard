@@ -127,9 +127,9 @@ const MENU_GROUPS = [
         icon: Megaphone,
         href: "#",
         submenu: [
-          { title: "Flash Deals", href: "/app/marketing/flash-sales" }, // For 'Deals of the Week' countdowns
-          { title: "Coupons", href: "/app/marketing/coupons" },
-          { title: "Bundles", href: "/app/marketing/bundles" },
+          // { title: "Flash Deals", href: "/app/marketing/flash-sales" }, // For 'Deals of the Week' countdowns
+          { title: "Coupons", href: "/app/coupons" },
+          // { title: "Bundles", href: "/app/marketing/bundles" },
         ],
       },
       { title: "Customers", icon: Users, href: "/app/customers" },
