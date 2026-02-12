@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Menu, Bell, Search, ChevronRight, Plus, Box, Layers, Tag, Ticket, Smartphone } from "lucide-react";
@@ -12,6 +12,22 @@ export default function AdminLayout({ children }) {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setQuickCreateOpen(false);
+      }
+    }
+    if (quickCreateOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [quickCreateOpen]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-white">
@@ -62,7 +78,7 @@ export default function AdminLayout({ children }) {
 
           <div className="flex items-center gap-3 sm:gap-4">
             {/* Quick Create Dropdown */}
-            <div className="relative">
+            <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setQuickCreateOpen(!quickCreateOpen)}
                 className="flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold shadow-lg shadow-indigo-600/20 transition-all active:scale-95"
@@ -72,57 +88,51 @@ export default function AdminLayout({ children }) {
               </button>
 
               {quickCreateOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
+                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                  <p className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    Create New
+                  </p>
+                  <Link
+                    href="/app/products/new"
                     onClick={() => setQuickCreateOpen(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
-                    <p className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                      Create New
-                    </p>
-                    <Link
-                      href="/app/products/new"
-                      onClick={() => setQuickCreateOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                        <Box className="w-4 h-4" />
-                      </div>
-                      <span className="font-semibold">Product</span>
-                    </Link>
-                    <Link
-                      href="/app/categories?action=create"
-                      onClick={() => setQuickCreateOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                        <Layers className="w-4 h-4" />
-                      </div>
-                      <span className="font-semibold">Category</span>
-                    </Link>
-                    <Link
-                      href="/app/brand?action=create"
-                      onClick={() => setQuickCreateOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
-                        <Tag className="w-4 h-4" />
-                      </div>
-                      <span className="font-semibold">Brand</span>
-                    </Link>
-                    <Link
-                      href="/app/coupons?action=create"
-                      onClick={() => setQuickCreateOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 dark:text-rose-400">
-                        <Ticket className="w-4 h-4" />
-                      </div>
-                      <span className="font-semibold">Offer / Coupon</span>
-                    </Link>
-                  </div>
-                </>
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                      <Box className="w-4 h-4" />
+                    </div>
+                    <span className="font-semibold">Product</span>
+                  </Link>
+                  <Link
+                    href="/app/categories?action=create"
+                    onClick={() => setQuickCreateOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                      <Layers className="w-4 h-4" />
+                    </div>
+                    <span className="font-semibold">Category</span>
+                  </Link>
+                  <Link
+                    href="/app/brand?action=create"
+                    onClick={() => setQuickCreateOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                      <Tag className="w-4 h-4" />
+                    </div>
+                    <span className="font-semibold">Brand</span>
+                  </Link>
+                  <Link
+                    href="/app/coupons?action=create"
+                    onClick={() => setQuickCreateOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                      <Ticket className="w-4 h-4" />
+                    </div>
+                    <span className="font-semibold">Offer / Coupon</span>
+                  </Link>
+                </div>
               )}
             </div>
 
