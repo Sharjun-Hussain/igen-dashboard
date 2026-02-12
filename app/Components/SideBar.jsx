@@ -333,13 +333,9 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-indigo-500/30 transition-all cursor-pointer group mb-3">
             <div className="relative">
               <img
-                src={
-                  session?.user?.image ||
-                  "https://ui-avatars.com/api/?name=" +
-                    (session?.user?.name || "Admin") +
-                    "&background=random"
-                }
+                src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=2000&auto=format&fit=crop"
                 alt="Admin"
+                loading="lazy"
                 className="w-9 h-9 rounded-lg object-cover"
               />
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-slate-900"></span>
