@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Menu, Bell, Search, ChevronRight, Plus, Box, Layers, Tag, Ticket, Smartphone } from "lucide-react";
 import Sidebar from "../Components/SideBar";
 import { useRouter } from "next/navigation";
+import NextTopLoader from "nextjs-toploader";
 
 export default function AdminLayout({ children }) {
   const pathname = usePathname();
@@ -31,6 +32,17 @@ export default function AdminLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-white">
+      <NextTopLoader
+        color="#4f46e5"
+        initialPosition={0.08}
+        crawlSpeed={200}
+        height={3}
+        crawl={true}
+        showSpinner={false}
+        easing="ease"
+        speed={200}
+        shadow="0 0 10px #4f46e5,0 0 5px #4f46e5"
+      />
 
       {/* Sidebar Component */}
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
