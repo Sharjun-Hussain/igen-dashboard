@@ -22,6 +22,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 
+import { useGlobalSettings } from "../../app/context/GlobalSettingsContext";
+
 const formschema = z.object({
   email: z.string().email({ message: "Invalid Email Address" }),
   password: z
@@ -79,12 +81,11 @@ const SocialButton = ({ icon: Icon, label }) => (
   </button>
 );
 
-// --- MAIN PAGE ---
-
 export default function LoginPage() {
   const containerRef = useRef(null);
   const router = useRouter();
   const { data: session, status } = useSession();
+  const { businessName, logoUrl, footerText } = useGlobalSettings();
   const [isLoading, setIsLoading] = useState(false);
 
   // Redirect if already authenticated
@@ -161,10 +162,14 @@ export default function LoginPage() {
       <div className="left-panel w-full lg:w-[45%] bg-[#1e293b] text-white p-8 lg:p-16 flex flex-col justify-between relative z-10">
         {/* Header */}
         <div className="flex items-center gap-2 text-xl font-bold tracking-tight stagger-in">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-900/50">
-            <div className="w-4 h-4 bg-white rounded-sm transform rotate-45" />
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-900/50 overflow-hidden">
+            {logoUrl ? (
+              <img src={logoUrl} alt={businessName} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-4 h-4 bg-white rounded-sm transform rotate-45" />
+            )}
           </div>
-          IgenShop
+          {businessName}
         </div>
 
         {/* Middle Content */}
@@ -173,7 +178,7 @@ export default function LoginPage() {
             Welcome back to the future of shopping.
           </h1>
           <p className="text-slate-400 text-lg leading-relaxed">
-            "IgenShop has completely transformed how I buy tech. The delivery to
+            "{businessName} has completely transformed how I buy tech. The delivery to
             Colombo was instant and the quality is unmatched."
           </p>
           <div className="mt-8 flex items-center gap-4">
@@ -193,7 +198,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="text-sm text-slate-500 stagger-in">
-          © 2026 IgenShop LK. All rights reserved.
+          {footerText}
         </div>
       </div>
 

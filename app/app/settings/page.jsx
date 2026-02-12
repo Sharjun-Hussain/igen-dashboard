@@ -20,10 +20,22 @@ import {
   Coins, // New icon
 } from "lucide-react";
 import { useCurrency } from "../context/CurrencyContext";
+import { useGlobalSettings } from "../context/GlobalSettingsContext";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 
 export default function SriLankaSettingsPage() {
   const containerRef = useRef(null);
+  const { data: session } = useSession();
   const { currency, updateCurrency } = useCurrency();
+  const { 
+    businessName, 
+    logoUrl, 
+    footerText, 
+    adminEmail, 
+    adminName, 
+    updateSettings 
+  } = useGlobalSettings();
 
   // --- STATE ---
   const [activeTab, setActiveTab] = useState("store");
@@ -147,12 +159,37 @@ export default function SriLankaSettingsPage() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+      const response = await fetch(`${baseUrl}/admin/settings`, {
+        method: "POST", // Or PATCH
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.accessToken}`,
+        },
+        body: JSON.stringify({
+          business_name: businessName,
+          footer_text: footerText,
+          admin_email: adminEmail,
+          admin_name: adminName,
+          // logo_url: logoUrl, // If logo was uploaded
+        }),
+      });
+
+      if (response.ok) {
+        toast.success("Settings updated successfully");
+        setHasChanges(false);
+      } else {
+        toast.error("Failed to update settings");
+      }
+    } catch (error) {
+      console.error("Save error:", error);
+      toast.error("An error occurred while saving");
+    } finally {
       setLoading(false);
-      setHasChanges(false);
-    }, 1500);
+    }
   };
 
   const SectionHeader = ({ icon: Icon, title, description, colorClass }) => (
@@ -190,6 +227,7 @@ export default function SriLankaSettingsPage() {
           <nav className="sticky top-24 self-start space-y-1 animate-section">
             {[
               { id: "store", label: "General Store", icon: Store },
+              { id: "profile", label: "Profile Settings", icon: Users },
               { id: "payments", label: "Payment Methods", icon: CreditCard },
               { id: "integrations", label: "WhatsApp & API", icon: Smartphone },
               { id: "data", label: "Import / Export", icon: Database }, // New Item
@@ -213,36 +251,146 @@ export default function SriLankaSettingsPage() {
         <div className="lg:col-span-9 space-y-10">
           {/* A. GENERAL STORE */}
           <section id="store" className="animate-section scroll-mt-32">
-            {/* ... (Existing Store Code) ... */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-8">
               <SectionHeader
                 icon={Store}
                 title="General Store"
-                description="Basic information about your business."
+                description="Manage your global business identity and contact details."
                 colorClass="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
               />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
-                    Store Name
-                  </label>
-                  <input
-                    type="text"
-                    defaultValue={store.name}
-                    onChange={() => setHasChanges(true)}
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all font-medium"
-                  />
+              <div className="space-y-8">
+                {/* Logo Upload */}
+                <div className="flex flex-col md:flex-row items-center gap-8 p-6 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <div className="relative group">
+                    <div className="w-24 h-24 rounded-2xl bg-white dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center overflow-hidden shadow-inner">
+                      {logoUrl ? (
+                        <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                      ) : (
+                        <Store className="w-8 h-8 text-slate-300" />
+                      )}
+                    </div>
+                    <button className="absolute -bottom-2 -right-2 p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg transition-transform hover:scale-110 active:scale-95">
+                      <Upload className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="flex-1 text-center md:text-left">
+                    <h3 className="font-bold text-slate-900 dark:text-white">Business Logo</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Upload a square logo (e.g. 512x512px). This will appear on the login page and sidebar.
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
-                    Contact Phone
-                  </label>
-                  <input
-                    type="text"
-                    defaultValue={store.phone}
-                    onChange={() => setHasChanges(true)}
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all font-medium"
-                  />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
+                      Business Name
+                    </label>
+                    <input
+                      type="text"
+                      value={businessName}
+                      onChange={(e) => {
+                        updateSettings({ businessName: e.target.value });
+                        setHasChanges(true);
+                      }}
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all font-medium"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
+                      Contact Phone
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue={store.phone}
+                      onChange={() => setHasChanges(true)}
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all font-medium"
+                    />
+                  </div>
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
+                      Global Footer Text
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={footerText}
+                      onChange={(e) => {
+                        updateSettings({ footerText: e.target.value });
+                        setHasChanges(true);
+                      }}
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all font-medium resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* NEW SECTION: PROFILE SETTINGS */}
+          <section id="profile" className="animate-section scroll-mt-32">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-8">
+              <SectionHeader
+                icon={Users}
+                title="Profile Settings"
+                description="Update your personal details and account credentials."
+                colorClass="bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400"
+              />
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
+                      Display Name
+                    </label>
+                    <input
+                      type="text"
+                      value={adminName}
+                      onChange={(e) => {
+                        updateSettings({ adminName: e.target.value });
+                        setHasChanges(true);
+                      }}
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all font-medium"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={adminEmail}
+                      onChange={(e) => {
+                        updateSettings({ adminEmail: e.target.value });
+                        setHasChanges(true);
+                      }}
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-6 border-t border-slate-100 dark:border-slate-700">
+                   <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Security & Password</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
+                        Current Password
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-rose-500 outline-none transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
+                        New Password
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-rose-500 outline-none transition-all font-medium"
+                      />
+                    </div>
+                   </div>
                 </div>
               </div>
             </div>

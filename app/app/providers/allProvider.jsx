@@ -5,13 +5,15 @@ import React from "react";
 import { SWRConfig } from "swr";
 import { CurrencyProvider } from "../context/CurrencyContext";
 import { SearchProvider } from "../context/SearchContext";
+import { GlobalSettingsProvider } from "../context/GlobalSettingsContext";
 
 
 const AllProvider = ({ children, session }) => {
   return (
     <SessionProvider session={session}>
-      <SearchProvider>
-        <CurrencyProvider>
+      <GlobalSettingsProvider>
+        <SearchProvider>
+          <CurrencyProvider>
           <SWRConfig
           value={{
             fetcher: (url) => fetcher(url, session?.accessToken),
@@ -23,6 +25,7 @@ const AllProvider = ({ children, session }) => {
         </SWRConfig>
       </CurrencyProvider>
     </SearchProvider>
+  </GlobalSettingsProvider>
   </SessionProvider>
   );
 };

@@ -16,6 +16,8 @@ import {
 
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useGlobalSettings } from "../../app/context/GlobalSettingsContext";
 
 // --- REUSABLE INPUT COMPONENT ---
 const Input = ({ label, className, icon: Icon, type = "text", ...props }) => {
@@ -65,6 +67,7 @@ export default function ResetPasswordPage() {
   const containerRef = useRef(null);
   const router = useRouter();
   const { status } = useSession();
+  const { businessName, logoUrl, footerText } = useGlobalSettings();
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   // Redirect if already authenticated
@@ -132,44 +135,46 @@ export default function ResetPasswordPage() {
       <div className="left-panel w-full lg:w-[45%] bg-[#1e293b] text-white p-8 lg:p-16 flex flex-col justify-between relative z-10">
         {/* Header */}
         <div className="flex items-center gap-2 text-xl font-bold tracking-tight stagger-in">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-900/50">
-            <div className="w-4 h-4 bg-white rounded-sm transform rotate-45" />
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-900/50 overflow-hidden">
+            {logoUrl ? (
+              <img src={logoUrl} alt={businessName} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-4 h-4 bg-white rounded-sm transform rotate-45" />
+            )}
           </div>
-          IgenShop
+          {businessName}
         </div>
 
         {/* Middle Content */}
         <div className="max-w-md stagger-in my-12 lg:my-0">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-wider mb-6">
-            <ShieldCheck className="w-4 h-4" /> Account Security
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold mb-6">
+            <ShieldCheck className="w-4 h-4" /> Final Step
           </div>
           <h1 className="text-4xl lg:text-5xl font-bold mb-6 leading-tight">
-            Secure your account.
+            One last step to secure your world.
           </h1>
           <p className="text-slate-400 text-lg leading-relaxed">
-            Create a strong password to protect your personal details and order
-            history. We recommend using a mix of letters, numbers, and symbols.
+            "Resetting my access to {businessName} was simple and secure. Highly professional
+            interface."
           </p>
-
-          <div className="mt-8 space-y-3">
-            <div className="flex items-center gap-3 text-slate-300 text-sm">
-              <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center">
-                <Check className="w-3 h-3 text-blue-400" />
-              </div>
-              Minimum 8 characters
+          <div className="mt-8 flex items-center gap-4">
+            <div className="w-12 h-12 bg-slate-700 rounded-full overflow-hidden border-2 border-slate-600">
+              <img
+                src="https://i.pravatar.cc/150?img=12"
+                alt="User"
+                className="w-full h-full object-cover"
+              />
             </div>
-            <div className="flex items-center gap-3 text-slate-300 text-sm">
-              <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center">
-                <Check className="w-3 h-3 text-blue-400" />
-              </div>
-              One special character
+            <div>
+              <p className="font-bold">Malith P.</p>
+              <p className="text-sm text-slate-500">Tech Enthusiast</p>
             </div>
           </div>
         </div>
 
         {/* Footer */}
         <div className="text-sm text-slate-500 stagger-in">
-          © 2026 IgenShop LK. All rights reserved.
+          {footerText}
         </div>
       </div>
 

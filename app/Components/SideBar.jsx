@@ -33,6 +33,8 @@ import {
 } from "lucide-react";
 import { Layers3 } from "lucide-react";
 
+import { useGlobalSettings } from "../app/context/GlobalSettingsContext";
+
 // --- CUSTOM SCROLLBAR CSS ---
 const SCROLLBAR_STYLES = `
   .custom-tiny-scrollbar::-webkit-scrollbar {
@@ -149,6 +151,7 @@ const MENU_GROUPS = [
 export default function Sidebar({ isOpen, setIsOpen }) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { businessName, logoUrl, footerText } = useGlobalSettings();
   const [openSubmenu, setOpenSubmenu] = useState("");
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -204,12 +207,16 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         {/* 1. BRAND LOGO */}
         <div className="h-20 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800 shrink-0">
           <Link href="/app" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20 group-hover:scale-105 transition-transform">
-              <Layers className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20 group-hover:scale-105 transition-transform overflow-hidden">
+              {logoUrl ? (
+                <img src={logoUrl} alt={businessName} className="w-full h-full object-cover" />
+              ) : (
+                <Layers className="w-6 h-6 text-white" />
+              )}
             </div>
             <div>
-              <h1 className="font-bold text-lg tracking-tight leading-none text-slate-900 dark:text-white">
-                Igen
+              <h1 className="font-bold text-lg tracking-tight leading-none text-slate-900 dark:text-white truncate max-w-[120px]">
+                {businessName}
               </h1>
               <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 tracking-widest uppercase">
                 Admin Dashboard
