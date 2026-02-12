@@ -227,10 +227,31 @@ function CreateProductContent() {
   const isEditMode = !!productId;
   const { data: session } = useSession();
 
+  const STEPS = [
+    { id: "general", label: "General Info", icon: FileText },
+    { id: "media", label: "Media Gallery", icon: ImageIcon },
+    { id: "variants", label: "Pricing & Variants", icon: Layers },
+    { id: "specs", label: "Specs & Features", icon: Smartphone },
+    { id: "buy_together", label: "Buy Together", icon: ShoppingCart },
+    { id: "related", label: "Related Items", icon: Box },
+  ];
+
   // --- STATE ---
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [activeTab, setActiveTab] = useState("general");
+
+  // Sync activeTab with URL 'step' parameter
+  const queryStep = searchParams.get("step");
+  const initialTab = STEPS.find((s) => s.id === queryStep) ? queryStep : "general";
+  const [activeTab, setActiveTabState] = useState(initialTab);
+  const [stepperOrientation, setStepperOrientation] = useState("horizontal");
+
+  const setActiveTab = (tabId) => {
+    setActiveTabState(tabId);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("step", tabId);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
 
   // MAIN DATA STORE
   const [formData, setFormData] = useState({
@@ -989,9 +1010,33 @@ function CreateProductContent() {
             </div>
 
             <div className="flex items-center gap-3">
+              <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 p-1 rounded-xl border border-slate-200 dark:border-slate-600">
+                <button
+                  onClick={() => setStepperOrientation("horizontal")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    stepperOrientation === "horizontal"
+                      ? "bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                  }`}
+                >
+                  Horizontal
+                </button>
+                <button
+                  onClick={() => setStepperOrientation("vertical")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    stepperOrientation === "vertical"
+                      ? "bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                  }`}
+                >
+                  Vertical
+                </button>
+              </div>
+              <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
               <button
                 onClick={handleSaveDraft}
-                className="hidden sm:flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm font-semibold transition-all active:scale-95"
+                disabled={isLoading}
+                className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-sm font-bold transition-all active:scale-95"
               >
                 <Save className="w-4 h-4" /> Save Draft
               </button>
@@ -1010,26 +1055,44 @@ function CreateProductContent() {
             </div>
           </div>
 
-          {/* TABS */}
-          <div className="flex gap-2 overflow-x-auto no-scrollbar">
-            {[
-              { id: "general", label: "General Info", icon: FileText },
-              { id: "media", label: "Media Gallery", icon: ImageIcon },
-              { id: "variants", label: "Pricing & Variants", icon: Layers },
-              { id: "specs", label: "Specs & Features", icon: Smartphone },
-              { id: "buy_together", label: "Buy Together", icon: ShoppingCart },
-              { id: "related", label: "Related Items", icon: Box },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap
-                  ${activeTab === tab.id ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"}`}
-              >
-                <tab.icon className="w-4 h-4" /> {tab.label}
-              </button>
-            ))}
-          </div>
+          {/* WIZARD STEPPER */}
+          {stepperOrientation === "horizontal" && (
+            <div className="relative flex items-center justify-between w-full max-w-5xl mx-auto px-4 py-8 pb-12">
+              {/* Background Line */}
+              <div className="absolute top-[52px] left-0 w-full h-[2px] bg-slate-100 dark:bg-slate-700 -translate-y-1/2 z-0" />
+              
+              {/* Progress Line */}
+              <div 
+                className="absolute top-[52px] left-0 h-[2px] bg-indigo-600 transition-all duration-500 -translate-y-1/2 z-0"
+                style={{ width: `${(STEPS.findIndex(s => s.id === activeTab) / (STEPS.length - 1)) * 100}%` }}
+              />
+
+              {STEPS.map((step, idx) => {
+                const isCompleted = STEPS.findIndex(s => s.id === activeTab) > idx;
+                const isActive = activeTab === step.id;
+                
+                return (
+                  <div key={step.id} className="relative z-10 flex flex-col items-center group">
+                    <button
+                      onClick={() => setActiveTab(step.id)}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 border-2 
+                        ${isActive ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-600/20 scale-110" : 
+                          isCompleted ? "bg-white dark:bg-slate-800 border-indigo-600 text-indigo-600" : 
+                          "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 hover:border-slate-300"}`}
+                    >
+                      {isCompleted ? <Check className="w-5 h-5 stroke-[3px]" /> : <step.icon className="w-4 h-4" />}
+                    </button>
+                    <div className="absolute top-12 flex flex-col items-center whitespace-nowrap">
+                      <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors duration-300
+                        ${isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}`}>
+                        {step.label}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </header>
 
@@ -1045,8 +1108,50 @@ function CreateProductContent() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* --- LEFT CONTENT (8 cols) --- */}
-          <div className="lg:col-span-8 space-y-8">
+          {/* VERTICAL STEPPER (Side Navigation) */}
+          {stepperOrientation === "vertical" && (
+            <div className="lg:col-span-3">
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm sticky top-32">
+                <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-6 px-2">
+                  Creation Progress
+                </h3>
+                <div className="space-y-2">
+                  {STEPS.map((step, idx) => {
+                    const isCompleted = STEPS.findIndex(s => s.id === activeTab) > idx;
+                    const isActive = activeTab === step.id;
+                    
+                    return (
+                      <button
+                        key={step.id}
+                        onClick={() => setActiveTab(step.id)}
+                        className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all duration-300 group
+                          ${isActive ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400" : 
+                            "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900/50"}`}
+                      >
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300
+                          ${isActive ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : 
+                            isCompleted ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600" : 
+                            "bg-slate-100 dark:bg-slate-700 text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-600"}`}
+                        >
+                          {isCompleted ? <Check className="w-4 h-4 stroke-[3px]" /> : <step.icon className="w-4 h-4" />}
+                        </div>
+                        <div className="flex flex-col items-start truncate">
+                          <span className="text-sm font-bold truncate">{step.label}</span>
+                          {isActive && <span className="text-[8px] font-medium opacity-70 uppercase tracking-tighter">Current Step</span>}
+                          {isCompleted && <span className="text-[8px] font-medium text-emerald-500 uppercase tracking-tighter">Completed</span>}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* --- LEFT CONTENT --- */}
+          <div className={`${
+            stepperOrientation === "vertical" ? "lg:col-span-6" : "lg:col-span-8"
+          } space-y-8`}>
             {/* TAB CONTENT: GENERAL */}
             {activeTab === "general" && (
               <div className="space-y-6 animate-fade-up">
@@ -1247,6 +1352,16 @@ function CreateProductContent() {
                     </div>
                   </div>
                 </div>
+
+                <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
+                  <div />
+                  <button
+                    onClick={() => setActiveTab("media")}
+                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+                  >
+                    Next Step <MoveRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1368,6 +1483,21 @@ function CreateProductContent() {
                       ))}
                     </div>
                   )}
+                </div>
+
+                <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
+                  <button
+                    onClick={() => setActiveTab("general")}
+                    className="flex items-center gap-2 px-6 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-sm font-bold transition-all active:scale-95"
+                  >
+                    <MoveLeft className="w-4 h-4" /> Back
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("variants")}
+                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+                  >
+                    Next Step <MoveRight className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             )}
@@ -1611,6 +1741,21 @@ function CreateProductContent() {
                     </table>
                   </div>
                 </div>
+
+                <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
+                  <button
+                    onClick={() => setActiveTab("variants")}
+                    className="flex items-center gap-2 px-6 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-sm font-bold transition-all active:scale-95"
+                  >
+                    <MoveLeft className="w-4 h-4" /> Back
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("buy_together")}
+                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+                  >
+                    Next Step <MoveRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             )}
             {activeTab === "buy_together" && (
@@ -1626,6 +1771,21 @@ function CreateProductContent() {
                   onSearchChange={setProductSearchTerm}
                   results={productSearchResults}
                 />
+
+                <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
+                  <button
+                    onClick={() => setActiveTab("specs")}
+                    className="flex items-center gap-2 px-6 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-sm font-bold transition-all active:scale-95"
+                  >
+                    <MoveLeft className="w-4 h-4" /> Back
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("related")}
+                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+                  >
+                    Next Step <MoveRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1643,6 +1803,27 @@ function CreateProductContent() {
                   onSearchChange={setProductSearchTerm}
                   results={productSearchResults}
                 />
+
+                <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
+                  <button
+                    onClick={() => setActiveTab("buy_together")}
+                    className="flex items-center gap-2 px-6 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-sm font-bold transition-all active:scale-95"
+                  >
+                    <MoveLeft className="w-4 h-4" /> Back
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={isLoading}
+                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-70"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Check className="w-4 h-4" />
+                    )}
+                    {isEditMode ? "Update Product" : "Publish Product"}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -2207,12 +2388,29 @@ function CreateProductContent() {
                     </div>
                   )}
                 </div>
+
+                <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
+                  <button
+                    onClick={() => setActiveTab("media")}
+                    className="flex items-center gap-2 px-6 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-sm font-bold transition-all active:scale-95"
+                  >
+                    <MoveLeft className="w-4 h-4" /> Back
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("specs")}
+                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+                  >
+                    Next Step <MoveRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             )}
           </div>
 
-          {/* --- RIGHT SIDEBAR (4 cols) --- */}
-          <div className="lg:col-span-4 space-y-6">
+          {/* --- RIGHT SIDEBAR --- */}
+          <div className={`${
+            stepperOrientation === "vertical" ? "lg:col-span-3" : "lg:col-span-4"
+          } space-y-6`}>
             {/* Status Card */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm sticky top-32">
               <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">
