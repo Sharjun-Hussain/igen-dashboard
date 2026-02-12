@@ -14,6 +14,9 @@ import {
   Check,
 } from "lucide-react";
 
+import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+
 // --- REUSABLE INPUT COMPONENT ---
 const Input = ({ label, className, icon: Icon, type = "text", ...props }) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -60,7 +63,16 @@ const Input = ({ label, className, icon: Icon, type = "text", ...props }) => {
 
 export default function ResetPasswordPage() {
   const containerRef = useRef(null);
+  const router = useRouter();
+  const { status } = useSession();
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.push("/app");
+    }
+  }, [status, router]);
 
   // GSAP Entrance
   useGSAP(

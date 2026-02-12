@@ -12,6 +12,10 @@ import {
   KeyRound,
 } from "lucide-react";
 
+import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
 // --- REUSABLE INPUT ---
 const Input = ({ label, className, icon: Icon, ...props }) => (
   <div className="space-y-2 w-full relative">
@@ -38,8 +42,17 @@ const Input = ({ label, className, icon: Icon, ...props }) => (
 
 export default function ForgotPasswordPage() {
   const containerRef = useRef(null);
+  const router = useRouter();
+  const { status } = useSession();
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [email, setEmail] = useState("");
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.push("/app");
+    }
+  }, [status, router]);
 
   // GSAP Entrance
   useGSAP(

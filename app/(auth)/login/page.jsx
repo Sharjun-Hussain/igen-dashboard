@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
 
 const formschema = z.object({
   email: z.string().email({ message: "Invalid Email Address" }),
@@ -83,8 +84,15 @@ const SocialButton = ({ icon: Icon, label }) => (
 export default function LoginPage() {
   const containerRef = useRef(null);
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.push("/app");
+    }
+  }, [status, router]);
 
   const form = useForm({
     resolver: zodResolver(formschema),
