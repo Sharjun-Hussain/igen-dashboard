@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useRef, useMemo, useEffect, Suspense } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
+import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
+import { useDebounce } from "../hooks/useDebounce";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import useSWR, { useSWRConfig } from "swr";
-import { useSession, signOut } from "next-auth/react";
 import { fetcher as globalFetcher } from "../../../lib/fetcher";
 import { toast } from "sonner";
 import {
@@ -24,6 +25,7 @@ import {
   ChevronRight,
   Loader2,
 } from "lucide-react";
+import { Suspense } from "react";
 
 function CategoriesContent() {
   const containerRef = useRef(null);
@@ -35,8 +37,12 @@ function CategoriesContent() {
   // --- PAGINATION & SEARCH STATE ---
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 500);
 
+  // Reset page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
   // --- MODAL STATES ---
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -62,16 +68,6 @@ function CategoriesContent() {
     const data = await globalFetcher(url, session?.accessToken);
     return data;
   };
-
-  // Debounce search
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-      setCurrentPage(1); // Reset to page 1 on search
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
   const { data: apiResponse, error, isLoading } = useSWR(
     session?.accessToken
       ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories?page=${currentPage}&search=${debouncedSearch}`, session.accessToken]
@@ -734,7 +730,7 @@ function CategoriesContent() {
                 <button
                   onClick={handleSubmit}
                   type="button"
-                  className="flex-[2] py-3 px-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all transform active:scale-95"
+                  className="flex-2 py-3 px-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all transform active:scale-95"
                 >
                   {formMode === "create" ? "Create Category" : "Save Changes"}
                 </button>
@@ -746,7 +742,7 @@ function CategoriesContent() {
 
       {/* --- DELETE DIALOG --- */}
       {isDeleteOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
           <div
             ref={deleteOverlayRef}
             className="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm"

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, Suspense } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import useSWR, { useSWRConfig } from "swr";
@@ -31,6 +31,7 @@ import {
   ToggleLeft,
   ToggleRight,
 } from "lucide-react";
+import { Suspense } from "react";
 
 function BrandContent() {
   const { data: session } = useSession();
@@ -41,6 +42,12 @@ function BrandContent() {
   const [viewMode, setViewMode] = useState("grid"); // 'grid' | 'list'
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
+
+  // Initialize searchTerm from URL query parameter on mount
+  useEffect(() => {
+    const initialSearch = searchParams.get("search") || "";
+    setSearchTerm(initialSearch);
+  }, [searchParams]);
 
   // --- PAGINATION & SORTING STATES ---
   const [currentPage, setCurrentPage] = useState(1);

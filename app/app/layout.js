@@ -7,10 +7,13 @@ import { Menu, Bell, Search, ChevronRight, Plus, Box, Layers, Tag, Ticket, Smart
 import Sidebar from "../Components/SideBar";
 import { useRouter } from "next/navigation";
 import NextTopLoader from "nextjs-toploader";
+import { useSearch } from "./context/SearchContext";
+import GlobalSearch from "./Components/GlobalSearch";
 
 export default function AdminLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -149,13 +152,8 @@ export default function AdminLayout({ children }) {
             </div>
 
             {/* Search Bar */}
-            <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 focus-within:ring-2 ring-blue-500/20 ring-offset-2 dark:ring-offset-slate-800 transition-all">
-              <Search className="w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="bg-transparent border-none outline-none text-sm w-48 lg:w-64 placeholder:text-slate-400 dark:text-white"
-              />
+            <div className="hidden md:block">
+              <GlobalSearch />
             </div>
 
             <button className="relative p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">

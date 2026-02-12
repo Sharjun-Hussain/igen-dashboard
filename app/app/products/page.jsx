@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useRef, useMemo } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
+import { useSession, signOut } from "next-auth/react";
+import { useDebounce } from "../hooks/useDebounce";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import useSWR, { useSWRConfig } from "swr";
-import { useSession, signOut } from "next-auth/react";
 import { fetcher as globalFetcher } from "../../../lib/fetcher";
 import { toast } from "sonner";
 import {
@@ -70,7 +71,7 @@ const DeleteModal = ({ isOpen, onClose, onConfirm, title, message, isDeleting })
   if (!isOpen) return null;
 
   return (
-    <div ref={modalRef} className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+    <div ref={modalRef} className="fixed inset-0 z-60 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
       <div ref={contentRef} className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4 border border-slate-200 dark:border-slate-700">
         <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mb-4 mx-auto">
           <Trash2 className="w-6 h-6 text-red-500" />
@@ -575,13 +576,18 @@ export default function ProductsPage() {
   const { data: session } = useSession();
   const [viewMode, setViewMode] = useState("list");
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [deleteProduct, setDeleteProduct] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [localDrafts, setLocalDrafts] = useState([]);
+  const debouncedSearch = useDebounce(searchTerm, 500);
   const { mutate } = useSWRConfig();
+
+  // Reset page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   // --- API FETCHING ---
   const fetcher = async (url) => {
@@ -589,17 +595,8 @@ export default function ProductsPage() {
     return data;
   };
 
-  // Debounce search
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-      setCurrentPage(1);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
   // Load local drafts
-  React.useEffect(() => {
+  useEffect(() => {
     const drafts = JSON.parse(localStorage.getItem("igen_product_drafts") || "[]");
     setLocalDrafts(drafts);
   }, []);

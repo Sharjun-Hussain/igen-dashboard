@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
+import { useDebounce } from "../hooks/useDebounce";
 import useSWR, { useSWRConfig } from "swr";
 import { useSession } from "next-auth/react";
 import { fetcher as globalFetcher } from "../../../lib/fetcher";
@@ -53,12 +54,12 @@ const MOCK_PRODUCTS_DB = [
 
 function CouponsContent() {
   const containerRef = useRef(null);
-
-  // --- STATE ---
-  const { data: session } = useSession();
-  const { mutate } = useSWRConfig();
   const formSheetRef = useRef(null);
   const formOverlayRef = useRef(null);
+  const { data: session } = useSession();
+
+  // --- STATE ---
+  const { mutate } = useSWRConfig();
 
   // --- API FETCHING ---
   const fetcher = async (url) => {
@@ -67,16 +68,8 @@ function CouponsContent() {
   };
   const [filterStatus, setFilterStatus] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 500);
   const [filterType, setFilterType] = useState("All"); // percentage, fixed, tiered
-  
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -355,8 +348,8 @@ function CouponsContent() {
     const matchesStatus = filterStatus === "All" || coupon.status === filterStatus;
     const matchesType = filterType === "All" || coupon.type === filterType;
     const matchesSearch = 
-        coupon.code.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        coupon.description.toLowerCase().includes(debouncedSearch.toLowerCase());
+        (coupon.code || "").toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        (coupon.description || "").toLowerCase().includes(debouncedSearch.toLowerCase());
     
     return matchesStatus && matchesType && matchesSearch;
   });

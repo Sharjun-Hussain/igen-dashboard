@@ -4,13 +4,15 @@ import { fetcher } from "../../../lib/fetcher";
 import React from "react";
 import { SWRConfig } from "swr";
 import { CurrencyProvider } from "../context/CurrencyContext";
+import { SearchProvider } from "../context/SearchContext";
 
 
 const AllProvider = ({ children, session }) => {
   return (
     <SessionProvider session={session}>
-      <CurrencyProvider>
-        <SWRConfig
+      <SearchProvider>
+        <CurrencyProvider>
+          <SWRConfig
           value={{
             fetcher: (url) => fetcher(url, session?.accessToken),
             revalidateOnFocus: false,
@@ -20,7 +22,8 @@ const AllProvider = ({ children, session }) => {
           {children}
         </SWRConfig>
       </CurrencyProvider>
-    </SessionProvider>
+    </SearchProvider>
+  </SessionProvider>
   );
 };
 
