@@ -388,12 +388,21 @@ function CategoriesContent() {
               <p className="text-slate-500 dark:text-slate-400 mt-1">Please try again later.</p>
             </div>
           ) : categories.length === 0 ? (
-            <div className="text-center py-20 bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 rounded-3xl animate-header">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-900 mb-4">
-                <Search className="w-6 h-6 text-slate-400" />
+            <div className="animate-header flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 shadow-sm text-center px-6">
+              <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                <LayoutGrid className="w-10 h-10" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">No categories found</h3>
-              <p className="text-slate-500 dark:text-slate-400 mt-1">Try adjusting your search terms or create a new one.</p>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">No categories found</h3>
+              <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-8 font-medium">
+                Organize your product catalog by creating your first category hierarchy.
+              </p>
+              <button
+                onClick={handleOpenCreate}
+                className="flex items-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/20 active:scale-95 group"
+              >
+                <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" /> 
+                Create Your First Category
+              </button>
             </div>
           ) : (
             <>

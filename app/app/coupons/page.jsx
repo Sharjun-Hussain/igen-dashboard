@@ -33,6 +33,7 @@ import { Suspense } from "react";
 import { useRef } from "react";
 import { useState } from "react";
 import { useEffect } from "react";
+import { Filter } from "lucide-react";
 
 // --- MOCK PRODUCT DATA (For Search) ---
 const MOCK_PRODUCTS_DB = [
@@ -65,6 +66,18 @@ function CouponsContent() {
     return data;
   };
   const [filterStatus, setFilterStatus] = useState("All");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [filterType, setFilterType] = useState("All"); // percentage, fixed, tiered
+  
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingCouponId, setEditingCouponId] = useState(null);
@@ -338,9 +351,15 @@ function CouponsContent() {
     }
   };
 
-  const filteredCoupons = coupons.filter(
-    (c) => filterStatus === "All" || c.status === filterStatus,
-  );
+  const filteredCoupons = coupons.filter((coupon) => {
+    const matchesStatus = filterStatus === "All" || coupon.status === filterStatus;
+    const matchesType = filterType === "All" || coupon.type === filterType;
+    const matchesSearch = 
+        coupon.code.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        coupon.description.toLowerCase().includes(debouncedSearch.toLowerCase());
+    
+    return matchesStatus && matchesType && matchesSearch;
+  });
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -432,114 +451,205 @@ function CouponsContent() {
           </div>
         </div>
       </div>
+      
+      {/* 2.5 TOOLBAR */}
+      <div className="animate-header sticky top-4 z-20 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 shadow-lg rounded-2xl p-2 flex flex-col sm:flex-row gap-3 items-center justify-between mb-8">
+        <div className="relative w-full sm:w-80 group">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+          </div>
+          <input
+            type="text"
+            className="block w-full pl-9 pr-3 py-2 bg-transparent rounded-xl text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 dark:text-white focus:outline-none focus:bg-slate-50 dark:focus:bg-slate-900 transition-all border border-transparent focus:border-slate-200 dark:focus:border-slate-700"
+            placeholder="Search coupons (code or description)..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto p-1 bg-slate-100/50 dark:bg-slate-900/50 rounded-xl">
+          <div className="flex items-center gap-2 px-3 border-r border-slate-200 dark:border-slate-700">
+            <Filter className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Filters</span>
+          </div>
+          
+          <div className="flex items-center gap-1 px-2">
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="bg-transparent text-xs font-bold text-slate-600 dark:text-slate-300 focus:outline-none cursor-pointer pr-2"
+            >
+              <option value="All">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1 px-2 border-l border-slate-200 dark:border-slate-700">
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="bg-transparent text-xs font-bold text-slate-600 dark:text-slate-300 focus:outline-none cursor-pointer pr-2"
+            >
+              <option value="All">All Types</option>
+              <option value="Percentage">Percentage</option>
+              <option value="Fixed">Fixed</option>
+              <option value="Tiered">Tiered</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
       {/* 3. COUPON GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredCoupons.map((coupon) => (
-          <div
-            key={coupon.id}
-            onClick={() => setSelectedCouponId(coupon.id)}
-            className="coupon-card bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden group hover:shadow-md transition-all cursor-pointer"
-          >
-            {/* Header */}
-            <div className="p-5 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 flex justify-between items-start">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-xl font-black text-slate-900 dark:text-white font-mono tracking-wide">
-                    {coupon.code}
-                  </h3>
-                  <button
-                    onClick={() => handleCopy(coupon.code, coupon.id)}
-                    className="text-slate-400 hover:text-indigo-600 transition-colors"
-                  >
-                    {copiedId === coupon.id ? (
-                      <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  {coupon.description}
-                </p>
-              </div>
-              <div
-                className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${getStatusColor(coupon.status)}`}
-              >
-                {coupon.status}
-              </div>
-            </div>
-
-            {/* Body */}
-            <div className="p-5 space-y-4">
-              <div className="flex justify-between items-center">
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-64 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 animate-pulse" />
+          ))}
+        </div>
+      ) : filteredCoupons.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filteredCoupons.map((coupon) => (
+            <div
+              key={coupon.id}
+              onClick={() => setSelectedCouponId(coupon.id)}
+              className="coupon-card bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden group hover:shadow-md transition-all cursor-pointer"
+            >
+              {/* Header */}
+              <div className="p-5 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 flex justify-between items-start">
                 <div>
-                  <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">
-                    Discount
-                  </p>
-                  <p className="text-lg font-bold text-indigo-600">
-                    {coupon.type === "Percentage"
-                      ? `${coupon.value}% OFF`
-                      : (coupon.type === "Tiered" ? coupon.value : `Rs. ${coupon.value} OFF`)}
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white font-mono tracking-wide">
+                      {coupon.code}
+                    </h3>
+                    <button
+                      onClick={() => handleCopy(coupon.code, coupon.id)}
+                      className="text-slate-400 hover:text-indigo-600 transition-colors"
+                    >
+                      {copiedId === coupon.id ? (
+                        <CheckCircle2 className="w-4 h-4 text-green-500" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    {coupon.description}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">
-                    Applies To
-                  </p>
-                  <div className="flex justify-end mt-1">
-                    {coupon.appliesTo === "specific" ? (
-                      <span className="flex items-center gap-1 text-xs font-bold bg-amber-50 text-amber-700 px-2 py-1 rounded border border-amber-100">
-                        <Package className="w-3 h-3" />{" "}
-                        {coupon.productIds.length} Products
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-xs font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded border border-blue-100 dark:border-blue-800">
-                        <Layers className="w-3 h-3" /> Site-wide
-                      </span>
-                    )}
+                <div
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${getStatusColor(coupon.status)}`}
+                >
+                  {coupon.status}
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="p-5 space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">
+                      Discount
+                    </p>
+                    <p className="text-lg font-bold text-indigo-600">
+                      {coupon.type === "Percentage"
+                        ? `${coupon.value}% OFF`
+                        : (coupon.type === "Tiered" ? coupon.value : `Rs. ${coupon.value} OFF`)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">
+                      Applies To
+                    </p>
+                    <div className="flex justify-end mt-1">
+                      {coupon.appliesTo === "specific" ? (
+                        <span className="flex items-center gap-1 text-xs font-bold bg-amber-50 text-amber-700 px-2 py-1 rounded border border-amber-100">
+                          <Package className="w-3 h-3" />{" "}
+                          {coupon.productIds.length} Products
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-xs font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded border border-blue-100 dark:border-blue-800">
+                          <Layers className="w-3 h-3" /> Site-wide
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Usage Bar */}
-              <div>
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="font-bold text-slate-500 dark:text-slate-400">Usage</span>
-                  <span className="font-bold text-slate-900 dark:text-white">
-                    {coupon.usage} / {coupon.limit}
+                {/* Usage Bar */}
+                <div>
+                  <div className="flex justify-between text-xs mb-1.5">
+                    <span className="font-bold text-slate-500 dark:text-slate-400">Usage</span>
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      {coupon.usage} / {coupon.limit}
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-indigo-500 rounded-full"
+                      style={{
+                        width: `${(coupon.usage / (coupon.limit === "∞" ? 10000 : coupon.limit)) * 100}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-50 dark:border-slate-700">
+                  <Clock className="w-3.5 h-3.5" /> Expires:{" "}
+                  <span className="font-bold text-slate-700 dark:text-slate-300">
+                    {coupon.expiry}
                   </span>
                 </div>
-                <div className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-indigo-500 rounded-full"
-                    style={{
-                      width: `${(coupon.usage / (coupon.limit === "∞" ? 10000 : coupon.limit)) * 100}%`,
-                    }}
-                  ></div>
-                </div>
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-50 dark:border-slate-700">
-                <Clock className="w-3.5 h-3.5" /> Expires:{" "}
-                <span className="font-bold text-slate-700 dark:text-slate-300">
-                  {coupon.expiry}
-                </span>
+              {/* Footer Actions */}
+              <div className="px-5 py-3 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDelete(coupon.id); }}
+                  className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg shadow-sm transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             </div>
-
-            {/* Footer Actions */}
-            <div className="px-5 py-3 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                onClick={(e) => { e.stopPropagation(); handleDelete(coupon.id); }}
-                className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg shadow-sm transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="animate-header flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 shadow-sm text-center px-6">
+          <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-6 shadow-inner">
+            <Ticket className="w-10 h-10" />
           </div>
-        ))}
-      </div>
+          <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">No coupons created yet</h3>
+          <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-8 font-medium">
+            Boost your sales by creating your first discount code or tiered promotion.
+          </p>
+          <button
+            onClick={() => {
+                setIsEditMode(false);
+                setFormData({
+                    code: "",
+                    name: "",
+                    description: "",
+                    type: "percentage",
+                    value: "",
+                    min_purchase_amount: "",
+                    start_date: "",
+                    expiry_date: "",
+                    usage_limit: "",
+                    usage_limit_per_user: "",
+                    tiers: [{ min_amount: "", max_amount: "", percentage: "" }],
+                    appliesTo: "all",
+                    is_active: true
+                });
+                setIsSheetOpen(true);
+            }}
+            className="flex items-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/20 active:scale-95 group"
+          >
+            <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" /> 
+            Create Your First Coupon
+          </button>
+        </div>
+      )}
 
       {/* 6. DETAILS SHEET */}
       {selectedCouponId && (
