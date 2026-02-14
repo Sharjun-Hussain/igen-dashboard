@@ -218,6 +218,16 @@ const CustomCheckbox = ({ id, checked, onCheckedChange }) => {
   );
 };
 
+const ErrorText = ({ message }) => {
+  if (!message) return null;
+  return (
+    <div className="flex items-center gap-1.5 mt-1 text-red-500 animate-in fade-in slide-in-from-top-1 duration-200">
+      <AlertCircle className="w-3.5 h-3.5" />
+      <span className="text-[10px] font-bold uppercase tracking-tight">{message}</span>
+    </div>
+  );
+};
+
 function CreateProductContent() {
   const containerRef = useRef(null);
   const router = useRouter();
@@ -280,7 +290,7 @@ function CreateProductContent() {
   const [variants, setVariants] = useState([]);
   const [currentVariant, setCurrentVariant] = useState({
     variant_name: "",
-    condition: "Brand New",
+    condition: "new",
     sku: "",
     barcode: "",
     imei: "",
@@ -317,6 +327,40 @@ function CreateProductContent() {
   // Variant Editing State
   const [editingVariantId, setEditingVariantId] = useState(null);
   const [expandedVariantId, setExpandedVariantId] = useState(null);
+
+  const isFormValid =
+    formData.name &&
+    formData.category_id &&
+    formData.brand_id &&
+    formData.type &&
+    selectedFeatures.length > 0 &&
+    variants.length > 0 &&
+    variants.every(
+      (v) =>
+        v.sku &&
+        v.price &&
+        v.stock_quantity !== "" &&
+        v.storage_size &&
+        v.ram_size &&
+        v.color
+    );
+
+  const isStepComplete = (stepId) => {
+    switch (stepId) {
+      case "general":
+        return !!(formData.name && formData.category_id && formData.brand_id && formData.type);
+      case "media":
+        return !!(heroImageFile || (isEditMode && formData.primary_image_path));
+      case "variants":
+        return variants.length > 0 && variants.every(
+          (v) => v.sku && v.price && v.stock_quantity !== "" && v.storage_size && v.ram_size && v.color
+        );
+      case "specs":
+        return selectedFeatures.length > 0;
+      default:
+        return true;
+    }
+  };
 
   // Product Relationship Search State
   const [productSearchTerm, setProductSearchTerm] = useState("");
@@ -403,7 +447,7 @@ function CreateProductContent() {
           if (product.variants && product.variants.length > 0) {
             setVariants(product.variants.map(v => ({
               ...v,
-              condition: v.condition || "Brand New",
+              condition: v.condition || "new",
               variant_name: v.variant_name || "",
             })));
           }
@@ -670,8 +714,15 @@ function CreateProductContent() {
 
   // Variant Handler
   const addVariant = () => {
-    if (!currentVariant.price) {
-      toast.error("Variant price is required");
+    if (
+      !currentVariant.sku ||
+      !currentVariant.price ||
+      currentVariant.stock_quantity === "" ||
+      !currentVariant.storage_size ||
+      !currentVariant.ram_size ||
+      !currentVariant.color
+    ) {
+      toast.error("Please fill in all required variant fields (SKU, Price, Stock, Storage, RAM, Color)");
       return;
     }
 
@@ -691,7 +742,7 @@ function CreateProductContent() {
 
     setCurrentVariant({
       variant_name: "",
-      condition: "Brand New",
+      condition: "new",
       sku: "",
       barcode: "",
       imei: "",
@@ -713,7 +764,14 @@ function CreateProductContent() {
 
   const editVariant = (variant) => {
     setEditingVariantId(variant.id);
-    setCurrentVariant({ ...variant });
+    
+    // Clean RAM size: strip 'GB' so numeric input can display it
+    const variantToEdit = { ...variant };
+    if (variantToEdit.ram_size && typeof variantToEdit.ram_size === "string") {
+      variantToEdit.ram_size = variantToEdit.ram_size.replace(/GB$/i, "");
+    }
+    
+    setCurrentVariant(variantToEdit);
     // Scroll to variant form
     const element = document.getElementById("variant-form");
     if (element) {
@@ -725,7 +783,7 @@ function CreateProductContent() {
     setEditingVariantId(null);
     setCurrentVariant({
       variant_name: "",
-      condition: "Brand New",
+      condition: "new",
       sku: "",
       barcode: "",
       imei: "",
@@ -798,7 +856,7 @@ function CreateProductContent() {
     // Variants
     variants.forEach((variant, index) => {
       data.append(`variants[${index}][variant_name]`, variant.variant_name || "");
-      data.append(`variants[${index}][condition]`, variant.condition || "Brand New");
+      data.append(`variants[${index}][condition]`, variant.condition || "new");
       data.append(`variants[${index}][sku]`, variant.sku);
       data.append(`variants[${index}][barcode]`, variant.barcode || "");
       data.append(`variants[${index}][imei]`, variant.imei || "");
@@ -894,18 +952,10 @@ function CreateProductContent() {
     // Basic validation
     if (
       !formData.name ||
-      !formData.code ||
       !formData.category_id ||
       !formData.brand_id
     ) {
       toast.error("Please fill in all required fields");
-      setIsLoading(false);
-      return;
-    }
-
-    // Only require image for new products
-    if (!isEditMode && !heroImageFile) {
-      toast.error("Please upload a primary image");
       setIsLoading(false);
       return;
     }
@@ -964,7 +1014,16 @@ function CreateProductContent() {
       );
       router.push("/app/products");
     } catch (error) {
-      toast.error(error.message, { id: loadingToast });
+      if (error.info?.errors) {
+        const backendErrors = {};
+        error.info.errors.forEach((err) => {
+          backendErrors[err.field] = err.messages[0];
+        });
+        setErrors(backendErrors);
+        toast.error("Please correct the highlighted errors", { id: loadingToast });
+      } else {
+        toast.error(error.message, { id: loadingToast });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -1042,8 +1101,8 @@ function CreateProductContent() {
               </button>
               <button
                 onClick={handleSave}
-                disabled={isLoading}
-                className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-70"
+                disabled={isLoading || !isFormValid}
+                className="flex items-center gap-2 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 transition-all active:scale-95 disabled:scale-100"
               >
                 {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -1081,6 +1140,11 @@ function CreateProductContent() {
                           "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 hover:border-slate-300"}`}
                     >
                       {isCompleted ? <Check className="w-5 h-5 stroke-[3px]" /> : <step.icon className="w-4 h-4" />}
+                      {!isStepComplete(step.id) && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 animate-pulse">
+                          <AlertCircle className="w-2.5 h-2.5 text-white" />
+                        </div>
+                      )}
                     </button>
                     <div className="absolute top-12 flex flex-col items-center whitespace-nowrap">
                       <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors duration-300
@@ -1136,7 +1200,12 @@ function CreateProductContent() {
                           {isCompleted ? <Check className="w-4 h-4 stroke-[3px]" /> : <step.icon className="w-4 h-4" />}
                         </div>
                         <div className="flex flex-col items-start truncate">
-                          <span className="text-sm font-bold truncate">{step.label}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold truncate">{step.label}</span>
+                            {!isStepComplete(step.id) && (
+                              <AlertCircle className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                            )}
+                          </div>
                           {isActive && <span className="text-[8px] font-medium opacity-70 uppercase tracking-tighter">Current Step</span>}
                           {isCompleted && <span className="text-[8px] font-medium text-emerald-500 uppercase tracking-tighter">Completed</span>}
                         </div>
@@ -1173,12 +1242,13 @@ function CreateProductContent() {
                         className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all dark:text-white"
                         placeholder="e.g. Apple iPhone 15 Pro"
                       />
+                      <ErrorText message={errors.name} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 block">
-                          Product Code *
+                          Product Code
                         </label>
                         <div className="flex gap-2">
                           <input
@@ -1197,6 +1267,7 @@ function CreateProductContent() {
                             Generate
                           </button>
                         </div>
+                        <ErrorText message={errors.code} />
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 block">
@@ -1213,6 +1284,7 @@ function CreateProductContent() {
                           <option value="digital">Digital Asset</option>
                           <option value="service">Service</option>
                         </select>
+                        <ErrorText message={errors.type} />
                       </div>
                     </div>
 
@@ -1238,6 +1310,7 @@ function CreateProductContent() {
                             </option>
                           ))}
                         </select>
+                        <ErrorText message={errors.category_id} />
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 block">
@@ -1260,6 +1333,7 @@ function CreateProductContent() {
                             </option>
                           ))}
                         </select>
+                        <ErrorText message={errors.brand_id} />
                       </div>
                     </div>
 
@@ -1280,6 +1354,7 @@ function CreateProductContent() {
                         placeholder="Brief summary for list views..."
                         maxLength="160"
                       ></textarea>
+                      <ErrorText message={errors.short_description} />
                       <p className="text-[10px] text-right text-slate-400">
                         {formData.short_description.length}/160
                       </p>
@@ -1301,6 +1376,7 @@ function CreateProductContent() {
                         }
                         rows="8"
                       ></textarea>
+                      <ErrorText message={errors.full_description} />
                     </div>
 
                     {/* Badges */}
@@ -1371,7 +1447,7 @@ function CreateProductContent() {
                 {/* Hero Image */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                   <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-                    <Star className="w-4 h-4 text-amber-500" /> Primary Image *
+                    <Star className="w-4 h-4 text-amber-500" /> Primary Image
                   </h3>
                   <div className="flex gap-6 items-start">
                     <div className="w-40 h-40 bg-slate-50 dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl flex items-center justify-center relative overflow-hidden group">
@@ -1403,12 +1479,13 @@ function CreateProductContent() {
                       </p>
                       <div className="text-xs text-slate-400 space-y-1">
                         <p>• Recommended Size: 1200x1200px</p>
-                        <p>• Max File Size: 5MB</p>
-                        <p>• Format: JPG, PNG, WEBP</p>
+                          <p>• Max File Size: 5MB</p>
+                          <p>• Format: JPG, PNG, WEBP</p>
+                        </div>
+                        <ErrorText message={errors.primary_image_path || errors.primary_image} />
                       </div>
                     </div>
                   </div>
-                </div>
 
                 {/* Gallery */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
@@ -1508,7 +1585,7 @@ function CreateProductContent() {
                 {/* Features with Autocomplete */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                   <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">
-                    Key Features
+                    Key Features *
                   </h3>
                   <div className="relative mb-4">
                     <div className="flex gap-2">
@@ -1557,7 +1634,7 @@ function CreateProductContent() {
                       </div>
                     )}
                   </div>
-
+                  <ErrorText message={errors.feature_name} />
                   <div className="flex flex-wrap gap-2">
                     {selectedFeatures.map((feat) => (
                       <span
@@ -1630,7 +1707,7 @@ function CreateProductContent() {
                       </div>
                     )}
                   </div>
-
+                  <ErrorText message={errors.tags} />
                   <div className="flex flex-wrap gap-2">
                     {selectedTags.map((tag) => (
                       <span
@@ -1662,7 +1739,7 @@ function CreateProductContent() {
                   <div className="flex gap-2 mb-4 items-end">
                     <div className="flex-1">
                       <label className="text-[10px] font-bold text-slate-400 uppercase">
-                        Label
+                        Label *
                       </label>
                       <input
                         type="text"
@@ -1679,7 +1756,7 @@ function CreateProductContent() {
                     </div>
                     <div className="flex-1">
                       <label className="text-[10px] font-bold text-slate-400 uppercase">
-                        Value
+                        Value *
                       </label>
                       <input
                         type="text"
@@ -1722,6 +1799,7 @@ function CreateProductContent() {
                             </td>
                             <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                               {spec.specification_value}
+                              <ErrorText message={errors[`specifications.${idx}.specification_name`] || errors[`specifications.${idx}.specification_value`]} />
                             </td>
                             <td className="px-4 py-3 text-right">
                               <button
@@ -1813,8 +1891,8 @@ function CreateProductContent() {
                   </button>
                   <button
                     onClick={handleSave}
-                    disabled={isLoading}
-                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-70"
+                    disabled={isLoading || !isFormValid}
+                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -1873,10 +1951,11 @@ function CreateProductContent() {
                           }
                           className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                         >
-                          <option value="Brand New">Brand New</option>
-                          <option value="Used">Used</option>
-                          <option value="Refurbished">Refurbished</option>
+                          <option value="new">New</option>
+                          <option value="used">Used</option>
+                          <option value="refurbished">Refurbished</option>
                         </select>
+                        <ErrorText message={editingVariantId ? errors[`variants.${variants.findIndex(v => v.id === editingVariantId)}.condition`] : null} />
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
@@ -1897,7 +1976,7 @@ function CreateProductContent() {
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          SKU
+                          SKU *
                         </label>
                         <input
                           type="text"
@@ -1911,6 +1990,7 @@ function CreateProductContent() {
                           className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                           placeholder="IP15P-256-NT"
                         />
+                        <ErrorText message={editingVariantId ? errors[`variants.${variants.findIndex(v => v.id === editingVariantId)}.sku`] : null} />
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
@@ -1965,7 +2045,7 @@ function CreateProductContent() {
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          Storage
+                          Storage *
                         </label>
                         <input
                           type="text"
@@ -1979,10 +2059,11 @@ function CreateProductContent() {
                           className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                           placeholder="256GB"
                         />
+                        <ErrorText message={editingVariantId ? errors[`variants.${variants.findIndex(v => v.id === editingVariantId)}.storage_size`] : null} />
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          RAM
+                          RAM *
                         </label>
                         <div className="relative">
                           <input
@@ -2005,10 +2086,11 @@ function CreateProductContent() {
                             GB
                           </span>
                         </div>
+                        <ErrorText message={editingVariantId ? errors[`variants.${variants.findIndex(v => v.id === editingVariantId)}.ram_size`] : null} />
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          Color
+                          Color *
                         </label>
                         <input
                           type="text"
@@ -2022,6 +2104,7 @@ function CreateProductContent() {
                           className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                           placeholder="Natural Titanium"
                         />
+                        <ErrorText message={editingVariantId ? errors[`variants.${variants.findIndex(v => v.id === editingVariantId)}.color`] : null} />
                       </div>
                     </div>
 
@@ -2047,6 +2130,7 @@ function CreateProductContent() {
                             Rs
                           </span>
                         </div>
+                        <ErrorText message={editingVariantId ? errors[`variants.${variants.findIndex(v => v.id === editingVariantId)}.price`] : null} />
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
@@ -2069,10 +2153,11 @@ function CreateProductContent() {
                             Rs
                           </span>
                         </div>
+                        <ErrorText message={editingVariantId ? errors[`variants.${variants.findIndex(v => v.id === editingVariantId)}.sales_price`] : null} />
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          Stock Quantity
+                          Stock Quantity *
                         </label>
                         <input
                           type="number"
@@ -2086,6 +2171,7 @@ function CreateProductContent() {
                           className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                           placeholder="50"
                         />
+                        <ErrorText message={editingVariantId ? errors[`variants.${variants.findIndex(v => v.id === editingVariantId)}.stock_quantity`] : null} />
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
@@ -2207,7 +2293,9 @@ function CreateProductContent() {
                           className={`bg-white dark:bg-slate-800 rounded-xl border transition-all duration-300 overflow-hidden ${
                             expandedVariantId === variant.id
                               ? "border-indigo-500 shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-500/20"
-                              : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm"
+                              : Object.keys(errors).some(key => key.startsWith(`variants.${idx}.`))
+                                ? "border-red-500 shadow-lg shadow-red-500/10 ring-1 ring-red-500/20"
+                                : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm"
                           }`}
                         >
                           {/* Accordion Header */}
@@ -2229,10 +2317,16 @@ function CreateProductContent() {
                                 <h5 className="font-bold text-slate-900 dark:text-white leading-tight">
                                   {variant.variant_name || variant.condition}
                                 </h5>
-                                <p className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">
-                                  {variant.sku}
-                                </p>
-                              </div>
+                                  <p className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">
+                                    {variant.sku}
+                                  </p>
+                                  {Object.keys(errors).some(key => key.startsWith(`variants.${idx}.`)) && (
+                                    <div className="flex items-center gap-1 mt-1 text-red-500">
+                                      <AlertCircle className="w-3 h-3" />
+                                      <span className="text-[9px] font-bold uppercase">Has Validation Errors</span>
+                                    </div>
+                                  )}
+                                </div>
                             </div>
 
                             <div className="flex items-center gap-2">

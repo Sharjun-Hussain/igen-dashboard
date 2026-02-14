@@ -424,9 +424,9 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
                             </div>
                             <div>
                                 <h4 className="font-bold text-slate-900 dark:text-white text-sm">
-                                    {variant.variant_name.replace(/"/g, "")}
+                                    {variant.variant_name?.replace(/"/g, "")}
                                 </h4>
-                                <p className="text-xs text-slate-500 font-mono">{variant.sku.replace(/"/g, "")}</p>
+                                <p className="text-xs text-slate-500 font-mono">{variant.sku?.replace(/"/g, "")}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
