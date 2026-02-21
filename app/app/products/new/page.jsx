@@ -281,6 +281,7 @@ function CreateProductContent() {
   });
 
   // MEDIA STATE
+  const heroInputRef = useRef(null);
   const [heroImageFile, setHeroImageFile] = useState(null);
   const [heroImagePreview, setHeroImagePreview] = useState(null);
   const [galleryImageFiles, setGalleryImageFiles] = useState([]);
@@ -636,6 +637,16 @@ function CreateProductContent() {
     if (file) {
       setHeroImageFile(file);
       setHeroImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleRemoveHeroImage = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setHeroImageFile(null);
+    setHeroImagePreview(null);
+    if (heroInputRef.current) {
+      heroInputRef.current.value = "";
     }
   };
 
@@ -1452,25 +1463,51 @@ function CreateProductContent() {
                   <div className="flex gap-6 items-start">
                     <div className="w-40 h-40 bg-slate-50 dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl flex items-center justify-center relative overflow-hidden group">
                       {heroImagePreview ? (
-                        <img
-                          src={heroImagePreview}
-                          alt="Hero"
-                          className="w-full h-full object-cover"
-                        />
+                        <>
+                          <img
+                            src={heroImagePreview}
+                            alt="Hero"
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            onClick={handleRemoveHeroImage}
+                            className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                            title="Remove Image"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
                       ) : (
-                        <div className="text-center p-2">
-                          <UploadCloud className="w-8 h-8 mx-auto text-slate-400 mb-2" />
-                          <span className="text-[10px] uppercase font-bold text-slate-400">
-                            Click to Upload
-                          </span>
-                        </div>
+                        <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer">
+                          <div className="text-center p-2">
+                            <UploadCloud className="w-8 h-8 mx-auto text-slate-400 mb-2" />
+                            <span className="text-[10px] uppercase font-bold text-slate-400">
+                              Click to Upload
+                            </span>
+                          </div>
+                          <input
+                            ref={heroInputRef}
+                            type="file"
+                            onChange={handleHeroUpload}
+                            className="hidden"
+                            accept="image/*"
+                          />
+                        </label>
                       )}
-                      <input
-                        type="file"
-                        onChange={handleHeroUpload}
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                        accept="image/*"
-                      />
+                      
+                      {/* Hidden input for when image is already present but user wants to change it by clicking the image */}
+                      {heroImagePreview && (
+                        <label className="absolute inset-0 cursor-pointer">
+                          <input
+                            ref={heroInputRef}
+                            type="file"
+                            onChange={handleHeroUpload}
+                            className="hidden"
+                            accept="image/*"
+                            title=""
+                          />
+                        </label>
+                      )}
                     </div>
                     <div className="flex-1">
                       <p className="text-sm text-slate-600 dark:text-slate-300 mb-2">
