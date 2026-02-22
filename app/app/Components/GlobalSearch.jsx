@@ -6,6 +6,7 @@ import { useSearch } from "../context/SearchContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { getImageUrl } from "../../../lib/utils";
 
 export default function GlobalSearch() {
   const { 
@@ -90,7 +91,7 @@ export default function GlobalSearch() {
               <div className="flex items-center gap-3">
                 {item.image || item.logo ? (
                   <img 
-                    src={item.image || item.logo} 
+                    src={getImageUrl(item.image || item.logo)} 
                     alt="" 
                     className="w-8 h-8 rounded-lg object-cover bg-slate-100 dark:bg-slate-900" 
                   />

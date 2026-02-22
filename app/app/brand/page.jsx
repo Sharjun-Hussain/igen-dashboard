@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import useSWR, { useSWRConfig } from "swr";
 import { fetcher as globalFetcher } from "../../../lib/fetcher";
+import { getImageUrl } from "../../../lib/utils";
 import { toast } from "sonner";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -99,14 +100,6 @@ function BrandContent() {
       dedupingInterval: 5000,
     }
   );
-
-  const getLogoUrl = (logoPath) => {
-    if (!logoPath) return null;
-    if (logoPath.startsWith("http")) return logoPath;
-    const cleanPath = logoPath.replace(/\\/g, "/");
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "");
-    return `${baseUrl}/${cleanPath}`;
-  };
 
   useEffect(() => {
     if (brandsData) {
@@ -345,7 +338,7 @@ function BrandContent() {
       is_active: brand.is_active ? 1 : 0,
       logo: null,
     });
-    setImagePreview(getLogoUrl(brand.logo) || null);
+    setImagePreview(getImageUrl(brand.logo) || null);
     setIsFormOpen(true);
   };
 
@@ -554,7 +547,7 @@ function BrandContent() {
                       <div className="relative aspect-square rounded-2xl overflow-hidden bg-linear-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 mb-4 flex items-center justify-center p-6">
                         {brand.logo ? (
                           <img
-                            src={getLogoUrl(brand.logo)}
+                            src={getImageUrl(brand.logo)}
                             alt={brand.name}
                             className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700"
                           />
@@ -623,7 +616,7 @@ function BrandContent() {
                             <div className="flex items-center gap-4">
                               <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 overflow-hidden border border-slate-100 dark:border-slate-700 p-1.5 flex items-center justify-center">
                                 {brand.logo ? (
-                                  <img src={getLogoUrl(brand.logo)} className="max-w-full max-h-full object-contain" />
+                                  <img src={getImageUrl(brand.logo)} className="max-w-full max-h-full object-contain" />
                                 ) : (
                                   <ImageIcon className="w-5 h-5 text-slate-300" />
                                 )}

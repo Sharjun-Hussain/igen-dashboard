@@ -20,6 +20,7 @@ import {
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { fetcher as globalFetcher } from "../../../lib/fetcher";
+import { getImageUrl } from "../../../lib/utils";
 import { toast } from "sonner";
 import { Package } from "lucide-react";
 import { Loader2 } from "lucide-react";
@@ -35,8 +36,7 @@ import PackingSlip from "../../components/PackingSlip";
 
 const getAvatarUrl = (user) => {
   if (user?.profile_image) {
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "");
-    return `${baseUrl}/${user.profile_image}`;
+    return getImageUrl(user.profile_image);
   }
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || "User")}&background=random&color=fff&bold=true`;
 };
