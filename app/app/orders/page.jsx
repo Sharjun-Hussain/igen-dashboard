@@ -14,68 +14,36 @@ import {
   Download,
   Printer,
   X,
-  User,
-  MapPin,
-  MessageCircle,
-  Send,
-  Mail,
-  CreditCard,
-  Package,
-  RotateCcw,
-  Ban,
-  FileText,
   Check,
+  User as UserIcon,
 } from "lucide-react";
+import useSWR from "swr";
+import { useSession } from "next-auth/react";
+import { fetcher as globalFetcher } from "../../../lib/fetcher";
+import { toast } from "sonner";
+import { Package } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { User } from "lucide-react";
+import { MapPin } from "lucide-react";
+import { MessageCircle } from "lucide-react";
+import { Send } from "lucide-react";
+import { Mail } from "lucide-react";
+import { CreditCard } from "lucide-react";
+import { RotateCcw } from "lucide-react";
+import { Ban } from "lucide-react";
+import PackingSlip from "../../components/PackingSlip";
 
-// --- MOCK DATA GENERATOR (Relative to Today) ---
-const generateOrders = (count) => {
-  const today = new Date();
-  return Array.from({ length: count }, (_, i) => {
-    const date = new Date(today);
-    date.setDate(today.getDate() - i); // Go back 'i' days
-
-    return {
-      id: `#ORD-${1000 + i}`,
-      // Raw date object for sorting/filtering
-      rawDate: date,
-      // Formatted string for display
-      dateStr: date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }),
-      customer: {
-        name: [
-          "Alex Morgan",
-          "Sarah Conner",
-          "John Wick",
-          "Ellen Ripley",
-          "James Bond",
-          "Tony Stark",
-        ][i % 6],
-        email: `customer${i}@example.com`,
-        ordersCount: (i % 12) + 1,
-        totalSpent: i * 120 + 50,
-        avatar: `https://i.pravatar.cc/150?u=${i}`,
-      },
-      total: (Math.random() * 500 + 50).toFixed(2),
-      items: (i % 3) + 1,
-      paymentStatus: ["Paid", "Pending", "Refunded", "Failed"][i % 4],
-      fulfillmentStatus: ["Fulfilled", "Unfulfilled", "Shipped", "Returned"][
-        i % 4
-      ],
-      channel: ["Online Store", "POS", "Mobile App"][i % 3],
-    };
-  });
+const getAvatarUrl = (user) => {
+  if (user?.profile_image) {
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "");
+    return `${baseUrl}/${user.profile_image}`;
+  }
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || "User")}&background=random&color=fff&bold=true`;
 };
 
-const MOCK_ORDERS = generateOrders(60);
-
 export default function InteractiveOrdersPage() {
+  const { data: session } = useSession();
   const containerRef = useRef(null);
-
-  // --- MAIN STATE ---
-  const [orders, setOrders] = useState(MOCK_ORDERS);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
 
@@ -92,64 +60,62 @@ export default function InteractiveOrdersPage() {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(15);
 
   // Drawer Actions State
   const [showActionsMenu, setShowActionsMenu] = useState(false);
+
+  // Shipment & Cancellation States
+  const [showShipmentModal, setShowShipmentModal] = useState(false);
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
+  const [shippingData, setShippingData] = useState({
+    courier_name: "Prompt Express",
+    tracking_number: "",
+    courier_phone: "",
+    estimated_delivery_at: "",
+    shipping_notes: "",
+  });
+  const [cancellationReason, setCancellationReason] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [printSize, setPrintSize] = useState("a4"); // 'a4' or 'thermal'
 
   // --- REFS ---
   const tableRef = useRef(null);
   const drawerRef = useRef(null);
   const overlayRef = useRef(null);
 
+  // --- API FETCHING ---
+  const { data: ordersResponse, isLoading, mutate } = useSWR(
+    session?.accessToken
+      ? [
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/orders?page=${currentPage}&per_page=${itemsPerPage}&search=${searchTerm}&status=${activeTab !== "All" ? activeTab.toLowerCase() : ""}`,
+          session?.accessToken,
+        ]
+      : null,
+    ([url]) => globalFetcher(url, session?.accessToken),
+    { revalidateOnFocus: false }
+  );
+
+  const { data: orderDetailsResponse, isLoading: isDetailsLoading } = useSWR(
+    session?.accessToken && selectedOrder?.id
+      ? [
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/orders/${selectedOrder.id}`,
+          session?.accessToken,
+        ]
+      : null,
+    ([url]) => globalFetcher(url, session?.accessToken)
+  );
+
+  const orderDetails = orderDetailsResponse?.data || null;
+
+  const orders = useMemo(() => ordersResponse?.data?.data || [], [ordersResponse]);
+  const totalItems = ordersResponse?.data?.total || 0;
+  const totalPages = ordersResponse?.data?.last_page || 1;
+
   // --- FILTER LOGIC ---
-  const filteredOrders = useMemo(() => {
-    return orders.filter((order) => {
-      // 1. Text Search
-      const matchesSearch =
-        order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.customer.name.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredOrders = orders; // Filtering is handled by API
 
-      // 2. Tab Filter (High Level)
-      const matchesTab =
-        activeTab === "All"
-          ? true
-          : activeTab === "Unfulfilled"
-            ? order.fulfillmentStatus === "Unfulfilled"
-            : activeTab === "Unpaid"
-              ? order.paymentStatus === "Pending"
-              : true;
-
-      // 3. Date Filter
-      let matchesDate = true;
-      if (dateRange.days !== null) {
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - dateRange.days);
-        // Reset time for accurate comparison
-        cutoffDate.setHours(0, 0, 0, 0);
-        const orderDate = new Date(order.rawDate);
-        orderDate.setHours(0, 0, 0, 0);
-        matchesDate = orderDate >= cutoffDate;
-      }
-
-      // 4. "More Filters" Icon (Specific Statuses)
-      let matchesStatusFilter = true;
-      if (statusFilters.length > 0) {
-        matchesStatusFilter =
-          statusFilters.includes(order.paymentStatus) ||
-          statusFilters.includes(order.fulfillmentStatus);
-      }
-
-      return matchesSearch && matchesTab && matchesDate && matchesStatusFilter;
-    });
-  }, [orders, searchTerm, activeTab, dateRange, statusFilters]);
-
-  const paginatedOrders = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredOrders.slice(start, start + itemsPerPage);
-  }, [filteredOrders, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const paginatedOrders = orders;
 
   // Reset page when filters change
   useEffect(
@@ -236,47 +202,259 @@ export default function InteractiveOrdersPage() {
   };
 
   const performDrawerAction = (action) => {
-    console.log(`Performing action: ${action} on order ${selectedOrder?.id}`);
     setShowActionsMenu(false);
-    // You would add your API calls here
-    alert(`${action} initiated for ${selectedOrder?.id}`);
+    if (action === "Cancel Order") {
+      setShowCancellationModal(true);
+    } else if (action === "Print Packing Slip") {
+      printPackingSlip();
+    } else {
+      console.log(`Performing action: ${action} on order ${selectedOrder?.id}`);
+      toast.info(`${action} initiated for ${selectedOrder?.order_number}`);
+    }
+  };
+
+  const printPackingSlip = () => {
+    const order = orderDetails || selectedOrder;
+    if (!order) return;
+    const isThermal = printSize === "thermal";
+    const isA5 = printSize === "a5";
+    const pageSize = isThermal ? "80mm auto" : isA5 ? "A5" : "A4";
+    const qrValue = `${typeof window !== "undefined" ? window.location.origin : ""}/track/${order.order_number}`;
+    const qrSize = isThermal ? 80 : isA5 ? 80 : 96;
+    const itemsHtml = (order.items || []).map((item) => `
+      <tr>
+        <td style="padding:8px 4px;border-bottom:1px solid #e2e8f0;">
+          <div style="font-weight:700">${item.product_name}</div>
+          <div style="font-size:10px;color:#94a3b8;font-style:italic">${item.variant_name}</div>
+        </td>
+        <td style="padding:8px 4px;border-bottom:1px solid #e2e8f0;text-align:center;font-family:monospace;font-size:11px;color:#64748b">${item.sku}</td>
+        <td style="padding:8px 4px;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:700">${item.quantity}</td>
+      </tr>
+    `).join("");
+    const address = order.delivery_address || {};
+    const addrHtml = [address.address_line_1, address.address_line_2, `${address.city || ""}, ${address.state || ""} ${address.postal_code || ""}`.trim(), address.country].filter(Boolean).join("<br/>");
+    const totalQty = (order.items || []).reduce((a, i) => a + i.quantity, 0);
+    const paymentStatus = order.order_status || "";
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Packing Slip - ${order.order_number}</title>
+  <style>
+    @page { size: ${pageSize}; margin: 8mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #1e293b; background: white; }
+    .header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #1e293b; padding-bottom:12px; margin-bottom:12px; }
+    .brand { font-size:22px; font-weight:900; color:#4f46e5; text-transform:uppercase; letter-spacing:-0.5px; }
+    .brand-sub { font-size:9px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:3px; margin-top:2px; }
+    .slip-title { text-align:right; }
+    .slip-title h2 { font-size:18px; font-weight:700; text-transform:uppercase; }
+    .slip-title .order-num { font-family:monospace; font-size:13px; margin-top:4px; color:#475569; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:16px; }
+    .section-label { font-size:9px; font-weight:900; text-transform:uppercase; color:#94a3b8; margin-bottom:6px; letter-spacing:1px; }
+    .address-name { font-weight:700; font-size:14px; margin-bottom:4px; }
+    .address-detail { color:#475569; line-height:1.6; }
+    .meta { display:flex; justify-content:space-between; padding:4px 0; }
+    .meta-label { color:#64748b; }
+    .badge { font-weight:700; font-size:9px; border:1px solid #1e293b; border-radius:4px; padding:1px 5px; text-transform:uppercase; display:inline-block; }
+    table { width:100%; border-collapse:collapse; margin-bottom:16px; }
+    thead tr { border-top:2px solid #1e293b; border-bottom:2px solid #1e293b; background:#f8fafc; }
+    thead th { padding:6px 4px; font-size:9px; font-weight:900; text-transform:uppercase; color:#475569; }
+    thead th:first-child { text-align:left; }
+    thead th:last-child { text-align:right; }
+    thead th:nth-child(2) { text-align:center; }
+    .footer { display:flex; justify-content:space-between; align-items:flex-end; border-top:2px solid #1e293b; padding-top:12px; }
+    .footer-note { font-size:9px; color:#94a3b8; max-width:60%; line-height:1.5; font-style:italic; }
+    .qr-cell { text-align:center; }
+    .qr-label { font-family:monospace; font-size:8px; color:#94a3b8; margin-top:4px; }
+    ${isThermal ? ".header,.grid,.footer{flex-direction:column;} .slip-title{text-align:left;margin-top:12px;} .grid{grid-template-columns:1fr;} .footer-note{max-width:100%;} .qr-cell{margin-bottom:12px;}" : ""}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="brand">IGEN MOBILES</div>
+      <div class="brand-sub">Premium Tech Solutions</div>
+    </div>
+    <div class="slip-title">
+      <h2>Packing Slip</h2>
+      <div class="order-num">#${order.order_number}</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="section-label">📦 Ship To</div>
+      <div class="address-name">${address.full_name || order.user?.name || ""}</div>
+      <div class="address-detail">${addrHtml}</div>
+      <div style="margin-top:6px;font-family:monospace;font-size:11px;">📞 ${address.phone || order.customer?.phone || ""}</div>
+    </div>
+    <div>
+      <div class="section-label">🗒 Order Details</div>
+      <div class="meta"><span class="meta-label">Date:</span><strong>${new Date(order.created_at).toLocaleDateString()}</strong></div>
+      <div class="meta"><span class="meta-label">Items:</span><strong>${totalQty} Units</strong></div>
+      <div class="meta"><span class="meta-label">Status:</span><span class="badge">${paymentStatus}</span></div>
+      ${order.payments?.[0] ? `<div class="meta"><span class="meta-label">Payment:</span><strong>${(order.payments[0].payment_method || "").replace(/_/g," ")}</strong></div>` : ""}
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Description</th><th>SKU</th><th style="text-align:right">Qty</th></tr>
+    </thead>
+    <tbody>${itemsHtml}</tbody>
+  </table>
+
+  <div class="footer">
+    <p class="footer-note">Thank you for choosing IGEN MOBILES. Please inspect items upon receipt. Returns must be initiated within 7 days in original packaging.</p>
+    <div class="qr-cell">
+      <canvas id="qrCanvas"></canvas>
+      <div class="qr-label">${order.order_number}</div>
+    </div>
+  </div>
+
+  <script>
+    QRCode.toCanvas(document.getElementById('qrCanvas'), '${qrValue}', { width: ${qrSize}, margin: 0 }, function(err){});
+    window.onload = function() { window.print(); };
+  </script>
+</body>
+</html>`;
+
+    const printWindow = window.open("", "_blank", "width=800,height=600");
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
+  const handleVerifyPayment = async (orderId) => {
+    try {
+      if (!session?.accessToken) {
+        toast.error("You must be logged in to perform this action");
+        return;
+      }
+
+      await globalFetcher(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/orders/${orderId}/verify`,
+        session.accessToken,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            notes: "Payment verified manually by admin.",
+          }),
+        },
+      );
+
+      toast.success("Payment verified successfully");
+      mutate(); // Refresh the list
+      
+      // Update local state for immediate feedback
+      if (selectedOrder?.id === orderId) {
+        setSelectedOrder(prev => ({
+          ...prev,
+          latest_payment: {
+            ...(prev.latest_payment || {}),
+            payment_status: "Paid"
+          }
+        }));
+      }
+    } catch (error) {
+      console.error("Verification error:", error);
+      toast.error(error.message || "Failed to verify payment");
+    }
+  };
+
+  const handleUpdateOrderStatus = async (status, data = {}) => {
+    try {
+      setIsSubmitting(true);
+      if (!session?.accessToken) {
+        toast.error("You must be logged in to perform this action");
+        return;
+      }
+
+      await globalFetcher(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/orders/${selectedOrder.id}/order-status`,
+        session.accessToken,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            order_status: status,
+            ...data,
+          }),
+        },
+      );
+
+      toast.success(
+        status === "shipped"
+          ? "Order marked as shipped"
+          : "Order cancelled successfully",
+      );
+      mutate(); // Refresh the list
+      setShowShipmentModal(false);
+      setShowCancellationModal(false);
+      
+      // Update local state for immediate feedback
+      if (selectedOrder) {
+        setSelectedOrder((prev) => ({
+          ...prev,
+          order_status: status,
+        }));
+      }
+    } catch (error) {
+      console.error("Status update error:", error);
+      toast.error(error.message || `Failed to update order to ${status}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // --- HELPERS ---
   const getPaymentColor = (status) => {
-    switch (status) {
-      case "Paid":
+    switch (status?.toLowerCase()) {
+      case "paid":
         return "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50";
-      case "Pending":
+      case "pending":
         return "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/50";
-      case "Refunded":
+      case "refunded":
         return "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700";
-      case "Failed":
+      case "failed":
         return "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800/50";
       default:
-        return "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400";
+        return "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200";
     }
   };
 
   const getFulfillmentColor = (status) => {
-    switch (status) {
-      case "Fulfilled":
+    switch (status?.toLowerCase()) {
+      case "delivered":
+      case "fulfilled":
+      case "completed":
         return "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800/50";
-      case "Shipped":
+      case "shipped":
         return "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/50";
-      case "Unfulfilled":
+      case "processing":
+        return "bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-800/50";
+      case "unfulfilled":
+      case "pending":
         return "bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800/50";
-      case "Returned":
+      case "returned":
+      case "cancelled":
         return "bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800/50";
       default:
-        return "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400";
+        return "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200";
     }
   };
 
   return (
     <div
       ref={containerRef}
-      className="min-h-screen bg-slate-50/50 dark:bg-slate-900 font-sans text-slate-900 dark:text-white overflow-x-hidden relative"
+      className="min-h-screen bg-slate-50/50 dark:bg-slate-900 font-sans text-slate-900 dark:text-white overflow-x-hidden relative px-8 py-6 space-y-6"
       onClick={() => {
         // Global click to close menus if open (simple implementation)
         if (showDateMenu) setShowDateMenu(false);
@@ -284,7 +462,7 @@ export default function InteractiveOrdersPage() {
       }}
     >
       {/* 1. HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="animate-header">
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Orders
@@ -304,11 +482,11 @@ export default function InteractiveOrdersPage() {
       </div>
 
       {/* 2. ADVANCED FILTERS TOOLBAR */}
-      <div className="animate-toolbar bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-1 mb-6 relative z-20">
+      <div className="animate-toolbar bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-1 relative z-20">
         <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4 p-3">
           {/* Tab Filters */}
           <div className="flex p-1 bg-slate-100 dark:bg-slate-900 rounded-xl overflow-x-auto scrollbar-hide">
-            {["All", "Unfulfilled", "Unpaid", "Open"].map((tab) => (
+            {["All", "Pending", "Processing", "Shipped", "Delivered", "Cancelled"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -480,7 +658,16 @@ export default function InteractiveOrdersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-              {paginatedOrders.length > 0 ? (
+                {isLoading ? (
+                  <tr>
+                    <td colSpan="8" className="text-center py-20">
+                      <div className="flex flex-col items-center justify-center text-slate-400">
+                        <Loader2 className="w-8 h-8 mb-2 animate-spin" />
+                        <p className="text-sm font-medium">Loading orders...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : paginatedOrders.length > 0 ? (
                 paginatedOrders.map((order) => (
                   <tr
                     key={order.id}
@@ -497,42 +684,46 @@ export default function InteractiveOrdersPage() {
                       />
                     </td>
                     <td className="p-4 font-bold text-slate-900 dark:text-white text-sm">
-                      {order.id}
+                      #{order.order_number}
                     </td>
                     <td className="p-4 text-sm text-slate-500 dark:text-slate-400">
-                      {order.dateStr}
+                      {new Date(order.created_at).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden shrink-0">
                           <img
-                            src={order.customer.avatar}
+                            src={getAvatarUrl(order.user)}
                             className="w-full h-full object-cover"
                             alt=""
                           />
                         </div>
                         <div className="flex flex-col">
                           <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                            {order.customer.name}
+                            {order.user?.name || "Unknown Customer"}
                           </span>
                         </div>
                       </div>
                     </td>
                     <td className="p-4 text-sm font-bold text-slate-900 dark:text-white">
-                      ${order.total}
+                      LKR {parseFloat(order.total_amount).toLocaleString()}
                     </td>
                     <td className="p-4">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${getPaymentColor(order.paymentStatus)}`}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${getPaymentColor(order.latest_payment?.payment_status)}`}
                       >
-                        {order.paymentStatus}
+                        {order.latest_payment?.payment_status || "N/A"}
                       </span>
                     </td>
                     <td className="p-4">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${getFulfillmentColor(order.fulfillmentStatus)}`}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${getFulfillmentColor(order.order_status)}`}
                       >
-                        {order.fulfillmentStatus}
+                        {order.order_status}
                       </span>
                     </td>
                     <td className="p-4 pr-6 text-right">
@@ -652,28 +843,32 @@ export default function InteractiveOrdersPage() {
           <div className="absolute inset-y-0 right-0 flex max-w-full pl-0 sm:pl-16">
             <div
               ref={drawerRef}
-              className="w-screen max-w-2xl bg-white dark:bg-slate-800 shadow-2xl flex flex-col h-full border-l border-slate-100 dark:border-slate-700"
+              className="w-screen max-w-5xl bg-white dark:bg-slate-800 shadow-2xl flex flex-col h-full border-l border-slate-100 dark:border-slate-700"
             >
               {/* Drawer Header */}
               <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
                 <div>
                   <div className="flex items-center gap-3">
                     <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
-                      {selectedOrder.id}
+                      #{selectedOrder.order_number}
                     </h2>
                     <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-bold border ${getPaymentColor(selectedOrder.paymentStatus)}`}
+                      className={`px-2 py-0.5 rounded-full text-xs font-bold border ${getPaymentColor(selectedOrder.payment_status || selectedOrder.latest_payment?.payment_status)}`}
                     >
-                      {selectedOrder.paymentStatus}
+                      {selectedOrder.payment_status || selectedOrder.latest_payment?.payment_status}
                     </span>
                     <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-bold border ${getFulfillmentColor(selectedOrder.fulfillmentStatus)}`}
+                      className={`px-2 py-0.5 rounded-full text-xs font-bold border ${getFulfillmentColor(selectedOrder.order_status)}`}
                     >
-                      {selectedOrder.fulfillmentStatus}
+                      {selectedOrder.order_status}
                     </span>
                   </div>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    {selectedOrder.dateStr} via {selectedOrder.channel}
+                    {new Date(selectedOrder.created_at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })} via {selectedOrder.checkout_session_id ? "Online" : "Manual"}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -697,19 +892,18 @@ export default function InteractiveOrdersPage() {
                   </div>
                   <div className="flex items-center gap-4 mb-6">
                     <img
-                      src={selectedOrder.customer.avatar}
+                      src={getAvatarUrl(selectedOrder.user)}
                       className="w-16 h-16 rounded-2xl object-cover border border-slate-100 dark:border-slate-700"
                     />
                     <div>
                       <h4 className="text-lg font-bold text-slate-900 dark:text-white">
-                        {selectedOrder.customer.name}
+                        {selectedOrder.user?.name || "Unknown"}
                       </h4>
                       <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-1">
-                        <MapPin className="w-3.5 h-3.5" /> New York, USA
+                        <MapPin className="w-3.5 h-3.5" /> {selectedOrder.customer?.city || "Unknown City"}
                       </div>
                       <div className="text-xs font-bold text-slate-400 dark:text-slate-500">
-                        {selectedOrder.customer.ordersCount} orders • $
-                        {selectedOrder.customer.totalSpent} spent
+                        Ph: {selectedOrder.customer?.phone || "N/A"}
                       </div>
                     </div>
                   </div>
@@ -719,7 +913,7 @@ export default function InteractiveOrdersPage() {
                     <button
                       onClick={() =>
                         window.open(
-                          `https://wa.me/?text=Order ${selectedOrder.id} Update`,
+                          `https://wa.me/${selectedOrder.customer?.phone}?text=Order ${selectedOrder.order_number} Update`,
                         )
                       }
                       className="flex flex-col items-center justify-center gap-1 p-3 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800/50 transition-all active:scale-95"
@@ -751,13 +945,18 @@ export default function InteractiveOrdersPage() {
                     </h3>
                     <address className="not-italic text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                       <span className="block text-slate-900 dark:text-white font-bold">
-                        {selectedOrder.customer.name}
+                        {orderDetails?.delivery_address?.full_name || selectedOrder.user?.name}
                       </span>
-                      123 Innovation Blvd
+                      {orderDetails?.delivery_address?.address_line_1}
                       <br />
-                      Tech District, Suite 400
+                      {orderDetails?.delivery_address?.address_line_2}
                       <br />
-                      San Francisco, CA 94103
+                      {orderDetails?.delivery_address?.city}, {orderDetails?.delivery_address?.country}
+                      {orderDetails?.delivery_address?.postal_code && (
+                        <span className="block mt-1 text-xs opacity-75">
+                          Postal: {orderDetails.delivery_address.postal_code}
+                        </span>
+                      )}
                     </address>
                   </div>
                   <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
@@ -768,24 +967,96 @@ export default function InteractiveOrdersPage() {
                       <div className="flex justify-between">
                         <span className="text-slate-500 dark:text-slate-400">Subtotal</span>
                         <span className="font-medium dark:text-slate-200">
-                          ${(selectedOrder.total * 0.9).toFixed(2)}
+                          LKR {parseFloat(selectedOrder.subtotal).toLocaleString()}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-500 dark:text-slate-400">Tax</span>
+                        <span className="text-slate-500 dark:text-slate-400">Shipping</span>
                         <span className="font-medium dark:text-slate-200">
-                          ${(selectedOrder.total * 0.1).toFixed(2)}
+                          LKR {parseFloat(selectedOrder.shipping_fee).toLocaleString()}
                         </span>
                       </div>
                       <div className="flex justify-between border-t border-slate-100 dark:border-slate-700 pt-2 mt-2">
                         <span className="font-bold text-slate-900 dark:text-white">Total</span>
                         <span className="font-bold text-slate-900 dark:text-white">
-                          ${selectedOrder.total}
+                          LKR {parseFloat(selectedOrder.total_amount).toLocaleString()}
                         </span>
                       </div>
+
+                      {orderDetails?.payments?.[0] && (
+                        <div className="mt-4 pt-4 border-t border-dashed border-slate-100 dark:border-slate-700">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Payment Details</p>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-slate-500">Method</span>
+                            <span className="capitalize">{orderDetails.payments[0].payment_method.replace(/_/g, " ")}</span>
+                          </div>
+                          {orderDetails.payments[0].transaction_id && (
+                            <div className="flex justify-between text-xs mt-1">
+                              <span className="text-slate-500">Transaction ID</span>
+                              <span className="font-mono">{orderDetails.payments[0].transaction_id}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
+
+                {/* ITEMS LIST */}
+                <div className="mt-6">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide mb-3 px-1">
+                    Order Items
+                  </h3>
+                  <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    {isDetailsLoading ? (
+                      <div className="p-12 text-center">
+                        <Loader2 className="w-8 h-8 animate-spin mx-auto text-slate-300 mb-2" />
+                        <p className="text-sm text-slate-400">Loading items...</p>
+                      </div>
+                    ) : orderDetails?.items?.length > 0 ? (
+                      <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                        {orderDetails.items.map((item) => (
+                          <div key={item.id} className="p-4 flex gap-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                            <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0">
+                              <img 
+                                src={`${process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "")}/${item.product?.primary_image_path}`}
+                                className="w-full h-full object-cover"
+                                alt=""
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                                {item.product_name}
+                              </h4>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                Variant: {item.variant_name} • SKU: {item.sku}
+                              </p>
+                              <div className="flex justify-between items-center mt-2">
+                                <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                  LKR {parseFloat(item.unit_price).toLocaleString()} × {item.quantity}
+                                </span>
+                                <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">
+                                  LKR {parseFloat(item.total_price).toLocaleString()}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-12 text-center text-slate-400">
+                        <p className="text-sm">No items found for this order.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {orderDetails?.cancellation_reason && (
+                  <div className="mt-6 p-4 rounded-2xl bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800/50">
+                    <h3 className="text-xs font-bold text-rose-900 dark:text-rose-400 uppercase mb-1">Cancellation Reason</h3>
+                    <p className="text-sm text-rose-700 dark:text-rose-300">{orderDetails.cancellation_reason}</p>
+                  </div>
+                )}
               </div>
 
               {/* Drawer Footer & MORE ACTIONS POPUP */}
@@ -805,20 +1076,10 @@ export default function InteractiveOrdersPage() {
                   {showActionsMenu && (
                     <div className="absolute bottom-full right-0 mb-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-100 dark:border-slate-700 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
                       <button
-                        onClick={() =>
-                          performDrawerAction("Print Packing Slip")
-                        }
-                        className="w-full text-left px-4 py-3 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium flex items-center gap-3"
-                      >
-                        <Printer className="w-4 h-4 text-slate-400 dark:text-slate-500" /> Print
-                        Packing Slip
-                      </button>
-                      <button
                         onClick={() => performDrawerAction("Refund Items")}
                         className="w-full text-left px-4 py-3 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium flex items-center gap-3"
                       >
-                        <RotateCcw className="w-4 h-4 text-slate-400 dark:text-slate-500" /> Refund
-                        Items
+                        <RotateCcw className="w-4 h-4 text-slate-400 dark:text-slate-500" /> Refund Items
                       </button>
                       <div className="h-px bg-slate-100 dark:bg-slate-700"></div>
                       <button
@@ -831,7 +1092,46 @@ export default function InteractiveOrdersPage() {
                   )}
                 </div>
 
-                <button className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 active:scale-95 transition-all">
+                <div className="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-xl gap-1">
+                  <button 
+                    onClick={() => setPrintSize("a4")}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${printSize === "a4" ? "bg-white dark:bg-slate-600 text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                  >
+                    A4
+                  </button>
+                  <button 
+                    onClick={() => setPrintSize("a5")}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${printSize === "a5" ? "bg-white dark:bg-slate-600 text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                  >
+                    A5
+                  </button>
+                  <button 
+                    onClick={() => setPrintSize("thermal")}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${printSize === "thermal" ? "bg-white dark:bg-slate-600 text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                  >
+                    80mm
+                  </button>
+                </div>
+
+                <button
+                  onClick={printPackingSlip}
+                  className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition-all flex items-center gap-2"
+                >
+                  <Printer className="w-4 h-4" /> Print Slip
+                </button>
+                {selectedOrder.latest_payment?.payment_status?.toLowerCase() !== "paid" && (
+                  <button
+                    onClick={() => handleVerifyPayment(selectedOrder.id)}
+                    className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 active:scale-95 transition-all flex items-center gap-2"
+                  >
+                    <Check className="w-4 h-4" /> Verify Payment
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setShowShipmentModal(true)}
+                  className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+                >
                   Fulfill Order
                 </button>
               </div>
@@ -839,6 +1139,219 @@ export default function InteractiveOrdersPage() {
           </div>
         </div>
       )}
+      {/* SHIPMENT MODAL */}
+      {showShipmentModal && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            onClick={() => !isSubmitting && setShowShipmentModal(false)}
+          ></div>
+          <div className="relative bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                Fulfill Order #{selectedOrder?.order_number}
+              </h3>
+              <button
+                onClick={() => setShowShipmentModal(false)}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors"
+                disabled={isSubmitting}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase">
+                    Courier Name
+                  </label>
+                  <input
+                    type="text"
+                    value={shippingData.courier_name}
+                    onChange={(e) =>
+                      setShippingData({
+                        ...shippingData,
+                        courier_name: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:border-indigo-500 transition-colors"
+                    placeholder="e.g. Prompt Express"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase">
+                    Tracking Number
+                  </label>
+                  <input
+                    type="text"
+                    value={shippingData.tracking_number}
+                    onChange={(e) =>
+                      setShippingData({
+                        ...shippingData,
+                        tracking_number: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:border-indigo-500 transition-colors"
+                    placeholder="IGEN-LX-XXXXXX"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase">
+                    Courier Phone (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={shippingData.courier_phone}
+                    onChange={(e) =>
+                      setShippingData({
+                        ...shippingData,
+                        courier_phone: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:border-indigo-500 transition-colors"
+                    placeholder="077XXXXXXX"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase">
+                    Est. Delivery (Optional)
+                  </label>
+                  <input
+                    type="date"
+                    value={shippingData.estimated_delivery_at}
+                    onChange={(e) =>
+                      setShippingData({
+                        ...shippingData,
+                        estimated_delivery_at: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:border-indigo-500 transition-colors"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase">
+                  Shipping Notes (Optional)
+                </label>
+                <textarea
+                  value={shippingData.shipping_notes}
+                  onChange={(e) =>
+                    setShippingData({
+                      ...shippingData,
+                      shipping_notes: e.target.value,
+                    })
+                  }
+                  rows="2"
+                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:border-indigo-500 transition-colors resize-none"
+                  placeholder="Handle with care..."
+                />
+              </div>
+            </div>
+            <div className="p-6 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
+              <button
+                onClick={() => setShowShipmentModal(false)}
+                className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleUpdateOrderStatus("shipped", shippingData)}
+                disabled={
+                  isSubmitting ||
+                  !shippingData.courier_name ||
+                  !shippingData.tracking_number
+                }
+                className="px-8 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+                Mark as Shipped
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CANCELLATION MODAL */}
+      {showCancellationModal && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            onClick={() => !isSubmitting && setShowCancellationModal(false)}
+          ></div>
+          <div className="relative bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-rose-50/50 dark:bg-rose-900/20">
+              <h3 className="text-xl font-bold text-rose-900 dark:text-rose-400 flex items-center gap-2">
+                <Ban className="w-5 h-5" /> Cancel Order
+              </h3>
+              <button
+                onClick={() => setShowCancellationModal(false)}
+                className="p-2 hover:bg-rose-100 dark:hover:bg-rose-900/40 rounded-full transition-colors text-rose-600"
+                disabled={isSubmitting}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Are you sure you want to cancel order{" "}
+                <span className="font-bold text-slate-900 dark:text-white">
+                  #{selectedOrder?.order_number}
+                </span>? This action cannot be undone.
+              </p>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase">
+                  Reason for Cancellation
+                </label>
+                <textarea
+                  value={cancellationReason}
+                  onChange={(e) => setCancellationReason(e.target.value)}
+                  rows="3"
+                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:border-rose-500 transition-colors resize-none"
+                  placeholder="e.g. Out of stock or customer requested"
+                />
+              </div>
+            </div>
+            <div className="p-6 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
+              <button
+                onClick={() => setShowCancellationModal(false)}
+                className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+                disabled={isSubmitting}
+              >
+                Keep Order
+              </button>
+              <button
+                onClick={() =>
+                  handleUpdateOrderStatus("cancelled", {
+                    cancellation_reason: cancellationReason,
+                  })
+                }
+                disabled={isSubmitting || !cancellationReason}
+                className="px-8 py-2.5 rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-600/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "Cancel Order"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PRINT AREA */}
+      <div className="print:block hidden">
+        {selectedOrder && (
+          <PackingSlip order={orderDetails || selectedOrder} variant={printSize} />
+        )}
+      </div>
     </div>
   );
 }
