@@ -989,15 +989,28 @@ function CouponsContent() {
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                     Total Limit
                   </label>
-                  <input
-                    type="number"
-                    value={formData.usage_limit}
-                    onChange={(e) =>
-                      setFormData({ ...formData, usage_limit: e.target.value })
-                    }
-                    placeholder="∞"
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500 dark:text-white transition-all shadow-sm"
-                  />
+                  <div className="relative group">
+                    <input
+                      type="number"
+                      value={formData.usage_limit}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val.length <= 10) {
+                          setFormData({ ...formData, usage_limit: val });
+                        }
+                      }}
+                      placeholder="∞"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500 dark:text-white transition-all shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity">
+                       <span className={`text-[10px] font-bold ${formData.usage_limit.length >= 10 ? 'text-amber-500' : 'text-slate-400'}`}>
+                        {formData.usage_limit.length}/10
+                       </span>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 ml-1 font-medium">
+                    Max 10 digits allowed
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">

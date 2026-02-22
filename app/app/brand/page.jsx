@@ -100,6 +100,14 @@ function BrandContent() {
     }
   );
 
+  const getLogoUrl = (logoPath) => {
+    if (!logoPath) return null;
+    if (logoPath.startsWith("http")) return logoPath;
+    const cleanPath = logoPath.replace(/\\/g, "/");
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "");
+    return `${baseUrl}/${cleanPath}`;
+  };
+
   useEffect(() => {
     if (brandsData) {
       setBrands(brandsData.data || []);
@@ -337,7 +345,7 @@ function BrandContent() {
       is_active: brand.is_active ? 1 : 0,
       logo: null,
     });
-    setImagePreview(brand.logo || null);
+    setImagePreview(getLogoUrl(brand.logo) || null);
     setIsFormOpen(true);
   };
 
@@ -546,7 +554,7 @@ function BrandContent() {
                       <div className="relative aspect-square rounded-2xl overflow-hidden bg-linear-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 mb-4 flex items-center justify-center p-6">
                         {brand.logo ? (
                           <img
-                            src={brand.logo}
+                            src={getLogoUrl(brand.logo)}
                             alt={brand.name}
                             className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700"
                           />
@@ -615,7 +623,7 @@ function BrandContent() {
                             <div className="flex items-center gap-4">
                               <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 overflow-hidden border border-slate-100 dark:border-slate-700 p-1.5 flex items-center justify-center">
                                 {brand.logo ? (
-                                  <img src={brand.logo} className="max-w-full max-h-full object-contain" />
+                                  <img src={getLogoUrl(brand.logo)} className="max-w-full max-h-full object-contain" />
                                 ) : (
                                   <ImageIcon className="w-5 h-5 text-slate-300" />
                                 )}
@@ -835,7 +843,7 @@ function BrandContent() {
                 <button
                   onClick={handleSubmit}
                   type="button"
-                  className="flex-[2] py-3 px-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all transform active:scale-95"
+                  className="flex-2 py-3 px-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all transform active:scale-95"
                 >
                   {formMode === "create" ? "Create Brand" : "Save Changes"}
                 </button>
@@ -847,7 +855,7 @@ function BrandContent() {
 
       {/* --- DELETE DIALOG --- */}
       {isDeleteOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
           <div
             ref={deleteOverlayRef}
             className="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm"
