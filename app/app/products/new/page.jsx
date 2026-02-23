@@ -2036,12 +2036,13 @@ function CreateProductContent() {
                         <input
                           type="text"
                           value={currentVariant.barcode}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, "");
                             setCurrentVariant({
                               ...currentVariant,
-                              barcode: e.target.value,
-                            })
-                          }
+                              barcode: val,
+                            });
+                          }}
                           className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                           placeholder="195949000123"
                         />
