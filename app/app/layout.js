@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Menu, Bell, Search, ChevronRight, Plus, Box, Layers, Tag, Ticket, Smartphone } from "lucide-react";
+import { Menu, Bell, Search, ChevronRight, Plus, Box, Layers, Tag, Ticket, Smartphone, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import Sidebar from "../Components/SideBar";
 import { useRouter } from "next/navigation";
 import NextTopLoader from "nextjs-toploader";
@@ -15,8 +15,21 @@ export default function AdminLayout({ children }) {
   const router = useRouter();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  // Persistence for sidebar state
+  useEffect(() => {
+    const saved = localStorage.getItem("sidebar_collapsed") === "true";
+    setIsCollapsed(saved);
+  }, []);
+
+  const toggleCollapse = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    localStorage.setItem("sidebar_collapsed", newState);
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -34,7 +47,7 @@ export default function AdminLayout({ children }) {
   }, [quickCreateOpen]);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-white">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-white overflow-x-hidden">
       <NextTopLoader
         color="#4f46e5"
         initialPosition={0.08}
@@ -48,10 +61,15 @@ export default function AdminLayout({ children }) {
       />
 
       {/* Sidebar Component */}
-      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+      <Sidebar
+        isOpen={sidebarOpen}
+        setIsOpen={setSidebarOpen}
+        isCollapsed={isCollapsed}
+        setIsCollapsed={toggleCollapse}
+      />
 
       {/* MAIN CONTENT AREA */}
-      <div className="lg:pl-64 flex flex-col min-h-screen transition-all duration-300">
+      <div className={`flex flex-col min-h-screen transition-all duration-300 ${isCollapsed ? "lg:pl-20" : "lg:pl-64"}`}>
 
         {/* TOP HEADER */}
         <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
@@ -63,6 +81,15 @@ export default function AdminLayout({ children }) {
               className="p-2 -ml-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 lg:hidden"
             >
               <Menu className="w-6 h-6" />
+            </button>
+
+            {/* Desktop Toggle */}
+            <button
+              onClick={toggleCollapse}
+              className="hidden lg:flex p-2 -ml-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              {isCollapsed ? <PanelLeftOpen className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
             </button>
 
             {/* Breadcrumbs */}

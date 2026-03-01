@@ -14,26 +14,31 @@ import {
   ChevronRight,
   LogOut,
   BarChart3,
-  Megaphone,
   X,
   Layers,
-  CreditCard,
-  Truck,
+  Tag,
+  MessageSquare,
   Sun,
   Moon,
   Lock,
   Monitor,
-  Image as ImageIcon,
-  Tag,
-  MessageSquare,
-  FileText,
-  HelpCircle,
   ShieldCheck,
-  Zap,
 } from "lucide-react";
-import { Layers3 } from "lucide-react";
 
 import { useGlobalSettings } from "../app/context/GlobalSettingsContext";
+
+// --- FLOATING TOOLTIP COMPONENT ---
+const FloatingTooltip = ({ text, top, visible }) => {
+  return (
+    <div 
+      className={`fixed left-20 ml-3 px-2.5 py-1.5 bg-slate-900 dark:bg-slate-800 text-white text-[10px] font-bold rounded-lg pointer-events-none z-[9999] shadow-2xl border border-slate-700 dark:border-slate-700/50 transition-all duration-150 ease-out ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+      style={{ top: `${top}px`, transform: 'translateY(-50%)' }}
+    >
+      {text}
+      <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900 dark:border-r-slate-800"></div>
+    </div>
+  );
+};
 
 // --- CUSTOM SCROLLBAR CSS ---
 const SCROLLBAR_STYLES = `
@@ -52,6 +57,9 @@ const SCROLLBAR_STYLES = `
   }
   .custom-tiny-scrollbar::-webkit-scrollbar-thumb:hover {
     background-color: #94a3b8;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 `;
 
@@ -131,13 +139,15 @@ const MENU_GROUPS = [
     ],
   },
 ];
-export default function Sidebar({ isOpen, setIsOpen }) {
+
+export default function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const { businessName, logoUrl, footerText } = useGlobalSettings();
+  const { businessName, logoUrl } = useGlobalSettings();
   const [openSubmenu, setOpenSubmenu] = useState("");
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [tooltip, setTooltip] = useState({ text: "", top: 0, visible: false });
 
   // Handle hydration mismatch
   useEffect(() => {
@@ -146,6 +156,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
   // Auto-expand menu based on current path
   useEffect(() => {
+    if (isCollapsed) return;
     for (const group of MENU_GROUPS) {
       for (const item of group.items) {
         if (item.submenu && item.submenu.some((sub) => sub.href === pathname)) {
@@ -153,10 +164,29 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         }
       }
     }
-  }, [pathname]);
+  }, [pathname, isCollapsed]);
 
   const toggleSubmenu = (title) => {
+    if (isCollapsed) {
+        setIsCollapsed(false);
+        setOpenSubmenu(title);
+        return;
+    }
     setOpenSubmenu(openSubmenu === title ? "" : title);
+  };
+
+  const showTooltip = (e, text) => {
+    if (!isCollapsed) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltip({
+      text,
+      top: rect.top + rect.height / 2,
+      visible: true
+    });
+  };
+
+  const hideTooltip = () => {
+    setTooltip(prev => ({ ...prev, visible: false }));
   };
 
   if (!mounted) {
@@ -166,6 +196,9 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   return (
     <>
       <style>{SCROLLBAR_STYLES}</style>
+
+      {/* Mini Sidebar Tooltip */}
+      {isCollapsed && <FloatingTooltip {...tooltip} />}
 
       {/* Mobile Overlay */}
       {isOpen && (
@@ -178,49 +211,66 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       {/* SIDEBAR CONTAINER */}
       <aside
         className={`
-          fixed top-0 left-0 z-50 h-screen w-64
-          bg-white dark:bg-slate-950 
+          fixed top-0 left-0 z-50 h-screen
+          bg-white dark:bg-slate-900
           border-r border-slate-200 dark:border-slate-800
           text-slate-600 dark:text-slate-300
-          transition-transform duration-300 ease-in-out shadow-2xl
+          transition-all duration-300 ease-in-out shadow-2xl
           flex flex-col
           ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+          ${isCollapsed ? "w-20" : "w-64"}
         `}
       >
         {/* 1. BRAND LOGO */}
-        <div className="h-20 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800 shrink-0">
-          <Link href="/app" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20 group-hover:scale-105 transition-transform overflow-hidden">
+        <div className={`h-20 flex items-center px-4 border-b border-slate-200 dark:border-slate-800 shrink-0 transition-all duration-300 ${isCollapsed ? "justify-center" : "justify-between sticky top-0 z-10 bg-white dark:bg-slate-900"}`}>
+          <Link 
+            href="/app" 
+            onMouseEnter={(e) => showTooltip(e, businessName)}
+            onMouseLeave={hideTooltip}
+            className="flex items-center gap-3 group overflow-hidden shrink-0"
+          >
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20 group-hover:scale-105 transition-transform overflow-hidden shrink-0">
               {logoUrl ? (
                 <img src={logoUrl} alt={businessName} className="w-full h-full object-cover" />
               ) : (
                 <Layers className="w-6 h-6 text-white" />
               )}
             </div>
-            <div>
-              <h1 className="font-bold text-lg tracking-tight leading-none text-slate-900 dark:text-white truncate max-w-[120px]">
-                {businessName}
-              </h1>
-              <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 tracking-widest uppercase">
-                Admin Dashboard
-              </span>
-            </div>
+            {!isCollapsed && (
+              <div className="animate-in fade-in slide-in-from-left-2 duration-300">
+                <h1 className="font-bold text-lg tracking-tight leading-none text-slate-900 dark:text-white truncate max-w-[120px]">
+                  {businessName}
+                </h1>
+                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 tracking-widest uppercase">
+                  Admin Dashboard
+                </span>
+              </div>
+            )}
           </Link>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="lg:hidden p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          
+          {!isCollapsed && (
+            <div className="flex items-center gap-1">
+                <button
+                    onClick={() => setIsOpen(false)}
+                    className="lg:hidden p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                >
+                    <X className="w-5 h-5" />
+                </button>
+            </div>
+          )}
         </div>
 
         {/* 2. NAVIGATION LINKS */}
-        <div className="flex-1 overflow-y-auto py-6 px-4 space-y-8 custom-tiny-scrollbar">
+        <div className={`flex-1 overflow-y-auto ${isCollapsed ? 'no-scrollbar overflow-x-hidden' : 'p-4'} py-6 space-y-8 custom-tiny-scrollbar`}>
           {MENU_GROUPS.map((group, gIdx) => (
             <div key={gIdx}>
-              <h3 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 px-3">
-                {group.label}
-              </h3>
+              {!isCollapsed && (
+                <h3 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 px-3 animate-in fade-in duration-300">
+                  {group.label}
+                </h3>
+              )}
+              {isCollapsed && <div className="h-px bg-slate-100 dark:bg-slate-800 mx-4 mb-4"></div>}
+              
               <div className="space-y-1">
                 {group.items.map((item, index) => {
                   const isActive = pathname === item.href;
@@ -231,12 +281,15 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                     item.submenu.some((sub) => sub.href === pathname);
 
                   return (
-                    <div key={index}>
+                    <div key={index} className={isCollapsed ? "px-2" : ""}>
                       {/* Main Item */}
                       {hasSubmenu ? (
                         <button
                           onClick={() => toggleSubmenu(item.title)}
-                          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group
+                          onMouseEnter={(e) => showTooltip(e, item.title)}
+                          onMouseLeave={hideTooltip}
+                          className={`w-full flex items-center rounded-xl text-sm font-medium transition-all duration-200 group
+                            ${isCollapsed ? "justify-center p-3" : "justify-between px-3 py-2.5"}
                             ${
                               isSubmenuOpen || isParentActive
                                 ? "bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white"
@@ -245,22 +298,27 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                         >
                           <div className="flex items-center gap-3">
                             <item.icon
-                              className={`w-5 h-5 ${isParentActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500 group-hover:text-indigo-600 dark:group-hover:text-white"}`}
+                              className={`w-5 h-5 shrink-0 ${isParentActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500 group-hover:text-indigo-600 dark:group-hover:text-white"}`}
                             />
-                            <span>{item.title}</span>
+                            {!isCollapsed && <span className="animate-in fade-in slide-in-from-left-1 duration-200">{item.title}</span>}
                           </div>
-                          <ChevronRight
-                            className={`w-4 h-4 transition-transform duration-300 ${
-                              isSubmenuOpen
-                                ? "rotate-90 text-indigo-600 dark:text-indigo-400"
-                                : "text-slate-400"
-                            }`}
-                          />
+                          {!isCollapsed && (
+                            <ChevronRight
+                              className={`w-4 h-4 transition-transform duration-300 ${
+                                isSubmenuOpen
+                                  ? "rotate-90 text-indigo-600 dark:text-indigo-400"
+                                  : "text-slate-400"
+                              }`}
+                            />
+                          )}
                         </button>
                       ) : (
                         <Link
                           href={item.href}
-                          className={`relative flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group
+                          onMouseEnter={(e) => showTooltip(e, item.title)}
+                          onMouseLeave={hideTooltip}
+                          className={`relative flex items-center rounded-xl text-sm font-medium transition-all duration-200 group
+                            ${isCollapsed ? "justify-center p-3" : "justify-between px-3 py-2.5"}
                             ${
                               isActive
                                 ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
@@ -269,22 +327,25 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                         >
                           <div className="flex items-center gap-3">
                             <item.icon
-                              className={`w-5 h-5 ${isActive ? "text-white" : "text-slate-400 dark:text-slate-500 group-hover:text-indigo-600 dark:group-hover:text-white"}`}
+                              className={`w-5 h-5 shrink-0 ${isActive ? "text-white" : "text-slate-400 dark:text-slate-500 group-hover:text-indigo-600 dark:group-hover:text-white"}`}
                             />
-                            <span>{item.title}</span>
+                            {!isCollapsed && <span className="animate-in fade-in slide-in-from-left-1 duration-200">{item.title}</span>}
                           </div>
-                          {item.badge && (
+                          {!isCollapsed && item.badge && (
                             <span
                               className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isActive ? "bg-indigo-500 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"}`}
                             >
                               {item.badge}
                             </span>
                           )}
+                          {isCollapsed && item.badge && (
+                              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-indigo-600 rounded-full border border-white dark:border-slate-950"></span>
+                          )}
                         </Link>
                       )}
 
                       {/* Submenu Items */}
-                      {hasSubmenu && (
+                      {hasSubmenu && !isCollapsed && (
                         <div
                           className={`overflow-hidden transition-all duration-300 ease-in-out ${
                             isSubmenuOpen
@@ -319,46 +380,55 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         </div>
 
         {/* 3. USER FOOTER & THEME TOGGLE */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shrink-0">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-indigo-500/30 transition-all cursor-pointer group mb-3">
-            <div className="relative">
-              <img
-                src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=2000&auto=format&fit=crop"
-                alt="Admin"
-                loading="lazy"
-                className="w-9 h-9 rounded-lg object-cover"
-              />
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-slate-900"></span>
+        <div className={`p-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 ${isCollapsed ? '' : 'sticky bottom-0 z-10'}`}>
+          <div 
+            onMouseEnter={(e) => showTooltip(e, session?.user?.name || "Admin User")}
+            onMouseLeave={hideTooltip}
+            className={`group flex items-center gap-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 hover:border-indigo-500/30 transition-all cursor-pointer mb-3 ${isCollapsed ? "p-2 justify-center" : "p-3"}`}
+          >
+            <div className="relative shrink-0">
+                <img
+                    src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=2000&auto=format&fit=crop"
+                    alt="Admin"
+                    loading="lazy"
+                    className="w-8 h-8 rounded-lg object-cover"
+                />
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-slate-900"></span>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                {session?.user?.name || "Admin User"}
-              </p>
-              <p className="text-xs text-slate-500 truncate">
-                {session?.user?.email || "admin@igen.com"}
-              </p>
-            </div>
-            <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              className="text-slate-400 hover:text-red-500 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
+            {!isCollapsed && (
+                <>
+                    <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-2 duration-300">
+                        <p className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                            {session?.user?.name || "Admin User"}
+                        </p>
+                        <p className="text-[10px] text-slate-500 truncate">
+                            {session?.user?.email || "admin@igen.com"}
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => signOut({ callbackUrl: "/login" })}
+                        className="text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                        <LogOut className="w-4 h-4" />
+                    </button>
+                </>
+            )}
           </div>
 
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
+            onMouseEnter={(e) => showTooltip(e, theme === "dark" ? "Light Mode" : "Dark Mode")}
+            onMouseLeave={hideTooltip}
+            className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors ${isCollapsed ? "h-10" : ""}`}
           >
-            {theme === "dark" ? (
-              <>
-                <Moon className="w-4 h-4" /> Dark Mode
-              </>
-            ) : (
-              <>
-                <Sun className="w-4 h-4" /> Light Mode
-              </>
-            )}
+            <div className="flex items-center gap-2">
+                {theme === "dark" ? (
+                <Moon className="w-4 h-4" />
+                ) : (
+                <Sun className="w-4 h-4" />
+                )}
+                {!isCollapsed && <span className="animate-in fade-in duration-300">{theme === "dark" ? "Dark Mode" : "Light Mode"}</span>}
+            </div>
           </button>
         </div>
       </aside>
