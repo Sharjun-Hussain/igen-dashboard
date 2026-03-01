@@ -65,40 +65,7 @@ const MENU_GROUPS = [
     ],
   },
   {
-    label: "Storefront (CMS)",
-    items: [
-      {
-        title: "Landing Page",
-        icon: Monitor,
-        href: "#",
-        submenu: [
-          { title: "Hero Banners", href: "/app/cms/hero" }, // Top slider management
-          { title: "New Arrivals", href: "/app/cms/" },
-          { title: "Flash Sales", href: "/app/cms/flash-sales" },
-          { title: "Featured Sections", href: "/app/cms/featured-sections" },
-          { title: "Promises", href: "/app/cms/promises" },
-          { title: "Product Showcase", href: "/app/cms/product-showcase" },
-          { title: "Delivery Process", href: "/app/cms/delivery-process" },
-          { title: "FAQs", href: "/app/cms/faqs" },
-          { title: "Header", href: "/app/cms/header" },
-          { title: "Footer", href: "/app/cms/footer" },
-        ],
-      },
-      // {
-      //   title: "Content Hub",
-      //   icon: FileText,
-      //   href: "#",
-      //   submenu: [
-      //     { title: "Tech Blog", href: "/app/blog" },
-      //     { title: "Pages (About/Terms)", href: "/app/pages" },
-      //     { title: "FAQs", href: "/app/faqs" },
-      //   ],
-      // },
-      { title: "Testimonials", icon: MessageSquare, href: "/app/reviews" },
-    ],
-  },
-  {
-    label: "Catalog Management",
+    label: "Product Catalog",
     items: [
       {
         title: "Products",
@@ -114,41 +81,56 @@ const MENU_GROUPS = [
     ],
   },
   {
-    label: "Sales & Orders",
+    label: "Sales Management",
     items: [
       { title: "Orders", icon: ShoppingCart, href: "/app/orders", badge: "12" },
       { title: "Reviews", icon: MessageSquare, href: "/app/reviews" },
-      // { title: "Shipments", icon: Truck, href: "/app/shipments" },
-      // { title: "Returns/Refunds", icon: CreditCard, href: "/app/returns" },
     ],
   },
   {
-    label: "Marketing",
+    label: "Promotions",
+    items: [
+      { title: "Coupons", icon: Tag, href: "/app/coupons" },
+    ],
+  },
+  {
+    label: "User Management",
+    items: [
+      { title: "Customers", icon: Users, href: "/app/customers" },
+      { title: "Staff", icon: ShieldCheck, href: "/app/users" },
+    ],
+  },
+  {
+    label: "Design & Content",
     items: [
       {
-        title: "Promotions",
-        icon: Megaphone,
+        title: "Landing Page",
+        icon: Monitor,
         href: "#",
         submenu: [
-          // { title: "Flash Deals", href: "/app/marketing/flash-sales" }, // For 'Deals of the Week' countdowns
-          { title: "Coupons", href: "/app/coupons" },
-          // { title: "Bundles", href: "/app/marketing/bundles" },
+          { title: "Hero Banners", href: "/app/cms/hero" },
+          { title: "New Arrivals", href: "/app/cms/" },
+          { title: "Flash Sales", href: "/app/cms/flash-sales" },
+          { title: "Featured Sections", href: "/app/cms/featured-sections" },
+          { title: "Promises", href: "/app/cms/promises" },
+          { title: "Product Showcase", href: "/app/cms/product-showcase" },
+          { title: "Delivery Process", href: "/app/cms/delivery-process" },
+          { title: "FAQs", href: "/app/cms/faqs" },
+          { title: "Header", href: "/app/cms/header" },
+          { title: "Footer", href: "/app/cms/footer" },
         ],
       },
-      { title: "Customers", icon: Users, href: "/app/customers" },
     ],
   },
   {
-    label: "System",
+    label: "Administration",
     items: [
       { title: "Settings", icon: Settings, href: "/app/settings" },
       { title: "Roles", icon: ShieldCheck, href: "/app/roles" },
       { title: "Permissions", icon: Lock, href: "/app/permissions" },
-      { title: "Staff", icon: ShieldCheck, href: "/app/users" },
     ],
   },
 ];
-
 export default function Sidebar({ isOpen, setIsOpen }) {
   const pathname = usePathname();
   const { data: session } = useSession();

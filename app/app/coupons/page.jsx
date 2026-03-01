@@ -13,7 +13,7 @@ import {
   Plus,
   Search,
   Copy,
-  Calendar,
+  Calendar as CalendarIcon,
   CheckCircle2,
   X,
   AlertCircle,
@@ -37,7 +37,11 @@ import {
   Filter,
 } from "lucide-react";
 import { Suspense, useRef, useState, useEffect } from "react";
-
+import { Calendar as CalendarComponent } from "../../../components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "../../../components/ui/popover";
+import { format, parseISO, isValid } from "date-fns";
+import { Button } from "../../../components/ui/button";
+import { cn } from "../../../lib/utils";
 // --- MOCK PRODUCT DATA (For Search) ---
 const MOCK_PRODUCTS_DB = [
   {
@@ -907,7 +911,7 @@ function CouponsContent() {
                               placeholder="0"
                               value={tier.min_amount}
                               onChange={(e) => updateTier(index, "min_amount", e.target.value)}
-                              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-indigo-500 dark:text-white transition-all font-bold"
+                              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-indigo-500 dark:text-white transition-all font-bold hide-spinner"
                             />
                           </div>
                           <div className="flex-1 space-y-1.5">
@@ -919,7 +923,7 @@ function CouponsContent() {
                               placeholder="∞"
                               value={tier.max_amount}
                               onChange={(e) => updateTier(index, "max_amount", e.target.value)}
-                              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-indigo-500 dark:text-white transition-all font-bold"
+                              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-indigo-500 dark:text-white transition-all font-bold hide-spinner"
                             />
                           </div>
                           <div className="w-20 space-y-1.5">
@@ -931,7 +935,7 @@ function CouponsContent() {
                               placeholder="%"
                               value={tier.percentage}
                               onChange={(e) => updateTier(index, "percentage", e.target.value)}
-                              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-indigo-500 dark:text-white transition-all font-bold"
+                              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-indigo-500 dark:text-white transition-all font-bold hide-spinner"
                             />
                           </div>
                           <button
@@ -968,7 +972,7 @@ function CouponsContent() {
                             if (validationErrors.value) setValidationErrors({ ...validationErrors, value: null });
                           }}
                           placeholder="0"
-                          className={`w-full bg-slate-50 dark:bg-slate-900 border rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 outline-none transition-all ${validationErrors.value ? "border-red-500 focus:border-red-500" : "border-slate-200 dark:border-slate-800 focus:border-indigo-500"}`}
+                          className={`w-full bg-slate-50 dark:bg-slate-900 border rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 outline-none transition-all hide-spinner ${validationErrors.value ? "border-red-500 focus:border-red-500" : "border-slate-200 dark:border-slate-800 focus:border-indigo-500"}`}
                         />
                       </div>
                       {validationErrors.value && (
@@ -987,7 +991,7 @@ function CouponsContent() {
                             value={formData.min_purchase_amount}
                             onChange={(e) => setFormData({ ...formData, min_purchase_amount: e.target.value })}
                             placeholder="0"
-                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all"
+                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all hide-spinner"
                         />
                        </div>
                     </div>
@@ -1014,7 +1018,7 @@ function CouponsContent() {
                         }
                       }}
                       placeholder="∞"
-                      className={`w-full bg-slate-50 dark:bg-slate-900 border rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 outline-none transition-all ${validationErrors.usage_limit ? "border-red-500 focus:border-red-500" : "border-slate-200 dark:border-slate-800 focus:border-indigo-500 shadow-sm"}`}
+                      className={`w-full bg-slate-50 dark:bg-slate-900 border rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 outline-none transition-all hide-spinner ${validationErrors.usage_limit ? "border-red-500 focus:border-red-500" : "border-slate-200 dark:border-slate-800 focus:border-indigo-500 shadow-sm"}`}
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity">
                        <span className={`text-[10px] font-bold ${formData.usage_limit.length >= 10 ? 'text-amber-500' : 'text-slate-400'}`}>
@@ -1045,7 +1049,7 @@ function CouponsContent() {
                             if (validationErrors.usage_limit_per_user) setValidationErrors({ ...validationErrors, usage_limit_per_user: null });
                         }}
                         placeholder="1"
-                        className={`w-full bg-slate-50 dark:bg-slate-900 border rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 outline-none transition-all ${validationErrors.usage_limit_per_user ? "border-red-500 focus:border-red-500" : "border-slate-200 dark:border-slate-800 focus:border-indigo-500 shadow-sm"}`}
+                        className={`w-full bg-slate-50 dark:bg-slate-900 border rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 outline-none transition-all hide-spinner ${validationErrors.usage_limit_per_user ? "border-red-500 focus:border-red-500" : "border-slate-200 dark:border-slate-800 focus:border-indigo-500 shadow-sm"}`}
                     />
                   </div>
                 </div>
@@ -1054,19 +1058,38 @@ function CouponsContent() {
                   <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">
                     Start Date <span className="text-red-500">*</span>
                   </label>
-                  <div className="relative group">
-                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
-                    <input
-                        required
-                        type="date"
-                        value={formData.start_date}
-                        onChange={(e) => {
-                            setFormData({ ...formData, start_date: e.target.value });
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-bold border rounded-2xl px-4 py-3.5 h-[50px] bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 transition-all hover:bg-white dark:hover:bg-slate-800",
+                          !formData.start_date && "text-muted-foreground",
+                          validationErrors.start_date && "border-red-500 focus:ring-red-500"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4 text-slate-400" />
+                        {formData.start_date ? (
+                          format(parseISO(formData.start_date), "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={formData.start_date ? parseISO(formData.start_date) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            setFormData({ ...formData, start_date: format(date, "yyyy-MM-dd") });
                             if (validationErrors.start_date) setValidationErrors({ ...validationErrors, start_date: null });
+                          }
                         }}
-                        className={`w-full bg-slate-50 dark:bg-slate-900 border rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 outline-none transition-all ${validationErrors.start_date ? "border-red-500 focus:border-red-500" : "border-slate-200 dark:border-slate-800 focus:border-indigo-500 shadow-sm"} color-scheme-light dark:color-scheme-dark`}
-                    />
-                  </div>
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                   {validationErrors.start_date && (
                     <p className="text-xs text-red-500 mt-1 font-medium ml-1 flex items-center gap-1">
                         <AlertCircle className="w-3 h-3" />
@@ -1079,19 +1102,38 @@ function CouponsContent() {
                   <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">
                     Expiry Date <span className="text-red-500">*</span>
                   </label>
-                  <div className="relative group">
-                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
-                    <input
-                        required
-                        type="date"
-                        value={formData.expiry_date}
-                        onChange={(e) => {
-                            setFormData({ ...formData, expiry_date: e.target.value });
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-bold border rounded-2xl px-4 py-3.5 h-[50px] bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 transition-all hover:bg-white dark:hover:bg-slate-800",
+                          !formData.expiry_date && "text-muted-foreground",
+                          validationErrors.expiry_date && "border-red-500 focus:ring-red-500"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4 text-slate-400" />
+                        {formData.expiry_date ? (
+                          format(parseISO(formData.expiry_date), "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={formData.expiry_date ? parseISO(formData.expiry_date) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            setFormData({ ...formData, expiry_date: format(date, "yyyy-MM-dd") });
                             if (validationErrors.expiry_date) setValidationErrors({ ...validationErrors, expiry_date: null });
+                          }
                         }}
-                        className={`w-full bg-slate-50 dark:bg-slate-900 border rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 outline-none transition-all ${validationErrors.expiry_date ? "border-red-500 focus:border-red-500" : "border-slate-200 dark:border-slate-800 focus:border-indigo-500 shadow-sm"} color-scheme-light dark:color-scheme-dark`}
-                    />
-                  </div>
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                   {validationErrors.expiry_date && (
                     <p className="text-xs text-red-500 mt-1 font-medium ml-1 flex items-center gap-1">
                         <AlertCircle className="w-3 h-3" />
