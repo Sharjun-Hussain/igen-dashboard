@@ -29,12 +29,14 @@ import {
   Package,
   Layers,
   MoreVertical,
+  ToggleLeft,
+  ToggleRight,
+  Globe,
+  Tag,
+  Info,
+  Filter,
 } from "lucide-react";
-import { Suspense } from "react";
-import { useRef } from "react";
-import { useState } from "react";
-import { useEffect } from "react";
-import { Filter } from "lucide-react";
+import { Suspense, useRef, useState, useEffect } from "react";
 
 // --- MOCK PRODUCT DATA (For Search) ---
 const MOCK_PRODUCTS_DB = [
@@ -76,7 +78,14 @@ function CouponsContent() {
   const [editingCouponId, setEditingCouponId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [selectedCouponId, setSelectedCouponId] = useState(null);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [productQuery, setProductQuery] = useState("");
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
   const searchParams = useSearchParams();
 
   // --- API DATA ---
@@ -101,11 +110,10 @@ function CouponsContent() {
     status: item.is_active ? "Active" : "Inactive",
     expiry: new Date(item.expiry_date).toLocaleDateString(),
     description: item.description || item.name,
-    appliesTo: "all", // defaulting to all as API doesn't specify yet
+    appliesTo: "all",
     productIds: [],
   }));
 
-  // Form State
   // Form State
   const [formData, setFormData] = useState({
     code: "",
@@ -122,11 +130,6 @@ function CouponsContent() {
     appliesTo: "all",
     is_active: true
   });
-
-  // Product Selection State
-  const [productQuery, setProductQuery] = useState("");
-  const [selectedProducts, setSelectedProducts] = useState([]);
-  const [showProductDropdown, setShowProductDropdown] = useState(false);
 
   // --- ANIMATIONS ---
   useGSAP(
@@ -282,39 +285,31 @@ function CouponsContent() {
             headers: { 'Content-Type': 'application/json' }
         });
 
-        if (res) {
+        if (res && res.status === 'success') {
             toast.success(`Coupon ${isEditMode ? 'updated' : 'created'} successfully`);
             handleCloseSheet();
             mutate([`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/coupons`, session?.accessToken]);
-            
-            // Reset form
-            setFormData({
-                code: "",
-                name: "",
-                description: "",
-                type: "percentage",
-                value: "",
-                min_purchase_amount: "",
-                start_date: "",
-                expiry_date: "",
-                usage_limit: "",
-                usage_limit_per_user: "",
-                tiers: [{ min_amount: "", max_amount: "", percentage: "" }],
-                appliesTo: "all",
-                is_active: true
-            });
-            setIsEditMode(false);
-            setEditingCouponId(null);
         }
     } catch (err) {
-        toast.error(err.message || `Failed to ${isEditMode ? 'update' : 'create'} coupon`);
+        if (err.info && err.info.errors) {
+            const errorsMap = {};
+            err.info.errors.forEach(e => {
+                errorsMap[e.field] = e.messages[0];
+            });
+            setValidationErrors(errorsMap);
+        } else {
+            toast.error(err.message || `Failed to ${isEditMode ? 'update' : 'create'} coupon`);
+        }
     } finally {
         setIsSubmitting(false);
     }
-  };
+};
 
   const handleCloseSheet = () => {
-    const tl = gsap.timeline({ onComplete: () => setIsSheetOpen(false) });
+    const tl = gsap.timeline({ onComplete: () => {
+        setIsSheetOpen(false);
+        setValidationErrors({});
+    } });
     tl.to(formSheetRef.current, { x: "100%", duration: 0.3, ease: "power3.in" });
     tl.to(formOverlayRef.current, { opacity: 0, duration: 0.2 }, "-=0.2");
   };
@@ -329,18 +324,26 @@ function CouponsContent() {
     }
   }, [searchParams]);
 
-  const handleDelete = async (id) => {
-    if (confirm("Delete this coupon?")) {
-        try {
-            await globalFetcher(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/coupons/${id}`, session?.accessToken, {
-                method: 'DELETE'
-            });
-            toast.success("Coupon deleted successfully");
-            mutate([`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/coupons`, session?.accessToken]);
-            if (selectedCouponId === id) setSelectedCouponId(null);
-        } catch (err) {
-            toast.error(err.message || "Failed to delete coupon");
-        }
+  const handleDelete = (id) => {
+    setDeletingId(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+        await globalFetcher(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/coupons/${deletingId}`, session?.accessToken, {
+            method: 'DELETE'
+        });
+        toast.success("Coupon deleted successfully");
+        mutate([`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/coupons`, session?.accessToken]);
+        if (selectedCouponId === deletingId) setSelectedCouponId(null);
+        setIsDeleteDialogOpen(false);
+    } catch (err) {
+        toast.error(err.message || "Failed to delete coupon");
+    } finally {
+        setIsDeleting(false);
+        setDeletingId(null);
     }
   };
 
@@ -398,6 +401,7 @@ function CouponsContent() {
                     appliesTo: "all",
                     is_active: true
                 });
+                setValidationErrors({});
                 setIsSheetOpen(true);
             }}
             className="flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
@@ -679,104 +683,118 @@ function CouponsContent() {
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-6 space-y-6">
-              {/* Code Section */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Coupon Code
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    required
-                    type="text"
-                    value={formData.code}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        code: e.target.value.toUpperCase(),
-                      })
-                    }
-                    placeholder="e.g. SUMMER2026"
-                    className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm font-mono font-bold uppercase focus:border-indigo-500 outline-none dark:text-white transition-all shadow-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={generateCode}
-                    className="px-4 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors shadow-sm"
-                  >
-                    <Wand2 className="w-5 h-5" />
-                  </button>
+            <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-8 space-y-8">
+              {/* Code & Basic Status Section */}
+              <div className="space-y-4 p-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors mb-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">
+                    Coupon Code <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-2 relative group">
+                    <div className="flex-1 relative">
+                        <Tag className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                        <input
+                            required
+                            type="text"
+                            value={formData.code}
+                            onChange={(e) => {
+                                setFormData({ ...formData, code: e.target.value.toUpperCase() });
+                                if (validationErrors.code) setValidationErrors({ ...validationErrors, code: null });
+                            }}
+                            placeholder="e.g. SUMMER2026"
+                            className={`w-full bg-white dark:bg-slate-900 border rounded-2xl pl-11 pr-4 py-3.5 text-sm font-mono font-bold uppercase outline-none transition-all ${validationErrors.code ? "border-red-500 focus:border-red-500" : "border-slate-200 dark:border-slate-800 focus:border-indigo-500 shadow-sm text-slate-900 dark:text-white"}`}
+                        />
+                    </div>
+                    <button
+                        type="button"
+                        onClick={generateCode}
+                        className="px-4 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 flex items-center justify-center translate-y-px"
+                    >
+                        <Wand2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                  {validationErrors.code && (
+                    <p className="text-xs text-red-500 mt-1 font-medium ml-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {validationErrors.code}
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, is_active: formData.is_active ? 0 : 1 })}
+                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${formData.is_active ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400" : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500"}`}
+                    >
+                        <span className="text-[10px] font-bold uppercase tracking-widest font-sans">Status</span>
+                        {formData.is_active ? <ToggleRight className="w-6 h-6" /> : <ToggleLeft className="w-6 h-6" />}
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, appliesTo: formData.appliesTo === "all" ? "specific" : "all" })}
+                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${formData.appliesTo === "all" ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400" : "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400"}`}
+                    >
+                        <span className="text-[10px] font-bold uppercase tracking-widest font-sans">
+                            {formData.appliesTo === "all" ? "Site-wide" : "Specific"}
+                        </span>
+                        {formData.appliesTo === "all" ? <Layers className="w-5 h-5" /> : <Package className="w-5 h-5" />}
+                    </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-5">
+              {/* Name & Description */}
+              <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                    Name
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">
+                    Coupon Name <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    required
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    placeholder="e.g. Summer Sale"
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500 dark:text-white transition-all shadow-sm"
-                  />
+                  <div className="relative group">
+                    <Ticket className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                    <input
+                        required
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => {
+                            setFormData({ ...formData, name: e.target.value });
+                            if (validationErrors.name) setValidationErrors({ ...validationErrors, name: null });
+                        }}
+                        placeholder="e.g. Summer Sale 2026"
+                        className={`w-full bg-slate-50 dark:bg-slate-900 border rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 outline-none transition-all ${validationErrors.name ? "border-red-500 focus:border-red-500" : "border-slate-200 dark:border-slate-800 focus:border-indigo-500"}`}
+                    />
+                  </div>
+                  {validationErrors.name && (
+                    <p className="text-xs text-red-500 mt-1 font-medium ml-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {validationErrors.name}
+                    </p>
+                  )}
                 </div>
+
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                    Description
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    placeholder="e.g. 10% Off for new users"
-                    rows={2}
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500 dark:text-white transition-all shadow-sm resize-none"
-                  />
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Description</label>
+                  <div className="relative group">
+                    <Info className="absolute left-4 top-4 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Special discount for our summer collection..."
+                      rows={2}
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all shadow-sm resize-none min-h-[80px]"
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* PRODUCT SELECTION LOGIC */}
-              <div className="space-y-4 p-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase block tracking-wider">
-                  Applies To
-                </label>
+              {formData.appliesTo === "specific" && (
+                <div className="space-y-4 p-5 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-2xl border border-indigo-100 dark:border-indigo-800/50 shadow-sm animate-in zoom-in-95 duration-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Package className="w-4 h-4 text-indigo-500" />
+                    <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Select Products</span>
+                  </div>
 
-                <div className="flex bg-white dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-inner">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setFormData({ ...formData, appliesTo: "all" })
-                    }
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-                      formData.appliesTo === "all" 
-                        ? "bg-indigo-600 text-white shadow-lg" 
-                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                    }`}
-                  >
-                    All Products
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setFormData({ ...formData, appliesTo: "specific" })
-                    }
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-                      formData.appliesTo === "specific" 
-                        ? "bg-indigo-600 text-white shadow-lg" 
-                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                    }`}
-                  >
-                    Specific Products
-                  </button>
-                </div>
-
-                {formData.appliesTo === "specific" && (
                   <div className="space-y-3 pt-2">
                     <div className="relative">
                       <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
@@ -789,21 +807,19 @@ function CouponsContent() {
                           setProductQuery(e.target.value);
                           setShowProductDropdown(true);
                         }}
-                        className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:border-indigo-500 outline-none dark:text-white shadow-sm"
+                        className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:border-indigo-500 outline-none dark:text-white shadow-sm font-bold"
                       />
                       {/* Dropdown */}
                       {showProductDropdown && productQuery && (
                         <div className="absolute top-full left-0 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-20 max-h-48 overflow-y-auto">
                           {MOCK_PRODUCTS_DB.filter((p) =>
-                            p.name
-                              .toLowerCase()
-                              .includes(productQuery.toLowerCase()),
+                            p.name.toLowerCase().includes(productQuery.toLowerCase())
                           ).map((prod) => (
                             <button
                               key={prod.id}
                               type="button"
                               onClick={() => addProduct(prod)}
-                              className="w-full text-left px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3 transition-colors dark:text-slate-200"
+                              className="w-full text-left px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center gap-3 transition-colors dark:text-slate-200 font-bold"
                             >
                               <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">
                                 <Package className="w-4 h-4 text-slate-400" />
@@ -819,13 +835,13 @@ function CouponsContent() {
                       {selectedProducts.map((prod) => (
                         <div
                           key={prod.id}
-                          className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-3 py-1.5 rounded-lg text-xs font-bold border border-indigo-100 dark:border-indigo-800/50 transition-all"
+                          className="flex items-center gap-2 bg-white dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-3 py-1.5 rounded-lg text-[10px] font-bold border border-indigo-100 dark:border-indigo-800/50 transition-all shadow-sm"
                         >
                           {prod.name}
                           <button
                             type="button"
                             onClick={() => removeProduct(prod.id)}
-                            className="text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-200"
+                            className="text-indigo-400 hover:text-red-500 transition-colors"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
@@ -833,23 +849,22 @@ function CouponsContent() {
                       ))}
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Value & Type */}
               <div className="space-y-5">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">
                     Discount Type
                   </label>
                   <div className="grid grid-cols-3 gap-2">
-                    {["percentage", "fixed", "tiered_percentage"].map(
-                      (type) => (
+                    {["percentage", "fixed", "tiered_percentage"].map((type) => (
                         <button
                           key={type}
                           type="button"
                           onClick={() => setFormData({ ...formData, type })}
-                          className={`py-2.5 text-xs font-bold rounded-xl border transition-all capitalize shadow-sm ${
+                          className={`py-3 text-[10px] font-black rounded-xl border transition-all uppercase tracking-tighter shadow-sm ${
                             formData.type === type
                               ? "bg-indigo-600 border-indigo-600 text-white shadow-indigo-600/20"
                               : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
@@ -865,7 +880,7 @@ function CouponsContent() {
                 {formData.type === "tiered_percentage" ? (
                   <div className="space-y-4 bg-slate-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
                     <div className="flex justify-between items-center">
-                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">
                         Discount Tiers
                       </label>
                       <button
@@ -889,11 +904,9 @@ function CouponsContent() {
                             </p>
                             <input
                               type="number"
-                              placeholder="Min"
+                              placeholder="0"
                               value={tier.min_amount}
-                              onChange={(e) =>
-                                updateTier(index, "min_amount", e.target.value)
-                              }
+                              onChange={(e) => updateTier(index, "min_amount", e.target.value)}
                               className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-indigo-500 dark:text-white transition-all font-bold"
                             />
                           </div>
@@ -903,11 +916,9 @@ function CouponsContent() {
                             </p>
                             <input
                               type="number"
-                              placeholder="Max"
+                              placeholder="∞"
                               value={tier.max_amount}
-                              onChange={(e) =>
-                                updateTier(index, "max_amount", e.target.value)
-                              }
+                              onChange={(e) => updateTier(index, "max_amount", e.target.value)}
                               className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-indigo-500 dark:text-white transition-all font-bold"
                             />
                           </div>
@@ -919,9 +930,7 @@ function CouponsContent() {
                               type="number"
                               placeholder="%"
                               value={tier.percentage}
-                              onChange={(e) =>
-                                updateTier(index, "percentage", e.target.value)
-                              }
+                              onChange={(e) => updateTier(index, "percentage", e.target.value)}
                               className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-indigo-500 dark:text-white transition-all font-bold"
                             />
                           </div>
@@ -939,45 +948,48 @@ function CouponsContent() {
                 ) : (
                   <div className="grid grid-cols-2 gap-4 animate-in fade-in zoom-in-95 duration-200">
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                        Value
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">
+                        Discount Value <span className="text-red-500">*</span>
                       </label>
-                      <div className="relative">
-                        <input
-                          required
-                          type="number"
-                          value={formData.value}
-                          onChange={(e) =>
-                            setFormData({ ...formData, value: e.target.value })
-                          }
-                          placeholder="0"
-                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-indigo-500 dark:text-white transition-all shadow-sm font-bold"
-                        />
-                        <div className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500">
+                      <div className="relative group">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none">
                           {formData.type === "percentage" ? (
                             <Percent className="w-4 h-4" />
                           ) : (
                             <DollarSign className="w-4 h-4" />
                           )}
                         </div>
+                        <input
+                          required
+                          type="number"
+                          value={formData.value}
+                          onChange={(e) => {
+                            setFormData({ ...formData, value: e.target.value });
+                            if (validationErrors.value) setValidationErrors({ ...validationErrors, value: null });
+                          }}
+                          placeholder="0"
+                          className={`w-full bg-slate-50 dark:bg-slate-900 border rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 outline-none transition-all ${validationErrors.value ? "border-red-500 focus:border-red-500" : "border-slate-200 dark:border-slate-800 focus:border-indigo-500"}`}
+                        />
                       </div>
+                      {validationErrors.value && (
+                        <p className="text-xs text-red-500 mt-1 font-medium ml-1 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            {validationErrors.value}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                        Min Spend
-                      </label>
-                      <input
-                        type="number"
-                        value={formData.min_purchase_amount}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            min_purchase_amount: e.target.value,
-                          })
-                        }
-                        placeholder="0"
-                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500 dark:text-white transition-all shadow-sm font-bold"
-                      />
+                       <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Min Spend</label>
+                       <div className="relative group">
+                        <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
+                        <input
+                            type="number"
+                            value={formData.min_purchase_amount}
+                            onChange={(e) => setFormData({ ...formData, min_purchase_amount: e.target.value })}
+                            placeholder="0"
+                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all"
+                        />
+                       </div>
                     </div>
                   </div>
                 )}
@@ -986,10 +998,11 @@ function CouponsContent() {
               {/* Date & Limits */}
               <div className="grid grid-cols-2 gap-5">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">
                     Total Limit
                   </label>
                   <div className="relative group">
+                    <Layers className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
                     <input
                       type="number"
                       value={formData.usage_limit}
@@ -997,10 +1010,11 @@ function CouponsContent() {
                         const val = e.target.value;
                         if (val.length <= 10) {
                           setFormData({ ...formData, usage_limit: val });
+                          if (validationErrors.usage_limit) setValidationErrors({ ...validationErrors, usage_limit: null });
                         }
                       }}
                       placeholder="∞"
-                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500 dark:text-white transition-all shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className={`w-full bg-slate-50 dark:bg-slate-900 border rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 outline-none transition-all ${validationErrors.usage_limit ? "border-red-500 focus:border-red-500" : "border-slate-200 dark:border-slate-800 focus:border-indigo-500 shadow-sm"}`}
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity">
                        <span className={`text-[10px] font-bold ${formData.usage_limit.length >= 10 ? 'text-amber-500' : 'text-slate-400'}`}>
@@ -1008,53 +1022,82 @@ function CouponsContent() {
                        </span>
                     </div>
                   </div>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 ml-1 font-medium">
-                    Max 10 digits allowed
-                  </p>
+                  {validationErrors.usage_limit && (
+                    <p className="text-xs text-red-500 mt-1 font-medium ml-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {validationErrors.usage_limit}
+                    </p>
+                  )}
                 </div>
+
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                    Per User
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">
+                    Per User <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="number"
-                    value={formData.usage_limit_per_user}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        usage_limit_per_user: e.target.value,
-                      })
-                    }
-                    placeholder="1"
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500 dark:text-white transition-all shadow-sm"
-                  />
+                  <div className="relative group">
+                    <Ticket className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
+                    <input
+                        required
+                        type="number"
+                        value={formData.usage_limit_per_user}
+                        onChange={(e) => {
+                            setFormData({ ...formData, usage_limit_per_user: e.target.value });
+                            if (validationErrors.usage_limit_per_user) setValidationErrors({ ...validationErrors, usage_limit_per_user: null });
+                        }}
+                        placeholder="1"
+                        className={`w-full bg-slate-50 dark:bg-slate-900 border rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 outline-none transition-all ${validationErrors.usage_limit_per_user ? "border-red-500 focus:border-red-500" : "border-slate-200 dark:border-slate-800 focus:border-indigo-500 shadow-sm"}`}
+                    />
+                  </div>
                 </div>
+
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                    Start Date
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">
+                    Start Date <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="date"
-                    value={formData.start_date}
-                    onChange={(e) =>
-                      setFormData({ ...formData, start_date: e.target.value })
-                    }
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500 dark:text-white transition-all shadow-sm color-scheme-light dark:color-scheme-dark"
-                  />
+                  <div className="relative group">
+                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
+                    <input
+                        required
+                        type="date"
+                        value={formData.start_date}
+                        onChange={(e) => {
+                            setFormData({ ...formData, start_date: e.target.value });
+                            if (validationErrors.start_date) setValidationErrors({ ...validationErrors, start_date: null });
+                        }}
+                        className={`w-full bg-slate-50 dark:bg-slate-900 border rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 outline-none transition-all ${validationErrors.start_date ? "border-red-500 focus:border-red-500" : "border-slate-200 dark:border-slate-800 focus:border-indigo-500 shadow-sm"} color-scheme-light dark:color-scheme-dark`}
+                    />
+                  </div>
+                  {validationErrors.start_date && (
+                    <p className="text-xs text-red-500 mt-1 font-medium ml-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {validationErrors.start_date}
+                    </p>
+                  )}
                 </div>
+
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                    Expiry Date
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">
+                    Expiry Date <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    required
-                    type="date"
-                    value={formData.expiry_date}
-                    onChange={(e) =>
-                      setFormData({ ...formData, expiry_date: e.target.value })
-                    }
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500 dark:text-white transition-all shadow-sm color-scheme-light dark:color-scheme-dark"
-                  />
+                  <div className="relative group">
+                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
+                    <input
+                        required
+                        type="date"
+                        value={formData.expiry_date}
+                        onChange={(e) => {
+                            setFormData({ ...formData, expiry_date: e.target.value });
+                            if (validationErrors.expiry_date) setValidationErrors({ ...validationErrors, expiry_date: null });
+                        }}
+                        className={`w-full bg-slate-50 dark:bg-slate-900 border rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 outline-none transition-all ${validationErrors.expiry_date ? "border-red-500 focus:border-red-500" : "border-slate-200 dark:border-slate-800 focus:border-indigo-500 shadow-sm"} color-scheme-light dark:color-scheme-dark`}
+                    />
+                  </div>
+                  {validationErrors.expiry_date && (
+                    <p className="text-xs text-red-500 mt-1 font-medium ml-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {validationErrors.expiry_date}
+                    </p>
+                  )}
                 </div>
               </div>
             </form>
@@ -1079,6 +1122,37 @@ function CouponsContent() {
       )}
 
 
+      {/* 6. DELETE CONFIRMATION MODAL */}
+      {isDeleteDialogOpen && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isDeleting && setIsDeleteDialogOpen(false)} />
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full relative z-10 shadow-2xl border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+              <Trash2 className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-black text-slate-900 dark:text-white text-center mb-2 font-mono uppercase tracking-tight">Delete Coupon?</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-center text-sm font-medium mb-8 leading-relaxed">
+              Are you sure you want to delete this coupon? This action cannot be undone.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                disabled={isDeleting}
+                onClick={() => setIsDeleteDialogOpen(false)}
+                className="py-3.5 px-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-95 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={isDeleting}
+                onClick={confirmDelete}
+                className="py-3.5 px-4 bg-red-600 text-white font-bold rounded-2xl hover:bg-red-700 transition-all shadow-lg shadow-red-600/20 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+              >
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

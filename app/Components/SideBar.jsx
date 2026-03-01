@@ -117,6 +117,7 @@ const MENU_GROUPS = [
     label: "Sales & Orders",
     items: [
       { title: "Orders", icon: ShoppingCart, href: "/app/orders", badge: "12" },
+      { title: "Reviews", icon: MessageSquare, href: "/app/reviews" },
       // { title: "Shipments", icon: Truck, href: "/app/shipments" },
       // { title: "Returns/Refunds", icon: CreditCard, href: "/app/returns" },
     ],

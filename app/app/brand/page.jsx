@@ -78,6 +78,7 @@ function BrandContent() {
     is_active: 1,
     logo: null,
   });
+  const [validationErrors, setValidationErrors] = useState({});
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -182,6 +183,7 @@ function BrandContent() {
       try {
         const compressedFile = await compressImage(file);
         setFormData({ ...formData, logo: compressedFile });
+        if (validationErrors.logo) setValidationErrors({ ...validationErrors, logo: null });
         const reader = new FileReader();
         reader.onloadend = () => {
           setImagePreview(reader.result);
@@ -324,6 +326,7 @@ function BrandContent() {
       logo: null,
     });
     setImagePreview(null);
+    setValidationErrors({});
     setIsFormOpen(true);
   };
 
@@ -339,6 +342,7 @@ function BrandContent() {
       logo: null,
     });
     setImagePreview(getImageUrl(brand.logo) || null);
+    setValidationErrors({});
     setIsFormOpen(true);
   };
 
@@ -359,6 +363,7 @@ function BrandContent() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
       const url = formMode === "edit"
         ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/brands/${selectedBrand.id}`
@@ -384,27 +389,45 @@ function BrandContent() {
         closeFormWithAnim();
         refreshBrands();
       } else {
-        toast.error(data.message || "Operation failed");
+        toast.error(data?.message || "Operation failed");
       }
     } catch (error) {
-      toast.error("An unexpected error occurred");
+      if (error.info && error.info.errors) {
+        const errorsMap = {};
+        error.info.errors.forEach(err => {
+          let message = err.messages[0];
+          if (err.field === "website" && message.includes("valid URL")) {
+            message = `${message} (e.g., https://example.com)`;
+          }
+          errorsMap[err.field] = message;
+        });
+        setValidationErrors(errorsMap);
+        // Removed toast here as per user request, errors are shown inline
+      } else {
+        toast.error(error.message || "An unexpected error occurred");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDeleteConfirm = async () => {
+    setLoading(true);
     try {
       const data = await globalFetcher(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/brands/${selectedBrand.id}`, session?.accessToken, {
         method: "DELETE",
       });
       if (data && data.status === "success") {
-        toast.success("Brand deleted");
+        toast.success("Brand deleted successfully");
         closeDeleteWithAnim();
         refreshBrands();
       } else {
         toast.error(data.message || "Failed to delete brand");
       }
     } catch (error) {
-      toast.error("An error occurred while deleting brand");
+      toast.error(error.message || "An error occurred while deleting brand");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -757,22 +780,31 @@ function BrandContent() {
                     className="hidden"
                     accept="image/*"
                   />
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-4">Brand Logo</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-4">Brand Logo <span className="text-red-500">*</span></p>
+                  {validationErrors.logo && (
+                    <p className="text-xs text-red-500 mt-1 font-medium">{validationErrors.logo}</p>
+                  )}
                 </div>
 
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Brand Name</label>
+                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Brand Name <span className="text-red-500">*</span></label>
                     <div className="relative group">
                       <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                       <input
                         type="text"
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all"
+                        onChange={(e) => {
+                          setFormData({ ...formData, name: e.target.value });
+                          if (validationErrors.name) setValidationErrors({ ...validationErrors, name: null });
+                        }}
+                        className={`w-full bg-slate-50 dark:bg-slate-900 border rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 outline-none transition-all ${validationErrors.name ? "border-red-500 focus:border-red-500" : "border-slate-200 dark:border-slate-700 focus:border-indigo-500"}`}
                         placeholder="e.g. Samsung"
                       />
                     </div>
+                    {validationErrors.name && (
+                      <p className="text-xs text-red-500 mt-1 font-medium ml-1">{validationErrors.name}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -782,11 +814,17 @@ function BrandContent() {
                       <input
                         type="text"
                         value={formData.website}
-                        onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all"
-                        placeholder="https://www.samsung.com"
+                        onChange={(e) => {
+                          setFormData({ ...formData, website: e.target.value });
+                          if (validationErrors.website) setValidationErrors({ ...validationErrors, website: null });
+                        }}
+                        className={`w-full bg-slate-50 dark:bg-slate-900 border rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 outline-none transition-all ${validationErrors.website ? "border-red-500 focus:border-red-500" : "border-slate-200 dark:border-slate-700 focus:border-indigo-500"}`}
+                        placeholder="https://website.com"
                       />
                     </div>
+                    {validationErrors.website && (
+                      <p className="text-xs text-red-500 mt-1 font-medium ml-1">{validationErrors.website}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -836,9 +874,17 @@ function BrandContent() {
                 <button
                   onClick={handleSubmit}
                   type="button"
-                  className="flex-2 py-3 px-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all transform active:scale-95"
+                  disabled={!formData.name || (formMode === "create" && !formData.logo) || loading}
+                  className={`flex items-center justify-center gap-2 flex-2 py-3 px-4 rounded-xl font-bold text-sm text-white transition-all transform active:scale-95 ${(!formData.name || (formMode === "create" && !formData.logo) || loading) ? "bg-indigo-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/30"}`}
                 >
-                  {formMode === "create" ? "Create Brand" : "Save Changes"}
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{formMode === "create" ? "Creating..." : "Saving..."}</span>
+                    </>
+                  ) : (
+                    <span>{formMode === "create" ? "Create Brand" : "Save Changes"}</span>
+                  )}
                 </button>
               </div>
             </div>
@@ -846,44 +892,66 @@ function BrandContent() {
         </div>
       )}
 
-      {/* --- DELETE DIALOG --- */}
       {isDeleteOpen && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
           <div
             ref={deleteOverlayRef}
-            className="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm"
-            onClick={closeDeleteWithAnim}
+            className="absolute inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-md"
+            onClick={!loading ? closeDeleteWithAnim : undefined}
           />
           <div
             ref={deleteContentRef}
-            className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center"
+            className="relative bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl max-w-sm w-full p-8 overflow-hidden border border-slate-100 dark:border-slate-700"
           >
-            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-              Delete Brand?
-            </h3>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
-              Are you sure you want to delete{" "}
-              <span className="font-bold text-slate-900 dark:text-white">
-                "{selectedBrand?.name}"
-              </span>
-              ? This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={closeDeleteWithAnim}
-                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/20"
-              >
-                Delete
-              </button>
+            {/* Background Decoration */}
+            <div className="absolute top-0 left-0 w-full h-24 bg-linear-to-b from-red-50 to-transparent dark:from-red-900/10 pointer-events-none" />
+            
+            <div className="relative">
+              <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-red-500/10 rotate-3 transform transition-transform hover:rotate-6">
+                <Trash2 className="w-10 h-10" />
+              </div>
+              
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3 tracking-tight">
+                Delete Brand?
+              </h3>
+              
+              <div className="space-y-4 mb-8">
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed">
+                  You are about to permanently delete <span className="text-slate-900 dark:text-white font-bold italic underline decoration-red-500/30 underline-offset-4">"{selectedBrand?.name}"</span>.
+                </p>
+                
+                {selectedBrand?.products_count > 0 && (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 rounded-2xl text-[11px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider animate-pulse">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>Affects {selectedBrand.products_count} Products</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex flex-col gap-3">
+                <button
+                  disabled={loading}
+                  onClick={handleDeleteConfirm}
+                  className="w-full py-4 rounded-2xl text-sm font-black text-white bg-red-600 hover:bg-red-700 shadow-xl shadow-red-500/25 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <span>Yes, Delete Brand</span>
+                      <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
+                </button>
+                
+                <button
+                  disabled={loading}
+                  onClick={closeDeleteWithAnim}
+                  className="w-full py-4 rounded-2xl text-sm font-bold text-slate-500 dark:text-slate-400 shadow-sm hover:text-slate-700 dark:hover:text-slate-200 transition-colors disabled:opacity-50"
+                >
+                  No, Keep it
+                </button>
+              </div>
             </div>
           </div>
         </div>

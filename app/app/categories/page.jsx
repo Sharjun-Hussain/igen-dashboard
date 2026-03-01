@@ -24,6 +24,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  ToggleLeft,
+  ToggleRight,
+  Tag,
+  Info,
 } from "lucide-react";
 import { Suspense } from "react";
 
@@ -62,6 +66,8 @@ function CategoriesContent() {
     is_active: 1,
     is_featured: 0,
   });
+  const [validationErrors, setValidationErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   // --- API FETCHING ---
   const fetcher = async (url) => {
@@ -111,7 +117,7 @@ function CategoriesContent() {
   // 2. GRID/LIST SWITCH ANIMATION
   // ------------------------------------------------------------------
   useGSAP(() => {
-    if (isLoading) return; // Don't animate if loading
+    if (isLoading || loading) return; // Don't animate if loading
     
     // Kill any existing animations
     gsap.killTweensOf(".category-item");
@@ -194,7 +200,6 @@ function CategoriesContent() {
       ease: "power2.in",
     }).to(deleteOverlayRef.current, { opacity: 0, duration: 0.2 }, "<");
   };
-
   const handleOpenCreate = () => {
     setFormMode("create");
     setFormData({
@@ -203,6 +208,7 @@ function CategoriesContent() {
       is_active: 1,
       is_featured: 0,
     });
+    setValidationErrors({});
     setIsFormOpen(true);
   };
 
@@ -215,6 +221,7 @@ function CategoriesContent() {
       is_active: category.is_active ? 1 : 0,
       is_featured: category.is_featured ? 1 : 0,
     });
+    setValidationErrors({});
     setIsFormOpen(true);
   };
 
@@ -235,9 +242,8 @@ function CategoriesContent() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const loadingToast = toast.loading(
-      formMode === "create" ? "Creating category..." : "Updating category..."
-    );
+    setLoading(true);
+    setValidationErrors({});
 
     try {
       const url =
@@ -262,19 +268,28 @@ function CategoriesContent() {
       toast.success(
         formMode === "create"
           ? "Category created successfully"
-          : "Category updated successfully",
-        { id: loadingToast }
+          : "Category updated successfully"
       );
       
       mutate([`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories?page=${currentPage}&search=${debouncedSearch}`, session.accessToken]);
       closeFormWithAnim();
     } catch (error) {
-      toast.error(error.message, { id: loadingToast });
+      if (error.info && error.info.errors) {
+        const errorsMap = {};
+        error.info.errors.forEach(err => {
+          errorsMap[err.field] = err.messages[0];
+        });
+        setValidationErrors(errorsMap);
+      } else {
+        toast.error(error.message || "An unexpected error occurred");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDeleteConfirm = async () => {
-    const loadingToast = toast.loading("Deleting category...");
+    setLoading(true);
     try {
       const data = await globalFetcher(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories/${selectedCategory.id}`,
@@ -288,11 +303,13 @@ function CategoriesContent() {
         throw new Error("Failed to delete");
       }
 
-      toast.success("Category deleted successfully", { id: loadingToast });
+      toast.success("Category deleted successfully");
       mutate([`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories?page=${currentPage}&search=${debouncedSearch}`, session.accessToken]);
       closeDeleteWithAnim();
     } catch (error) {
-      toast.error(error.message, { id: loadingToast });
+      toast.error(error.message || "An error occurred while deleting category");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -649,71 +666,73 @@ function CategoriesContent() {
               </div>
 
               {/* Drawer Body */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="flex-1 overflow-y-auto p-8 space-y-6">
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
-                      Category Name
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">
+                      Category Name <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      required
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all"
-                      placeholder="e.g. Wireless Headphones"
-                    />
+                    <div className="relative group">
+                      <Tag className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                      <input
+                        required
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => {
+                          setFormData({ ...formData, name: e.target.value });
+                          if (validationErrors.name) setValidationErrors({ ...validationErrors, name: null });
+                        }}
+                        className={`w-full bg-slate-50 dark:bg-slate-900 border rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 outline-none transition-all ${validationErrors.name ? "border-red-500 focus:border-red-500" : "border-slate-200 dark:border-slate-700 focus:border-indigo-500"}`}
+                        placeholder="e.g. Wireless Headphones"
+                      />
+                    </div>
+                    {validationErrors.name && (
+                      <p className="text-xs text-red-500 mt-1 font-medium ml-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {validationErrors.name}
+                      </p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
-                        Status
-                      </label>
-                      <select
-                        value={formData.is_active}
-                        onChange={(e) =>
-                          setFormData({ ...formData, is_active: parseInt(e.target.value) })
-                        }
-                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:border-indigo-500 outline-none appearance-none"
-                      >
-                        <option className="dark:bg-slate-800" value={1}>Active</option>
-                        <option className="dark:bg-slate-800" value={0}>Inactive</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
-                        Featured
-                      </label>
-                      <select
-                        value={formData.is_featured}
-                        onChange={(e) =>
-                          setFormData({ ...formData, is_featured: parseInt(e.target.value) })
-                        }
-                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:border-indigo-500 outline-none appearance-none"
-                      >
-                        <option className="dark:bg-slate-800" value={0}>No</option>
-                        <option className="dark:bg-slate-800" value={1}>Yes</option>
-                      </select>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, is_featured: formData.is_featured ? 0 : 1 })}
+                      className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${formData.is_featured ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400" : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500"}`}
+                    >
+                      <span className="text-xs font-bold uppercase tracking-wider">Featured</span>
+                      {formData.is_featured ? <ToggleRight className="w-6 h-6" /> : <ToggleLeft className="w-6 h-6" />}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, is_active: formData.is_active ? 0 : 1 })}
+                      className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${formData.is_active ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400" : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500"}`}
+                    >
+                      <span className="text-xs font-bold uppercase tracking-wider">Active</span>
+                      {formData.is_active ? <ToggleRight className="w-6 h-6" /> : <ToggleLeft className="w-6 h-6" />}
+                    </button>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">
                       Description
                     </label>
-                    <textarea
-                      rows="4"
-                      value={formData.description}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          description: e.target.value,
-                        })
-                      }
-                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all resize-none"
-                      placeholder="Add a description for this category..."
-                    ></textarea>
+                    <div className="relative group">
+                      <Info className="absolute left-4 top-4 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                      <textarea
+                        rows="4"
+                        value={formData.description}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            description: e.target.value,
+                          })
+                        }
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all resize-none min-h-[120px]"
+                        placeholder="Add a description for this category..."
+                      ></textarea>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -730,9 +749,17 @@ function CategoriesContent() {
                 <button
                   onClick={handleSubmit}
                   type="button"
-                  className="flex-2 py-3 px-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all transform active:scale-95"
+                  disabled={!formData.name || loading}
+                  className={`flex items-center justify-center gap-2 flex-2 py-3 px-4 rounded-xl font-bold text-sm text-white transition-all transform active:scale-95 ${(!formData.name || loading) ? "bg-indigo-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/30"}`}
                 >
-                  {formMode === "create" ? "Create Category" : "Save Changes"}
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{formMode === "create" ? "Creating..." : "Saving..."}</span>
+                    </>
+                  ) : (
+                    <span>{formMode === "create" ? "Create Category" : "Save Changes"}</span>
+                  )}
                 </button>
               </div>
             </div>
@@ -740,44 +767,64 @@ function CategoriesContent() {
         </div>
       )}
 
-      {/* --- DELETE DIALOG --- */}
       {isDeleteOpen && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
           <div
             ref={deleteOverlayRef}
-            className="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm"
-            onClick={closeDeleteWithAnim}
+            className="absolute inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-md"
+            onClick={!loading ? closeDeleteWithAnim : undefined}
           />
           <div
             ref={deleteContentRef}
-            className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center"
+            className="relative bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl max-w-sm w-full p-8 overflow-hidden border border-slate-100 dark:border-slate-700 font-sans"
           >
-            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-              Delete Category?
-            </h3>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
-              Are you sure you want to delete{" "}
-              <span className="font-bold text-slate-900 dark:text-white">
-                "{selectedCategory?.name}"
-              </span>
-              ? This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={closeDeleteWithAnim}
-                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/20"
-              >
-                Delete
-              </button>
+            {/* Background Decoration */}
+            <div className="absolute top-0 left-0 w-full h-24 bg-linear-to-b from-red-50 to-transparent dark:from-red-900/10 pointer-events-none" />
+            
+            <div className="relative">
+              <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-red-500/10 rotate-3 transform transition-transform hover:rotate-6">
+                <Trash2 className="w-10 h-10" />
+              </div>
+              
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3 tracking-tight">
+                Delete Category?
+              </h3>
+              
+              <div className="space-y-4 mb-8">
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed">
+                  You are about to permanently delete <span className="text-slate-900 dark:text-white font-bold italic underline decoration-red-500/30 underline-offset-4">"{selectedCategory?.name}"</span>.
+                </p>
+                
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 rounded-2xl text-[11px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider animate-pulse">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>Permanent Action</span>
+                </div>
+              </div>
+              
+              <div className="flex flex-col gap-3">
+                <button
+                  disabled={loading}
+                  onClick={handleDeleteConfirm}
+                  className="w-full py-4 rounded-2xl text-sm font-black text-white bg-red-600 hover:bg-red-700 shadow-xl shadow-red-500/25 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <span>Yes, Delete Category</span>
+                      <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
+                </button>
+                
+                <button
+                  disabled={loading}
+                  onClick={closeDeleteWithAnim}
+                  className="w-full py-4 rounded-2xl text-sm font-bold text-slate-500 dark:text-slate-400 shadow-sm hover:text-slate-700 dark:hover:text-slate-200 transition-colors disabled:opacity-50"
+                >
+                  No, Keep it
+                </button>
+              </div>
             </div>
           </div>
         </div>
