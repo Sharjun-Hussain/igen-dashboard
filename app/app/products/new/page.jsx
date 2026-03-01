@@ -1242,7 +1242,7 @@ function CreateProductContent() {
                   <div className="space-y-4">
                     <div>
                       <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 block">
-                        Product Name *
+                        Product Name <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -1282,7 +1282,7 @@ function CreateProductContent() {
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 block">
-                          Product Type *
+                          Product Type <span className="text-red-500">*</span>
                         </label>
                         <select
                           value={formData.type}
@@ -1302,7 +1302,7 @@ function CreateProductContent() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 block">
-                          Category *
+                          Category <span className="text-red-500">*</span>
                         </label>
                         <select
                           value={formData.category_id}
@@ -1325,7 +1325,7 @@ function CreateProductContent() {
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 block">
-                          Brand *
+                          Brand <span className="text-red-500">*</span>
                         </label>
                         <select
                           value={formData.brand_id}
@@ -1622,7 +1622,7 @@ function CreateProductContent() {
                 {/* Features with Autocomplete */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                   <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">
-                    Key Features *
+                    Key Features <span className="text-red-500">*</span>
                   </h3>
                   <div className="relative mb-4">
                     <div className="flex gap-2">
@@ -1776,7 +1776,7 @@ function CreateProductContent() {
                   <div className="flex gap-2 mb-4 items-end">
                     <div className="flex-1">
                       <label className="text-[10px] font-bold text-slate-400 uppercase">
-                        Label *
+                        Label <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -1793,7 +1793,7 @@ function CreateProductContent() {
                     </div>
                     <div className="flex-1">
                       <label className="text-[10px] font-bold text-slate-400 uppercase">
-                        Value *
+                        Value <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -1947,7 +1947,7 @@ function CreateProductContent() {
               <div className="space-y-6 animate-fade-up">
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                   <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6">
-                    Manage Variants *
+                    Manage Variants <span className="text-red-500">*</span>
                   </h3>
 
                   {/* Variant Adder */}
@@ -2013,7 +2013,7 @@ function CreateProductContent() {
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          SKU *
+                          SKU <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -2083,7 +2083,7 @@ function CreateProductContent() {
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          Storage *
+                          Storage <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -2101,7 +2101,7 @@ function CreateProductContent() {
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          RAM *
+                          RAM <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
                           <input
@@ -2128,7 +2128,7 @@ function CreateProductContent() {
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          Color *
+                          Color <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -2149,7 +2149,7 @@ function CreateProductContent() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          Price *
+                          Price <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
                           <input
@@ -2195,7 +2195,7 @@ function CreateProductContent() {
                       </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          Stock Quantity *
+                          Stock Quantity <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="number"
