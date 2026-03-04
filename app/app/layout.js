@@ -47,7 +47,7 @@ export default function AdminLayout({ children }) {
   }, [quickCreateOpen]);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-white overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-white">
       <NextTopLoader
         color="#4f46e5"
         initialPosition={0.08}

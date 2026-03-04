@@ -37,6 +37,7 @@ import {
   Pencil,
   ChevronDown,
   ChevronUp,
+  Copy,
 } from "lucide-react";
 
 const ProductRelationshipSelector = ({
@@ -254,7 +255,18 @@ function CreateProductContent() {
   const queryStep = searchParams.get("step");
   const initialTab = STEPS.find((s) => s.id === queryStep) ? queryStep : "general";
   const [activeTab, setActiveTabState] = useState(initialTab);
-  const [stepperOrientation, setStepperOrientation] = useState("horizontal");
+  const [stepperOrientation, setStepperOrientation] = useState("vertical");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Sync sidebar collapsed state from localStorage (matches layout.js)
+  React.useEffect(() => {
+    const checkSidebar = () => {
+      setSidebarCollapsed(localStorage.getItem("sidebar_collapsed") === "true");
+    };
+    checkSidebar();
+    window.addEventListener("storage", checkSidebar);
+    return () => window.removeEventListener("storage", checkSidebar);
+  }, []);
 
   const setActiveTab = (tabId) => {
     setActiveTabState(tabId);
@@ -341,9 +353,8 @@ function CreateProductContent() {
         v.sku &&
         v.price &&
         v.stock_quantity !== "" &&
-        v.storage_size &&
-        v.ram_size &&
-        v.color
+        v.color &&
+        (!isPhoneCategory || (v.storage_size && v.ram_size))
     );
 
   const isStepComplete = (stepId) => {
@@ -354,7 +365,7 @@ function CreateProductContent() {
         return !!(heroImageFile || (isEditMode && formData.primary_image_path));
       case "variants":
         return variants.length > 0 && variants.every(
-          (v) => v.sku && v.price && v.stock_quantity !== "" && v.storage_size && v.ram_size && v.color
+          (v) => v.sku && v.price && v.stock_quantity !== "" && v.color && (!isPhoneCategory || (v.storage_size && v.ram_size))
         );
       case "specs":
         return selectedFeatures.length > 0;
@@ -362,6 +373,113 @@ function CreateProductContent() {
         return true;
     }
   };
+
+  // --- UN-SAVED CHANGES GUARD & AUTO-SAVE ---
+  const [initialData, setInitialData] = useState(null);
+
+  // Capture initial state for change tracking
+  React.useEffect(() => {
+    if (!initialData && !isLoading) {
+      if (!isEditMode || (isEditMode && formData.name)) {
+        setInitialData(
+          JSON.stringify({
+            formData,
+            variants,
+            specifications,
+            selectedTags,
+            selectedFeatures,
+          })
+        );
+      }
+    }
+  }, [isEditMode, formData.name, isLoading, initialData, variants, specifications, selectedTags, selectedFeatures]);
+
+  const isDirty = React.useMemo(() => {
+    if (!initialData) return false;
+    return (
+      initialData !==
+      JSON.stringify({
+        formData,
+        variants,
+        specifications,
+        selectedTags,
+        selectedFeatures,
+      })
+    );
+  }, [formData, variants, specifications, selectedTags, selectedFeatures, initialData]);
+
+  // Browser Navigation Guard
+  React.useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isDirty && !isLoading) {
+        e.preventDefault();
+        e.returnValue = "You have unsaved changes. Are you sure you want to leave?";
+        return e.returnValue;
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty, isLoading]);
+
+  // Auto-save logic (only in Create mode)
+  React.useEffect(() => {
+    if (isEditMode || !isDirty) return;
+
+    const timer = setTimeout(() => {
+      const draft = {
+        formData,
+        variants,
+        specifications,
+        selectedTags,
+        selectedFeatures,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem("igen_temp_product_create_draft", JSON.stringify(draft));
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [formData, variants, specifications, selectedTags, selectedFeatures, isEditMode, isDirty]);
+
+  // Restore logic
+  React.useEffect(() => {
+    if (isEditMode || draftId) return;
+
+    const saved = localStorage.getItem("igen_temp_product_create_draft");
+    if (saved) {
+      try {
+        const draft = JSON.parse(saved);
+        toast("You have an unsaved draft", {
+          description: `Last updated: ${new Date(draft.updatedAt).toLocaleString()}`,
+          duration: 10000,
+          action: {
+            label: "Restore",
+            onClick: () => {
+              setFormData(draft.formData);
+              setVariants(draft.variants);
+              setSpecifications(draft.specifications);
+              setSelectedTags(draft.selectedTags);
+              setSelectedFeatures(draft.selectedFeatures);
+              setInitialData(JSON.stringify({
+                formData: draft.formData,
+                variants: draft.variants,
+                specifications: draft.specifications,
+                selectedTags: draft.selectedTags,
+                selectedFeatures: draft.selectedFeatures,
+              }));
+              setIsDirty(false);
+              toast.success("Draft restored!");
+            },
+          },
+          cancel: {
+            label: "Discard",
+            onClick: () => localStorage.removeItem("igen_temp_product_create_draft"),
+          },
+        });
+      } catch (e) {
+        localStorage.removeItem("igen_temp_product_create_draft");
+      }
+    }
+  }, [isEditMode, draftId]);
 
   // Product Relationship Search State
   const [productSearchTerm, setProductSearchTerm] = useState("");
@@ -593,6 +711,14 @@ function CreateProductContent() {
   const availableTags = tagsData?.data || [];
   const availableFeatures = featuresData?.data || [];
 
+  const isPhoneCategory = React.useMemo(() => {
+    if (!formData.category_id || !categories) return false;
+    const cat = categories.find(c => c.id === formData.category_id);
+    const name = cat?.name?.toLowerCase() || "";
+    return (name.includes("phone") || name.includes("mobile")) && !name.includes("accessor");
+  }, [formData.category_id, categories]);
+
+
   // Filter suggestions based on input
   const filteredTags = availableTags.filter(
     (tag) =>
@@ -729,11 +855,10 @@ function CreateProductContent() {
       !currentVariant.sku ||
       !currentVariant.price ||
       currentVariant.stock_quantity === "" ||
-      !currentVariant.storage_size ||
-      !currentVariant.ram_size ||
-      !currentVariant.color
+      !currentVariant.color ||
+      (isPhoneCategory && (!currentVariant.storage_size || !currentVariant.ram_size))
     ) {
-      toast.error("Please fill in all required variant fields (SKU, Price, Stock, Storage, RAM, Color)");
+      toast.error(`Please fill in all required variant fields (SKU, Price, Stock, Color${isPhoneCategory ? ", Storage, RAM" : ""})`);
       return;
     }
 
@@ -788,6 +913,23 @@ function CreateProductContent() {
     if (element) {
       element.scrollIntoView({ behavior: "smooth", block: "center" });
     }
+  };
+
+  const copyVariant = (variant) => {
+    const { id, sku, barcode, imei, ...rest } = variant;
+    // Clean RAM size for the input field
+    const cleanedVariant = { ...rest, sku: "", barcode: "", imei: "" };
+    if (cleanedVariant.ram_size && typeof cleanedVariant.ram_size === "string") {
+      cleanedVariant.ram_size = cleanedVariant.ram_size.replace(/GB$/i, "");
+    }
+    setCurrentVariant(cleanedVariant);
+    setEditingVariantId(null); // Ensure we are adding a new variant, not editing
+    // Scroll to variant form
+    const element = document.getElementById("variant-form");
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    toast.info("Variant data copied to form");
   };
 
   const cancelEditVariant = () => {
@@ -946,6 +1088,7 @@ function CreateProductContent() {
         JSON.stringify([draftData, ...otherDrafts]),
       );
 
+      localStorage.removeItem("igen_temp_product_create_draft");
       toast.success("Draft saved to local storage!");
       // Set isLoading to true briefly to bypass the beforeunload warning
       setIsLoading(true);
@@ -1019,6 +1162,8 @@ function CreateProductContent() {
         }
       }
 
+      localStorage.removeItem("igen_temp_product_create_draft");
+
       toast.success(
         `Product ${isEditMode ? "updated" : "created"} successfully!`,
         { id: loadingToast }
@@ -1046,7 +1191,7 @@ function CreateProductContent() {
       className="min-h-screen w-full bg-slate-50/50 dark:bg-slate-900 pb-20 font-sans text-slate-900 dark:text-slate-100"
     >
       {/* 1. HEADER & ACTIONS */}
-      <header className="sticky top-16 z-20 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 transition-all rounded-xl mb-6">
+      <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 transition-all rounded-xl mb-6">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
@@ -1184,54 +1329,50 @@ function CreateProductContent() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* VERTICAL STEPPER (Side Navigation) */}
-          {stepperOrientation === "vertical" && (
-            <div className="lg:col-span-3">
-              <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm sticky top-32">
-                <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-6 px-2">
-                  Creation Progress
-                </h3>
-                <div className="space-y-2">
-                  {STEPS.map((step, idx) => {
-                    const isCompleted = STEPS.findIndex(s => s.id === activeTab) > idx;
-                    const isActive = activeTab === step.id;
-                    
-                    return (
-                      <button
-                        key={step.id}
-                        onClick={() => setActiveTab(step.id)}
-                        className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all duration-300 group
-                          ${isActive ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400" : 
-                            "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900/50"}`}
+          <div className="lg:col-span-3 sticky top-20 self-start z-40">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-6 px-2">
+                Creation Progress
+              </h3>
+              <div className="space-y-2">
+                {STEPS.map((step, idx) => {
+                  const isCompleted = STEPS.findIndex(s => s.id === activeTab) > idx;
+                  const isActive = activeTab === step.id;
+                  
+                  return (
+                    <button
+                      key={step.id}
+                      onClick={() => setActiveTab(step.id)}
+                      className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all duration-300 group
+                        ${isActive ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400" : 
+                          "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900/50"}`}
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300
+                        ${isActive ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : 
+                          isCompleted ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600" : 
+                          "bg-slate-100 dark:bg-slate-700 text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-600"}`}
                       >
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300
-                          ${isActive ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : 
-                            isCompleted ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600" : 
-                            "bg-slate-100 dark:bg-slate-700 text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-600"}`}
-                        >
-                          {isCompleted ? <Check className="w-4 h-4 stroke-[3px]" /> : <step.icon className="w-4 h-4" />}
+                        {isCompleted ? <Check className="w-4 h-4 stroke-[3px]" /> : <step.icon className="w-4 h-4" />}
+                      </div>
+                      <div className="flex flex-col items-start truncate">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold truncate">{step.label}</span>
+                          {!isStepComplete(step.id) && (
+                            <AlertCircle className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                          )}
                         </div>
-                        <div className="flex flex-col items-start truncate">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold truncate">{step.label}</span>
-                            {!isStepComplete(step.id) && (
-                              <AlertCircle className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-                            )}
-                          </div>
-                          {isActive && <span className="text-[8px] font-medium opacity-70 uppercase tracking-tighter">Current Step</span>}
-                          {isCompleted && <span className="text-[8px] font-medium text-emerald-500 uppercase tracking-tighter">Completed</span>}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                        {isActive && <span className="text-[8px] font-medium opacity-70 uppercase tracking-tighter">Current Step</span>}
+                        {isCompleted && <span className="text-[8px] font-medium text-emerald-500 uppercase tracking-tighter">Completed</span>}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          )}
+          </div>
 
-          {/* --- LEFT CONTENT --- */}
-          <div className={`${
-            stepperOrientation === "vertical" ? "lg:col-span-6" : "lg:col-span-8"
-          } space-y-8`}>
+          {/* --- MAIN CONTENT --- */}
+          <div className="lg:col-span-9 space-y-8">
             {/* TAB CONTENT: GENERAL */}
             {activeTab === "general" && (
               <div className="space-y-6 animate-fade-up">
@@ -2047,23 +2188,25 @@ function CreateProductContent() {
                           placeholder="195949000123"
                         />
                       </div>
-                      <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          IMEI
-                        </label>
-                        <input
-                          type="text"
-                          value={currentVariant.imei}
-                          onChange={(e) =>
-                            setCurrentVariant({
-                              ...currentVariant,
-                              imei: e.target.value,
-                            })
-                          }
-                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                          placeholder="IMEI Number"
-                        />
-                      </div>
+                      {isPhoneCategory && (
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                            IMEI
+                          </label>
+                          <input
+                            type="text"
+                            value={currentVariant.imei}
+                            onChange={(e) =>
+                              setCurrentVariant({
+                                ...currentVariant,
+                                imei: e.target.value,
+                              })
+                            }
+                            className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                            placeholder="IMEI Number"
+                          />
+                        </div>
+                      )}
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
                           Warranty Period
@@ -2081,51 +2224,55 @@ function CreateProductContent() {
                           placeholder="e.g. 1 Year"
                         />
                       </div>
-                      <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          Storage <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={currentVariant.storage_size}
-                          onChange={(e) =>
-                            setCurrentVariant({
-                              ...currentVariant,
-                              storage_size: e.target.value,
-                            })
-                          }
-                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                          placeholder="256GB"
-                        />
-                        <ErrorText message={editingVariantId ? errors[`variants.${variants.findIndex(v => v.id === editingVariantId)}.storage_size`] : null} />
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          RAM <span className="text-red-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="number"
-                            min="0"
-                            value={currentVariant.ram_size}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              if (val === "" || Number(val) >= 0) {
+                      {isPhoneCategory && (
+                        <>
+                          <div>
+                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                              Storage <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={currentVariant.storage_size}
+                              onChange={(e) =>
                                 setCurrentVariant({
                                   ...currentVariant,
-                                  ram_size: val,
-                                });
+                                  storage_size: e.target.value,
+                                })
                               }
-                            }}
-                            className="w-full px-3 py-2 pr-10 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                            placeholder="8"
-                          />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
-                            GB
-                          </span>
-                        </div>
-                        <ErrorText message={editingVariantId ? errors[`variants.${variants.findIndex(v => v.id === editingVariantId)}.ram_size`] : null} />
-                      </div>
+                              className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                              placeholder="256GB"
+                            />
+                            <ErrorText message={editingVariantId ? errors[`variants.${variants.findIndex(v => v.id === editingVariantId)}.storage_size`] : null} />
+                          </div>
+                          <div>
+                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                              RAM <span className="text-red-500">*</span>
+                            </label>
+                            <div className="relative">
+                              <input
+                                type="number"
+                                min="0"
+                                value={currentVariant.ram_size}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val === "" || Number(val) >= 0) {
+                                    setCurrentVariant({
+                                      ...currentVariant,
+                                      ram_size: val,
+                                    });
+                                  }
+                                }}
+                                className="w-full px-3 py-2 pr-10 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                placeholder="8"
+                              />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                                GB
+                              </span>
+                            </div>
+                            <ErrorText message={editingVariantId ? errors[`variants.${variants.findIndex(v => v.id === editingVariantId)}.ram_size`] : null} />
+                          </div>
+                        </>
+                      )}
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
                           Color <span className="text-red-500">*</span>
@@ -2389,6 +2536,16 @@ function CreateProductContent() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  copyVariant(variant);
+                                }}
+                                className="p-2 text-slate-400 hover:text-emerald-500 transition-colors"
+                                title="Copy Variant"
+                              >
+                                <Copy className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setVariants(
                                     variants.filter((_, i) => i !== idx),
                                   );
@@ -2420,14 +2577,16 @@ function CreateProductContent() {
                                     {variant.barcode || "N/A"}
                                   </p>
                                 </div>
-                                <div className="space-y-1">
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
-                                    IMEI
-                                  </p>
-                                  <p className="text-xs text-slate-700 dark:text-slate-300 font-mono">
-                                    {variant.imei || "N/A"}
-                                  </p>
-                                </div>
+                                  {isPhoneCategory && (
+                                    <div className="space-y-1">
+                                      <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                        IMEI
+                                      </p>
+                                      <p className="text-xs text-slate-700 dark:text-slate-300 font-mono">
+                                        {variant.imei || "N/A"}
+                                      </p>
+                                    </div>
+                                  )}
                                 <div className="space-y-1">
                                   <p className="text-[10px] font-bold text-slate-400 uppercase">
                                     Warranty
@@ -2436,22 +2595,26 @@ function CreateProductContent() {
                                     {variant.warranty_period || "N/A"}
                                   </p>
                                 </div>
-                                <div className="space-y-1">
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
-                                    Storage
-                                  </p>
-                                  <p className="text-xs text-slate-700 dark:text-slate-300">
-                                    {variant.storage_size || "N/A"}
-                                  </p>
-                                </div>
-                                <div className="space-y-1">
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
-                                    RAM
-                                  </p>
-                                  <p className="text-xs text-slate-700 dark:text-slate-300">
-                                    {variant.ram_size || "N/A"}
-                                  </p>
-                                </div>
+                                  {isPhoneCategory && (
+                                    <>
+                                      <div className="space-y-1">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                          Storage
+                                        </p>
+                                        <p className="text-xs text-slate-700 dark:text-slate-300">
+                                          {variant.storage_size || "N/A"}
+                                        </p>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                          RAM
+                                        </p>
+                                        <p className="text-xs text-slate-700 dark:text-slate-300">
+                                          {variant.ram_size || "N/A"}
+                                        </p>
+                                      </div>
+                                    </>
+                                  )}
                                 <div className="space-y-1">
                                   <p className="text-[10px] font-bold text-slate-400 uppercase">
                                     Color
@@ -2538,87 +2701,68 @@ function CreateProductContent() {
               </div>
             )}
           </div>
-
-          {/* --- RIGHT SIDEBAR --- */}
-          <div className={`${
-            stepperOrientation === "vertical" ? "lg:col-span-3" : "lg:col-span-4"
-          } space-y-6`}>
-            {/* Status Card */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm sticky top-32">
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">
-                Publish Settings
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-2 block">
-                    Status
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) =>
-                      setFormData({ ...formData, status: e.target.value })
-                    }
-                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white"
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                  </select>
-                </div>
-
-                <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">
-                    Quick Stats
-                  </p>
-                  <div className="grid grid-cols-1 gap-2">
-                    <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-700/50">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                          <Layers className="w-4 h-4" />
-                        </div>
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                          Variants
-                        </span>
-                      </div>
-                      <span className="text-sm font-black text-slate-900 dark:text-white">
-                        {variants.length}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-700/50">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
-                          <ImageIcon className="w-4 h-4" />
-                        </div>
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                          Images
-                        </span>
-                      </div>
-                      <span className="text-sm font-black text-slate-900 dark:text-white">
-                        {galleryImagePreviews.length +
-                          (heroImagePreview ? 1 : 0)}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-700/50">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                          <Smartphone className="w-4 h-4" />
-                        </div>
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                          Specs
-                        </span>
-                      </div>
-                      <span className="text-sm font-black text-slate-900 dark:text-white">
-                        {specifications.length}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </main>
+
+      {/* FIXED BOTTOM-RIGHT STATS PILL */}
+      <div className="fixed bottom-4 right-6 z-[100] flex items-center gap-2 px-4 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-full shadow-xl text-[10px] font-bold text-slate-500 dark:text-slate-400 transition-all duration-300">
+        <span className="shrink-0">VARIANTS: <span className="text-slate-900 dark:text-white">{variants.length}</span></span>
+        <span className="text-slate-300 dark:text-slate-600">|</span>
+        <span className="flex items-center gap-1 min-w-0">
+          CATEGORY: <span className="text-slate-900 dark:text-white uppercase ml-1 max-w-[100px] truncate">{categories.find(c => String(c.id) === String(formData.category_id))?.name || "N/A"}</span>
+        </span>
+        <span className="text-slate-300 dark:text-slate-600">|</span>
+        <span className="shrink-0">IMAGES: <span className="text-slate-900 dark:text-white">{galleryImagePreviews.length + (heroImagePreview ? 1 : 0)}</span></span>
+        <span className="text-slate-300 dark:text-slate-600">|</span>
+        <span className="shrink-0">SPECS: <span className="text-slate-900 dark:text-white">{specifications.length}</span></span>
+        {isDirty && (
+          <>
+            <span className="text-slate-300 dark:text-slate-600">|</span>
+            <span className="flex items-center gap-1 text-amber-500 whitespace-nowrap">
+              <AlertCircle className="w-3 h-3" /> Unsaved
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm("Are you sure you want to discard this draft? All unsaved changes will be lost.")) {
+                  // Clear local storage
+                  localStorage.removeItem("igen_temp_product_create_draft");
+                  // Reset states
+                  setFormData({
+                    name: "",
+                    code: "",
+                    category_id: "",
+                    brand_id: "",
+                    type: "physical",
+                    status: "draft",
+                    short_description: "",
+                    full_description: "",
+                    is_featured: false,
+                    is_trending: false,
+                    is_active: true,
+                    bundled_product_ids: [],
+                    compatible_product_ids: [],
+                  });
+                  setVariants([]);
+                  setSpecifications([]);
+                  setSelectedTags([]);
+                  setSelectedFeatures([]);
+                  setGalleryImageFiles([]);
+                  setGalleryImagePreviews([]);
+                  setHeroImageFile(null);
+                  setHeroImagePreview(null);
+                  setInitialData(null);
+                  setIsDirty(false);
+                  toast.success("Draft discarded and form reset.");
+                }
+              }}
+              className="ml-2 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-600 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400 rounded-md transition-colors"
+            >
+              Discard
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }
