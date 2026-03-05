@@ -62,16 +62,14 @@ const RatingBadge = ({ rating }) => {
   );
 };
 
-const StatusBadge = ({ status }) => {
-  const map = {
-    approved: "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
-    pending: "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800",
-    rejected: "bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800",
-  };
-  const s = (status || "pending").toLowerCase();
-  return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border capitalize ${map[s] || map.pending}`}>
-      {s}
+const StatusBadge = ({ isApproved }) => {
+  return isApproved ? (
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border capitalize bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">
+      approved
+    </span>
+  ) : (
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border capitalize bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800">
+      pending
     </span>
   );
 };
@@ -138,18 +136,20 @@ export default function ReviewsPage() {
     tl.to(overlayRef.current, { opacity: 0, duration: 0.2 }, "-=0.1");
   };
 
-  const handleUpdateStatus = async (reviewId, status) => {
+  const handleUpdateStatus = async (reviewId, isApproved) => {
     setIsUpdatingStatus(true);
+    // Optimistically determine the next status
+    const nextApprovedStatus = !isApproved;
     try {
       await globalFetcher(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/reviews/${reviewId}/status`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/reviews/${reviewId}/toggle-status`,
         session?.accessToken,
-        { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) }
+        { method: "PATCH", headers: { "Content-Type": "application/json" } }
       );
-      toast.success(`Review ${status} successfully`);
+      toast.success(`Review status toggled successfully`);
       mutate();
       if (selectedReview?.id === reviewId) {
-        setSelectedReview((prev) => ({ ...prev, status }));
+        setSelectedReview((prev) => ({ ...prev, is_approved: nextApprovedStatus }));
       }
     } catch (err) {
       toast.error(err.message || "Failed to update review status");
@@ -184,7 +184,7 @@ export default function ReviewsPage() {
     const avgRating = allReviews.length
       ? (allReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / allReviews.length).toFixed(1)
       : "—";
-    const pending = (reviewsResponse?.data?.total_pending) ?? allReviews.filter((r) => (r.status || "pending") === "pending").length;
+    const pending = (reviewsResponse?.data?.total_pending) ?? allReviews.filter((r) => !r.is_approved).length;
     return { total: totalItems, avgRating, pending };
   }, [reviewsResponse, totalItems]);
 
@@ -373,7 +373,7 @@ export default function ReviewsPage() {
                     </td>
                     {/* Status */}
                     <td className="p-4">
-                      <StatusBadge status={review.status} />
+                      <StatusBadge isApproved={review.is_approved} />
                     </td>
                     {/* Date */}
                     <td className="p-4 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
@@ -382,24 +382,13 @@ export default function ReviewsPage() {
                     {/* Actions */}
                     <td className="p-4 pr-6 text-right">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {(review.status || "pending") !== "approved" && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleUpdateStatus(review.id, "approved"); }}
-                            className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
-                            title="Approve"
-                          >
-                            <CheckCircle2 className="w-4 h-4" />
-                          </button>
-                        )}
-                        {(review.status || "pending") !== "rejected" && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleUpdateStatus(review.id, "rejected"); }}
-                            className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
-                            title="Reject"
-                          >
-                            <XCircle className="w-4 h-4" />
-                          </button>
-                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleUpdateStatus(review.id, review.is_approved); }}
+                          className={`p-1.5 rounded-lg transition-colors ${review.is_approved ? "text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30" : "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30"}`}
+                          title={review.is_approved ? "Reject" : "Approve"}
+                        >
+                          {review.is_approved ? <XCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                        </button>
                         <button className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-colors">
                           <Eye className="w-4 h-4" />
                         </button>
@@ -497,7 +486,7 @@ export default function ReviewsPage() {
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <StarDisplay rating={selectedReview.rating} size="lg" />
-                    <StatusBadge status={selectedReview.status} />
+                    <StatusBadge isApproved={selectedReview.is_approved} />
                   </div>
                   <p className="text-xs text-slate-400 dark:text-slate-500">
                     {new Date(selectedReview.created_at).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
@@ -596,26 +585,14 @@ export default function ReviewsPage() {
 
               {/* Drawer Footer */}
               <div className="p-5 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-end gap-3">
-                {(selectedReview.status || "pending") !== "approved" && (
-                  <button
-                    onClick={() => handleUpdateStatus(selectedReview.id, "approved")}
-                    disabled={isUpdatingStatus}
-                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-600/20 transition-all active:scale-95 disabled:opacity-50"
-                  >
-                    {isUpdatingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : <ThumbsUp className="w-4 h-4" />}
-                    Approve
-                  </button>
-                )}
-                {(selectedReview.status || "pending") !== "rejected" && (
-                  <button
-                    onClick={() => handleUpdateStatus(selectedReview.id, "rejected")}
-                    disabled={isUpdatingStatus}
-                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-lg shadow-rose-600/20 transition-all active:scale-95 disabled:opacity-50"
-                  >
-                    {isUpdatingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : <ThumbsDown className="w-4 h-4" />}
-                    Reject
-                  </button>
-                )}
+                <button
+                  onClick={() => handleUpdateStatus(selectedReview.id, selectedReview.is_approved)}
+                  disabled={isUpdatingStatus}
+                  className={`flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white rounded-xl shadow-lg transition-all active:scale-95 disabled:opacity-50 ${selectedReview.is_approved ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/20" : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20"}`}
+                >
+                  {isUpdatingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : (selectedReview.is_approved ? <ThumbsDown className="w-4 h-4" /> : <ThumbsUp className="w-4 h-4" />)}
+                  {selectedReview.is_approved ? "Reject" : "Approve"}
+                </button>
               </div>
             </div>
           </div>
