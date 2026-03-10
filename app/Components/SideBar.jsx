@@ -112,7 +112,7 @@ const MENU_GROUPS = [
     label: "Design & Content",
     items: [
       {
-        title: "Landing Page",
+        title: "Home Page",
         icon: Monitor,
         href: "#",
         submenu: [
@@ -126,6 +126,22 @@ const MENU_GROUPS = [
           { title: "FAQs", href: "/app/cms/faqs" },
           { title: "Header", href: "/app/cms/header" },
           { title: "Footer", href: "/app/cms/footer" },
+        ],
+      },
+      {
+        title: "Shop Page",
+        icon: Monitor,
+        href: "#",
+        submenu: [
+          { title: "Shop Hero", href: "/app/cms/shop" },
+        ],
+      },
+      {
+        title: "Contact Page",
+        icon: Monitor,
+        href: "#",
+        submenu: [
+          { title: "Contact Hero", href: "/app/cms/contact" },
         ],
       },
     ],
