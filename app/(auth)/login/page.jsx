@@ -41,7 +41,7 @@ const Input = ({ label, className, icon: Icon, type = "text", ...props }) => {
   return (
     <div className="space-y-2 w-full relative">
       {label && (
-        <label className="text-sm font-semibold text-slate-800">{label}</label>
+        <label className="text-sm font-semibold text-slate-800 dark:text-slate-200">{label}</label>
       )}
       <div className="relative group">
         {Icon && (
@@ -51,7 +51,7 @@ const Input = ({ label, className, icon: Icon, type = "text", ...props }) => {
         )}
         <input
           type={inputType}
-          className={`flex h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:border-transparent transition-all duration-200 ${
+          className={`flex h-12 w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:border-transparent transition-all duration-200 ${
             Icon ? "pl-12" : ""
           } ${isPassword ? "pr-12" : ""} ${className}`}
           {...props}
@@ -75,9 +75,9 @@ const Input = ({ label, className, icon: Icon, type = "text", ...props }) => {
 };
 
 const SocialButton = ({ icon: Icon, label }) => (
-  <button className="flex items-center justify-center gap-3 w-full h-12 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-[0.98]">
-    <Icon className="w-5 h-5 text-slate-700" />
-    <span className="text-sm font-bold text-slate-700">{label}</span>
+  <button className="flex items-center justify-center gap-3 w-full h-12 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-all active:scale-[0.98]">
+    <Icon className="w-5 h-5 text-slate-700 dark:text-slate-300" />
+    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{label}</span>
   </button>
 );
 
@@ -156,7 +156,7 @@ export default function LoginPage() {
   return (
     <div
       ref={containerRef}
-      className="min-h-screen flex flex-col lg:flex-row bg-white overflow-hidden font-sans"
+      className="min-h-screen flex flex-col lg:flex-row bg-background overflow-hidden font-sans"
     >
       {/* --- LEFT PANEL: BRANDING (Dark Blue) --- */}
       <div className="left-panel w-full lg:w-[45%] bg-[#1e293b] text-white p-8 lg:p-16 flex flex-col justify-between relative z-10">
@@ -203,13 +203,13 @@ export default function LoginPage() {
       </div>
 
       {/* --- RIGHT PANEL: LOGIN FORM (White) --- */}
-      <div className="right-panel w-full lg:w-[55%] p-8 lg:p-16 flex flex-col justify-center items-center bg-white">
+      <div className="right-panel w-full lg:w-[55%] p-8 lg:p-16 flex flex-col justify-center items-center bg-white dark:bg-slate-950">
         <div className="max-w-md w-full">
           <div className="mb-10 text-center lg:text-left stagger-in">
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
               Log in to your account
             </h2>
-            <p className="text-slate-500">
+            <p className="text-slate-500 dark:text-slate-400">
               Welcome back! Please enter your details.
             </p>
           </div>
@@ -251,29 +251,29 @@ export default function LoginPage() {
                     <input
                       type="checkbox"
                       id="remember"
-                      className="peer h-4 w-4 appearance-none rounded border border-slate-300 checked:bg-blue-600 checked:border-blue-600 transition-colors cursor-pointer"
+                      className="peer h-4 w-4 appearance-none rounded border border-slate-300 dark:border-slate-700 checked:bg-blue-600 checked:border-blue-600 transition-colors cursor-pointer"
                     />
                     <Check className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 text-white opacity-0 peer-checked:opacity-100 pointer-events-none" />
                   </div>
                   <label
                     htmlFor="remember"
-                    className="text-sm font-medium text-slate-600 cursor-pointer select-none"
+                    className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer select-none"
                   >
                     Remember for 30 days
                   </label>
                 </div>
                 <a
-                  href="#"
+                  href="/forgot-password"
                   className="text-sm font-bold text-blue-600 hover:text-blue-700"
                 >
                   Forgot password?
                 </a>
               </div>
 
-              <button
+                <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-200 transition-all active:scale-[0.98] group disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 dark:shadow-none transition-all active:scale-[0.98] group disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -285,16 +285,6 @@ export default function LoginPage() {
                 )}
               </button>
             </form>
-
-            <p className="text-center text-sm text-slate-600">
-              Don't have an account?{" "}
-              <a
-                href="#"
-                className="font-bold text-blue-600 hover:text-blue-700"
-              >
-                Sign up
-              </a>
-            </p>
           </div>
         </div>
       </div>
