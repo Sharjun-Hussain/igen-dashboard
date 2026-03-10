@@ -135,8 +135,8 @@ export default function ResetPasswordPage() {
       <div className="left-panel w-full lg:w-[45%] bg-[#1e293b] text-white p-8 lg:p-16 flex flex-col justify-between relative z-10">
         {/* Header */}
         <div className="flex items-center gap-2 text-xl font-bold tracking-tight stagger-in">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-900/50 overflow-hidden">
-            <img src="/igen_mobiles_logo.png" alt="Igen" className="w-full h-full object-cover" />
+          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-black/20 overflow-hidden p-1.5">
+            <img src="/igen_mobiles_logo.png" alt="Igen" className="w-full h-full object-contain" />
           </div>
           Igen
         </div>
