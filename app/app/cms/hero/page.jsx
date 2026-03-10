@@ -247,7 +247,7 @@ export default function HeroManagerPage() {
         { key: "title", value: headerData.title, type: "text" },
         { key: "subtitle", value: headerData.subtitle, type: "textarea" },
         { key: "link_text", value: headerData.linkText, type: "text" },
-        { key: "link_url", value: headerData.linkUrl, type: "text" },
+        { key: "link_url", value: headerData.linkUrl, type: "link" },
       ];
       headerFields.forEach((field) => {
         formData.append(`contents[${idx}][page]`, "home");
@@ -268,7 +268,7 @@ export default function HeroManagerPage() {
           { key: "title", value: item.title, type: "text" },
           { key: "subtitle", value: item.subtitle, type: "text" },
           { key: "badge", value: item.badge, type: "text" },
-          { key: "link", value: item.link, type: "text" },
+          { key: "link", value: item.link, type: "link" },
         ];
 
         slotFields.forEach((field) => {

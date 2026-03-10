@@ -13,12 +13,14 @@ const STORAGE_BASE = API_BASE?.replace("/api/v1", "");
 const SHOP_HERO_FIELDS = [
   { key: "title", label: "Shop Hero Title", type: "text" },
   { key: "subtitle", label: "Shop Hero Subtitle", type: "textarea" },
+  { key: "link_text", label: "Button Text", type: "text" },
+  { key: "link_url", label: "Button Link", type: "link" },
   { key: "image", label: "Shop Hero Image", type: "image" },
 ];
 
 export default function ShopHeroManager() {
   const { data: session } = useSession();
-  const [fields, setFields] = useState({ title: "Discover Your Next Favourite.", subtitle: "Explore our curated collection of premium phones, gadgets & accessories.", image: "" });
+  const [fields, setFields] = useState({ title: "Discover Your Next Favourite.", subtitle: "Explore our curated collection of premium phones, gadgets & accessories.", link_text: "Shop Now", link_url: "/products", image: "" });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [selectedKey, setSelectedKey] = useState(null);
@@ -124,7 +126,7 @@ export default function ShopHeroManager() {
                 <h1 className="text-5xl md:text-6xl font-black text-white tracking-tight leading-tight mb-4 max-w-2xl">{fields.title}</h1>
                 <p className="text-lg text-slate-300 font-medium max-w-lg leading-relaxed mb-8">{fields.subtitle}</p>
                 <span className="inline-flex w-fit items-center gap-2 bg-indigo-600 text-white px-7 py-3.5 rounded-full font-bold text-sm shadow-xl shadow-indigo-600/30">
-                  <ShoppingBag className="w-4 h-4" /> Shop Now
+                  <ShoppingBag className="w-4 h-4" /> {fields.link_text || "Shop Now"}
                 </span>
               </div>
             </div>

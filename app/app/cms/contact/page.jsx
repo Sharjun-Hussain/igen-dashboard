@@ -15,6 +15,8 @@ const STORAGE_BASE = API_BASE?.replace("/api/v1", "");
 const CONTACT_HERO_FIELDS = [
   { key: "title", label: "Contact Hero Title", type: "text" },
   { key: "subtitle", label: "Contact Hero Subtitle", type: "textarea" },
+  { key: "link_text", label: "Button Text", type: "text" },
+  { key: "link_url", label: "Button Link", type: "link" },
   { key: "image", label: "Contact Hero Image", type: "image" },
 ];
 
@@ -35,7 +37,7 @@ const CardIcon = ({ icon }) => {
 
 export default function ContactPageManager() {
   const { data: session } = useSession();
-  const [heroFields, setHeroFields] = useState({ title: "Get In Touch.", subtitle: "We're here to help. Reach us and we'll get back to you as soon as possible.", image: "" });
+  const [heroFields, setHeroFields] = useState({ title: "Get In Touch.", subtitle: "We're here to help. Reach us and we'll get back to you as soon as possible.", link_text: "Send a Message", link_url: "/contact-us", image: "" });
   const [infoFields, setInfoFields] = useState({ address: "123 Main Street, Colombo 03, Sri Lanka", phone: "+94 77 123 4567", email: "hello@igen.lk" });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -168,7 +170,7 @@ export default function ContactPageManager() {
                 <h1 className="text-5xl md:text-6xl font-black text-white tracking-tight leading-tight mb-4 max-w-2xl">{heroFields.title}</h1>
                 <p className="text-lg text-slate-300 font-medium max-w-lg leading-relaxed mb-8">{heroFields.subtitle}</p>
                 <span className="inline-flex w-fit items-center gap-2 bg-white text-slate-900 px-7 py-3.5 rounded-full font-bold text-sm shadow-xl">
-                  <Mail className="w-4 h-4" /> Send a Message
+                  <Mail className="w-4 h-4" /> {heroFields.link_text || "Send a Message"}
                 </span>
               </div>
             </div>
