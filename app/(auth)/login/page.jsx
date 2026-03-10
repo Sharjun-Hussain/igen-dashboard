@@ -163,36 +163,29 @@ export default function LoginPage() {
         {/* Header */}
         <div className="flex items-center gap-2 text-xl font-bold tracking-tight stagger-in">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-900/50 overflow-hidden">
-            {logoUrl ? (
-              <img src={logoUrl} alt={businessName} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-4 h-4 bg-white rounded-sm transform rotate-45" />
-            )}
+            <img src="/igen_mobiles_logo.png" alt="Igen" className="w-full h-full object-cover" />
           </div>
-          {businessName}
+          Igen
         </div>
 
         {/* Middle Content */}
         <div className="max-w-md stagger-in my-12 lg:my-0">
           <h1 className="text-4xl lg:text-5xl font-bold mb-6 leading-tight">
-            Welcome back to the future of shopping.
+            Premium Tech, <br />Personalized Service.
           </h1>
           <p className="text-slate-400 text-lg leading-relaxed">
-            "{businessName} has completely transformed how I buy tech. The delivery to
-            Colombo was instant and the quality is unmatched."
+            Experience the next level of mobile shopping with Igen. Quality products, 
+            reliable support, and a seamless shopping experience.
           </p>
-          <div className="mt-8 flex items-center gap-4">
-            <div className="w-12 h-12 bg-slate-700 rounded-full overflow-hidden border-2 border-slate-600">
-              <img
-                src="https://i.pravatar.cc/150?img=33"
-                alt="User"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div>
-              <p className="font-bold">Dilshan Silva</p>
-              <p className="text-sm text-slate-500">Verified Customer</p>
-            </div>
+          <div className="mt-12 stagger-in">
+            <a 
+              href="https://igen.lk" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition-all shadow-lg shadow-blue-900/30"
+            >
+              Visit igen.lk
+            </a>
           </div>
         </div>
 
