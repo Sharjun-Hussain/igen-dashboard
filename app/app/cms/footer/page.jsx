@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
 import {
   Save,
   MapPin,
@@ -19,8 +20,14 @@ import {
   Link as LinkIcon,
   Trash2,
   Plus,
+  RefreshCw,
+  AlertCircle,
+  Upload,
 } from "lucide-react";
 import { Layout } from "lucide-react";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const STORAGE_BASE = API_BASE?.replace("/api/v1", "");
 
 // --- INITIAL DATA ---
 // NOTE: 'socials' is now an Array of Objects, not a plain Object.
@@ -92,11 +99,122 @@ const INITIAL_DATA = {
 };
 
 export default function FooterManager() {
+  const { data: session } = useSession();
   const [data, setData] = useState(INITIAL_DATA);
   const [selectedSection, setSelectedSection] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // --- HANDLERS ---
+  // Previews
+  const [previews, setPreviews] = useState({ store: null });
+  const storeImgRef = useRef(null);
+
+  // --- FETCH CMS DATA ---
+  useEffect(() => {
+    if (!session?.accessToken) return;
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`${API_BASE}/admin/cms`, {
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+            Accept: "application/json",
+          },
+        });
+        const apiData = await res.json();
+        if (!res.ok) throw new Error(apiData.message || "Failed to fetch");
+
+        const sections = apiData?.data?.home || {};
+        const newData = { ...INITIAL_DATA };
+
+        // 1. Brand
+        const brandSec = sections.footer_brand || [];
+        if (brandSec.length > 0) {
+          const mapped = {};
+          brandSec.forEach(i => mapped[i.key] = i.value);
+          newData.brand.description = mapped.description || newData.brand.description;
+        }
+
+        // 2. Socials
+        const socialSec = sections.footer_socials || [];
+        if (socialSec.length > 0) {
+          const mapped = {};
+          socialSec.forEach(i => mapped[i.key] = i.value);
+          newData.brand.socials = newData.brand.socials.map(s => {
+            const prefix = s.id === "facebook" ? "fb" : s.id === "instagram" ? "ig" : s.id === "twitter" ? "tw" : "li";
+            return {
+              ...s,
+              url: mapped[`${prefix}_url`] || s.url,
+              active: mapped[`${prefix}_active`] === "true",
+            };
+          });
+        }
+
+        // 3. Columns
+        [1, 2].forEach(num => {
+          const colId = `col${num}`;
+          const secName = `footer_col_${num}`;
+          const colSec = sections[secName] || [];
+          if (colSec.length > 0) {
+            const mapped = {};
+            colSec.forEach(i => mapped[i.key] = i.value);
+            const colIdx = num - 1;
+            newData.columns[colIdx].title = mapped.title || newData.columns[colIdx].title;
+
+            // Links for this column
+            const links = [];
+            let l = 1;
+            while (sections[`footer_col_${num}_link_${l}`]) {
+              const lSec = sections[`footer_col_${num}_link_${l}`];
+              const lMapped = {};
+              lSec.forEach(i => lMapped[i.key] = i.value);
+              links.push({ id: `col${num}_link_${l}`, label: lMapped.label, href: lMapped.href });
+              l++;
+            }
+            if (links.length > 0) newData.columns[colIdx].links = links;
+          }
+        });
+
+        // 4. Store
+        const storeSec = sections.footer_store || [];
+        if (storeSec.length > 0) {
+          const mapped = {};
+          storeSec.forEach(i => mapped[i.key] = i.value);
+          if (mapped.image && !mapped.image.startsWith("http")) {
+            mapped.image = `${STORAGE_BASE}/${mapped.image}`;
+          }
+          newData.store = { ...newData.store, ...mapped };
+        }
+
+        // 5. Newsletter
+        const newsSec = sections.footer_newsletter || [];
+        if (newsSec.length > 0) {
+          const mapped = {};
+          newsSec.forEach(i => mapped[i.key] = i.value);
+          newData.newsletter = { ...newData.newsletter, ...mapped };
+        }
+
+        // 6. Bottom
+        const botSec = sections.footer_bottom || [];
+        if (botSec.length > 0) {
+          const mapped = {};
+          botSec.forEach(i => mapped[i.key] = i.value);
+          newData.bottom.copyright = mapped.copyright || newData.bottom.copyright;
+        }
+
+        setData(newData);
+      } catch (err) {
+        console.warn("CMS defaults used for footer", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [session]);
+
   const handleUpdate = (section, field, value) => {
     setData((prev) => ({
       ...prev,
@@ -120,12 +238,9 @@ export default function FooterManager() {
     }));
   };
 
-  // Safe Social Update Handler
   const handleSocialUpdate = (id, field, value) => {
     setData((prev) => {
-      // Safety check: ensure socials is an array before mapping
       if (!Array.isArray(prev.brand.socials)) return prev;
-
       return {
         ...prev,
         brand: {
@@ -138,12 +253,96 @@ export default function FooterManager() {
     });
   };
 
-  const handleSave = () => {
+  const handleImageChange = (e, type) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviews(prev => ({ ...prev, [type]: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!session?.accessToken) return;
     setIsSaving(true);
-    setTimeout(() => {
+    setSaveSuccess(false);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      let idx = 0;
+
+      const append = (section, key, value, type) => {
+        formData.append(`contents[${idx}][page]`, "home");
+        formData.append(`contents[${idx}][section]`, section);
+        formData.append(`contents[${idx}][key]`, key);
+        formData.append(`contents[${idx}][type]`, type);
+        if (value instanceof File) {
+          formData.append(`contents[${idx}][value]`, value);
+        } else {
+          formData.append(`contents[${idx}][value]`, value || "");
+        }
+        idx++;
+      };
+
+      // 1. Brand
+      append("footer_brand", "description", data.brand.description, "textarea");
+
+      // 2. Socials
+      data.brand.socials.forEach(s => {
+        const prefix = s.id === "facebook" ? "fb" : s.id === "instagram" ? "ig" : s.id === "twitter" ? "tw" : "li";
+        append("footer_socials", `${prefix}_url`, s.url, "link");
+        append("footer_socials", `${prefix}_active`, s.active ? "true" : "false", "text");
+      });
+
+      // 3. Columns & Links
+      data.columns.forEach((col, cIdx) => {
+        const num = cIdx + 1;
+        append(`footer_col_${num}`, "title", col.title, "text");
+        col.links.forEach((link, lIdx) => {
+          append(`footer_col_${num}_link_${lIdx + 1}`, "label", link.label, "text");
+          append(`footer_col_${num}_link_${lIdx + 1}`, "href", link.href, "link");
+        });
+      });
+
+      // 4. Store
+      append("footer_store", "badge", data.store.badge, "text");
+      append("footer_store", "city", data.store.city, "text");
+      append("footer_store", "address", data.store.address, "textarea");
+      append("footer_store", "hours", data.store.hours, "text");
+      const storeFile = storeImgRef.current?.files[0];
+      if (storeFile) {
+        append("footer_store", "image", storeFile, "image");
+      }
+
+      // 5. Newsletter
+      append("footer_newsletter", "title", data.newsletter.title, "text");
+      append("footer_newsletter", "subtitle", data.newsletter.subtitle, "textarea");
+
+      // 6. Bottom
+      append("footer_bottom", "copyright", data.bottom.copyright, "text");
+
+      const res = await fetch(`${API_BASE}/admin/cms/update`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.accessToken}`,
+          Accept: "application/json",
+        },
+        body: formData,
+      });
+
+      const resData = await res.json();
+      if (!res.ok) throw new Error(resData.message || "Save failed");
+
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
       setIsSaving(false);
-      alert("Footer Updated!");
-    }, 800);
+    }
   };
 
   // Helper to render icons
@@ -162,6 +361,17 @@ export default function FooterManager() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin mx-auto mb-3" />
+          <p className="text-slate-600 dark:text-slate-400 font-medium">Loading Footer CMS data…</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans">
       {/* 1. LEFT PANEL: PREVIEW */}
@@ -175,20 +385,29 @@ export default function FooterManager() {
               Customize the site footer, links, and store information.
             </p>
           </div>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-50"
-          >
-            {isSaving ? (
-              "Saving..."
-            ) : (
-              <>
-                <Save className="w-4 h-4" /> Save Changes
-              </>
+          <div className="flex items-center gap-3">
+            {saveSuccess && (
+              <span className="flex items-center gap-1.5 text-sm font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-lg border border-emerald-100 dark:border-emerald-800">
+                <CheckCircle2 className="w-4 h-4" /> Saved!
+              </span>
             )}
-          </button>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-50"
+            >
+              {isSaving ? "Saving..." : <><Save className="w-4 h-4" /> Save Changes</>}
+            </button>
+          </div>
         </header>
+
+        {error && (
+          <div className="mx-8 mt-4 flex items-start gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm text-red-600">
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <p className="flex-1">{error}</p>
+            <button onClick={() => setError(null)}><X className="w-4 h-4" /></button>
+          </div>
+        )}
 
         {/* --- PREVIEW CANVAS --- */}
         <div className="flex-1 p-8 md:p-12 overflow-x-hidden flex flex-col items-center justify-start bg-slate-100 dark:bg-black/80">
@@ -270,10 +489,10 @@ export default function FooterManager() {
                     `}
                   >
                     <img
-                      src={data.store.image}
+                      src={previews.store || data.store.image}
                       className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-overlay"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-900/80 to-purple-900/80 mix-blend-multiply" />
+                    <div className="absolute inset-0 bg-linear-to-r from-blue-900/80 to-purple-900/80 mix-blend-multiply" />
                     <div className="relative z-10">
                       <span className="inline-block bg-indigo-600 text-white text-[10px] font-bold px-3 py-1 rounded-full mb-4">
                         {data.store.badge}
@@ -547,6 +766,42 @@ export default function FooterManager() {
               {/* --- STORE EDITOR --- */}
               {selectedSection === "store" && (
                 <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2 mb-1">
+                      <Upload className="w-3 h-3" /> Store Image
+                    </label>
+                    <div
+                      onClick={() => storeImgRef.current?.click()}
+                      className="group relative aspect-video rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 transition-all overflow-hidden"
+                    >
+                      {previews.store || data.store.image ? (
+                        <>
+                          <img
+                            src={previews.store || data.store.image}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white">
+                            <Upload className="w-6 h-6 mb-2" />
+                            <span className="text-xs font-bold">Replace Image</span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
+                          <span className="text-[10px] font-bold text-slate-400">
+                            Click to Upload
+                          </span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        ref={storeImgRef}
+                        onChange={(e) => handleImageChange(e, "store")}
+                        className="hidden"
+                        accept="image/*"
+                      />
+                    </div>
+                  </div>
                   <div>
                     <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">
                       Badge

@@ -61,7 +61,12 @@ export default function ContactPageManager() {
           const mapped = {};
           heroItems.forEach((item) => { mapped[item.key] = item.value; });
           setHeroFields((prev) => ({ ...prev, ...mapped }));
-          if (mapped.image) setImagePreview(`${STORAGE_BASE}/${mapped.image}`);
+          if (mapped.image) {
+            const imageUrl = mapped.image.startsWith("http")
+              ? mapped.image
+              : `${STORAGE_BASE}/${mapped.image}`;
+            setImagePreview(imageUrl);
+          }
         }
         if (infoItems.length > 0) {
           const mapped = {};
@@ -96,12 +101,18 @@ export default function ContactPageManager() {
       let idx = 0;
       // Hero fields
       CONTACT_HERO_FIELDS.forEach((field) => {
+        // Only proceed if it's not an image OR an image with a new file
+        if (field.type === "image" && !imageFile) return;
+
         formData.append(`contents[${idx}][page]`, "contact");
         formData.append(`contents[${idx}][section]`, "hero");
         formData.append(`contents[${idx}][key]`, field.key);
         formData.append(`contents[${idx}][type]`, field.type);
-        if (field.type === "image") { if (imageFile) formData.append(`contents[${idx}][value]`, imageFile); }
-        else formData.append(`contents[${idx}][value]`, heroFields[field.key] || "");
+        if (field.type === "image") {
+          formData.append(`contents[${idx}][value]`, imageFile);
+        } else {
+          formData.append(`contents[${idx}][value]`, heroFields[field.key] || "");
+        }
         idx++;
       });
       // Info fields
@@ -165,7 +176,7 @@ export default function ContactPageManager() {
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">1. Hero Section (contact · hero)</h3>
             <div className="relative w-full rounded-3xl overflow-hidden" style={{ minHeight: "360px" }}>
               <img src={imagePreview || "https://images.unsplash.com/photo-1423666639041-f56000c27a9a?q=80&w=2074&auto=format&fit=crop"} alt="Contact Hero" className="absolute inset-0 w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/20" />
+              <div className="absolute inset-0 bg-linear-to-r from-black/85 via-black/60 to-black/20" />
               <div className="relative z-10 p-12 md:p-20 flex flex-col justify-center" style={{ minHeight: "360px" }}>
                 <h1 className="text-5xl md:text-6xl font-black text-white tracking-tight leading-tight mb-4 max-w-2xl">{heroFields.title}</h1>
                 <p className="text-lg text-slate-300 font-medium max-w-lg leading-relaxed mb-8">{heroFields.subtitle}</p>

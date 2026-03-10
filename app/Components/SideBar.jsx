@@ -117,9 +117,9 @@ const MENU_GROUPS = [
         href: "#",
         submenu: [
           { title: "Hero Banners", href: "/app/cms/hero" },
-          { title: "New Arrivals", href: "/app/cms/" },
+          { title: "Collections Grid", href: "/app/cms/collections" },
           { title: "Flash Sales", href: "/app/cms/flash-sales" },
-          { title: "Featured Sections", href: "/app/cms/featured-sections" },
+          { title: "Promo Banners", href: "/app/cms/featured-sections" },
           { title: "Promises", href: "/app/cms/promises" },
           { title: "Product Showcase", href: "/app/cms/product-showcase" },
           { title: "Delivery Process", href: "/app/cms/delivery-process" },
@@ -365,7 +365,7 @@ export default function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed
                         <div
                           className={`overflow-hidden transition-all duration-300 ease-in-out ${
                             isSubmenuOpen
-                              ? "max-h-96 opacity-100 mt-1"
+                              ? "max-h-120 opacity-100 mt-1"
                               : "max-h-0 opacity-0"
                           }`}
                         >
