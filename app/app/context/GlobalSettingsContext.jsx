@@ -2,46 +2,66 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { getSettings } from "../../lib/api/settings";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+// Robustly extract the origin (e.g., https://api.igen.lk) from the API URL
+let BASE_URL = "";
+try {
+  if (API_BASE_URL) {
+    BASE_URL = new URL(API_BASE_URL).origin;
+  }
+} catch (e) {
+  console.error("Invalid NEXT_PUBLIC_API_BASE_URL:", API_BASE_URL);
+}
+
+const formatUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith("http")) return path;
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return `${BASE_URL}${cleanPath}`;
+};
 
 const GlobalSettingsContext = createContext();
 
 export const GlobalSettingsProvider = ({ children }) => {
-  const { data: session } = useSession();
-  
-  // Default values
+  const { data: session, status } = useSession();
+
+  // Default values mapped from API keys
   const [settings, setSettings] = useState({
-    businessName: "IgenShop",
+    businessName: "",
     logoUrl: null,
-    footerText: "© 2026 IgenShop LK. All rights reserved.",
-    adminEmail: "admin@igen.com",
-    adminName: "Admin User",
+    footerText: "",
+    adminEmail: "",
+    adminName: "",
+    dashboardTitle: "",
+    faviconUrl: null,
   });
 
   const [isLoading, setIsLoading] = useState(false);
 
   // Fetch settings from API
+  // Real API response: { status: "success", message: "...", data: { key: value, ... } }
   const fetchSettings = async () => {
-    if (!session?.accessToken) return;
-    
+    if (!session?.accessToken) {
+      console.log("No access token yet (status: " + status + "), skipping fetchSettings");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-      const response = await fetch(`${baseUrl}/admin/settings`, {
-        headers: {
-          Authorization: `Bearer ${session.accessToken}`,
-        },
+      const data = await getSettings(session.accessToken);
+      // data is a flat { key: string_value } object
+      setSettings({
+        businessName: data.site_name || "Igen",
+        logoUrl: formatUrl(data.site_logo),
+        footerText: data.footer_text || "© 2026 Igen LK. All rights reserved. | Powered by Inzeedo (PVT) Ltd",
+        adminEmail: data.shop_email || "admin@igen.lk",
+        adminName: data.admin_name || "Admin User",
+        dashboardTitle: data.admin_dashboard_title || "Inzeedo",
+        faviconUrl: formatUrl(data.site_favicon),
+        // persist the raw data so the settings page can access all keys
+        raw: data,
       });
-      const data = await response.json();
-      
-      if (data?.success && data?.data) {
-        setSettings({
-          businessName: data.data.business_name || "IgenShop",
-          logoUrl: data.data.logo_url || null,
-          footerText: data.data.footer_text || "© 2026 IgenShop LK. All rights reserved.",
-          adminEmail: data.data.admin_email || "admin@igen.com",
-          adminName: data.data.admin_name || "Admin User",
-        });
-      }
     } catch (error) {
       console.error("Failed to fetch global settings:", error);
     } finally {
@@ -58,12 +78,12 @@ export const GlobalSettingsProvider = ({ children }) => {
   };
 
   return (
-    <GlobalSettingsContext.Provider 
-      value={{ 
-        ...settings, 
-        isLoading, 
-        updateSettings, 
-        refreshSettings: fetchSettings 
+    <GlobalSettingsContext.Provider
+      value={{
+        ...settings,
+        isLoading,
+        updateSettings,
+        refreshSettings: fetchSettings,
       }}
     >
       {children}

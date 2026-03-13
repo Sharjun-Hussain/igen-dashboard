@@ -10,21 +10,65 @@ import {
   Smartphone,
   Mail,
   Shield,
-  Database, // New icon
-  FileSpreadsheet, // New icon
-  Download, // New icon
-  Upload, // New icon
-  File, // New icon
+  Database,
+  FileSpreadsheet,
+  Download,
+  Upload,
+  File,
   Check,
   AlertCircle,
-  Coins, // New icon
+  Coins,
+  Save,
 } from "lucide-react";
 import { useCurrency } from "../context/CurrencyContext";
 import { useGlobalSettings } from "../context/GlobalSettingsContext";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
+import { getSettings, saveSettings } from "../../lib/api/settings";
 
-export default function SriLankaSettingsPage() {
+// --- SUB-COMPONENTS ---
+const SaveBtn = ({ sectionKey, onClick, isSaving }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={isSaving}
+    className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/20 active:scale-95"
+  >
+    <Save className="w-3.5 h-3.5" />
+    {isSaving ? "Saving…" : "Save"}
+  </button>
+);
+
+const SectionHeader = ({ icon: Icon, title, description, colorClass }) => (
+  <div className="flex items-start gap-4 mb-6">
+    <div className={`p-3 rounded-xl ${colorClass}`}>
+      <Icon className="w-6 h-6" />
+    </div>
+    <div>
+      <h2 className="text-xl font-bold text-slate-900 dark:text-white">{title}</h2>
+      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{description}</p>
+    </div>
+  </div>
+);
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+let BASE_URL = "";
+try {
+  if (API_BASE_URL) {
+    BASE_URL = new URL(API_BASE_URL).origin;
+  }
+} catch (e) {
+  console.error("Invalid NEXT_PUBLIC_API_BASE_URL:", API_BASE_URL);
+}
+
+const formatUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith("http")) return path;
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return `${BASE_URL}${cleanPath}`;
+};
+
+export default function SettingsPage() {
   const containerRef = useRef(null);
   const { data: session } = useSession();
   const { currency, updateCurrency } = useCurrency();
@@ -34,19 +78,30 @@ export default function SriLankaSettingsPage() {
     footerText, 
     adminEmail, 
     adminName, 
-    updateSettings 
+    updateSettings,
+    refreshSettings,
   } = useGlobalSettings();
 
   // --- STATE ---
   const [activeTab, setActiveTab] = useState("store");
   const [hasChanges, setHasChanges] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [sectionSaving, setSectionSaving] = useState({});
 
-  // --- MOCK DATA ---
+  // Logo & Favicon file refs for upload
+  const logoFileRef = useRef(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const faviconFileRef = useRef(null);
+  const [faviconPreview, setFaviconPreview] = useState(null);
+
+  // --- STORE STATE (populated from API) ---
   const [store, setStore] = useState({
-    name: "Colombo Trends",
-    email: "admin@colombotrends.lk",
-    phone: "+94 77 123 4567",
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    dashboardTitle: "",
+    faviconUrl: null,
     orderIdFormat: "#ORD-{number}",
   });
 
@@ -57,17 +112,91 @@ export default function SriLankaSettingsPage() {
   });
 
   const [integrations, setIntegrations] = useState({
-    whatsappNumber: "+94771234567",
+    whatsappNumber: "",
     whatsappEnabled: true,
-    apiKey: "sk_live_xxxxxxxxxxxxxxxx",
-    webhookUrl: "https://n8n.your-domain.com/webhook/orders",
+    apiKey: "",
+    webhookUrl: "",
   });
 
   const [smtp, setSmtp] = useState({
-    host: "smtp.gmail.com",
+    host: "",
     port: "587",
-    user: "notifications@store.lk",
+    user: "",
   });
+
+  const [notifications, setNotifications] = useState({
+    orderEnabled: true,
+    orderEmail: "",
+    customerEnabled: true,
+    lowStockEnabled: true,
+  });
+
+  // --- FETCH SETTINGS ON MOUNT ---
+  useEffect(() => {
+    if (!session?.accessToken) return;
+    const loadSettings = async () => {
+      try {
+        const data = await getSettings(session.accessToken);
+        // Populate all form sections from API data
+        setStore((prev) => ({
+          ...prev,
+          name: data.site_name || "",
+          email: data.shop_email || "",
+          phone: data.shop_phone || "",
+          address: data.shop_address || "",
+          dashboardTitle: data.admin_dashboard_title || "",
+          faviconUrl: formatUrl(data.site_favicon),
+        }));
+        setIntegrations((prev) => ({
+          ...prev,
+          whatsappNumber: data.shop_phone || "",
+        }));
+        setSmtp((prev) => ({
+          ...prev,
+          host: data.smtp_host || "",
+          port: data.smtp_port || "587",
+          user: data.smtp_user || "",
+        }));
+        // Notifications
+        setNotifications((prev) => ({
+          ...prev,
+          orderEnabled: data.order_notification_enabled === "1",
+          orderEmail: data.order_notification_email || "",
+          customerEnabled: data.customer_order_notification_enabled === "1",
+          lowStockEnabled: data.low_stock_alert_enabled === "1",
+        }));
+
+        // Sync global context fields too
+        updateSettings({
+          businessName: data.site_name || businessName,
+          logoUrl: data.site_logo || logoUrl,
+          footerText: data.footer_text || footerText,
+          adminEmail: data.shop_email || adminEmail,
+          adminName: data.admin_name || adminName,
+        });
+      } catch (err) {
+        console.error("Failed to load settings:", err);
+      }
+    };
+    loadSettings();
+  }, [session?.accessToken]);
+
+  // --- LOGO FILE HANDLER ---
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setLogoPreview(URL.createObjectURL(file));
+      setHasChanges(true);
+    }
+  };
+
+  const handleFaviconChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFaviconPreview(URL.createObjectURL(file));
+      setHasChanges(true);
+    }
+  };
 
   const [team, setTeam] = useState([
     {
@@ -105,19 +234,7 @@ export default function SriLankaSettingsPage() {
     { scope: containerRef },
   );
 
-  const saveBarRef = useRef(null);
-  useGSAP(() => {
-    if (hasChanges) {
-      gsap.to(saveBarRef.current, {
-        y: 0,
-        opacity: 1,
-        duration: 0.4,
-        ease: "back.out(1.2)",
-      });
-    } else {
-      gsap.to(saveBarRef.current, { y: 100, opacity: 0, duration: 0.3 });
-    }
-  }, [hasChanges]);
+
 
   // --- SCROLL SPY LOGIC ---
   useEffect(() => {
@@ -159,50 +276,34 @@ export default function SriLankaSettingsPage() {
     }
   };
 
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-      const response = await fetch(`${baseUrl}/admin/settings`, {
-        method: "POST", // Or PATCH
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.accessToken}`,
-        },
-        body: JSON.stringify({
-          business_name: businessName,
-          footer_text: footerText,
-          admin_email: adminEmail,
-          admin_name: adminName,
-          // logo_url: logoUrl, // If logo was uploaded
-        }),
-      });
+  // --- PER-SECTION SAVE ---
+  const saveSection = async (sectionKey, buildFormData) => {
+    console.log(`[Settings] Attempting to save section: ${sectionKey}`);
+    if (!session?.accessToken) {
+      toast.error("Authentication required. Please log in again.");
+      console.error("[Settings] No access token found.");
+      return;
+    }
 
-      if (response.ok) {
-        toast.success("Settings updated successfully");
-        setHasChanges(false);
-      } else {
-        toast.error("Failed to update settings");
-      }
+    setSectionSaving((prev) => ({ ...prev, [sectionKey]: true }));
+    try {
+      const formData = buildFormData();
+      console.log(`[Settings] Sending data for ${sectionKey}:`, Object.fromEntries(formData.entries()));
+      
+      const response = await saveSettings(session.accessToken, formData);
+      console.log(`[Settings] ${sectionKey} save response:`, response);
+      
+      toast.success(`${sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1)} settings saved!`);
+      setHasChanges(false);
+      refreshSettings();
     } catch (error) {
-      console.error("Save error:", error);
-      toast.error("An error occurred while saving");
+      console.error(`[Settings] ${sectionKey} save error:`, error);
+      toast.error(error.message || `Failed to save ${sectionKey} settings`);
     } finally {
-      setLoading(false);
+      setSectionSaving((prev) => ({ ...prev, [sectionKey]: false }));
     }
   };
 
-  const SectionHeader = ({ icon: Icon, title, description, colorClass }) => (
-    <div className="flex items-start gap-4 mb-6">
-      <div className={`p-3 rounded-xl ${colorClass}`}>
-        <Icon className="w-6 h-6" />
-      </div>
-      <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white">{title}</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{description}</p>
-      </div>
-    </div>
-  );
 
   return (
     <div
@@ -229,6 +330,7 @@ export default function SriLankaSettingsPage() {
               { id: "store", label: "General Store", icon: Store },
               { id: "profile", label: "Profile Settings", icon: Users },
               { id: "payments", label: "Payment Methods", icon: CreditCard },
+              { id: "notifications", label: "Notifications", icon: AlertCircle },
               { id: "integrations", label: "WhatsApp & API", icon: Smartphone },
               { id: "data", label: "Import / Export", icon: Database }, // New Item
               { id: "smtp", label: "SMTP Email", icon: Mail },
@@ -260,24 +362,68 @@ export default function SriLankaSettingsPage() {
               />
               <div className="space-y-8">
                 {/* Logo Upload */}
-                <div className="flex flex-col md:flex-row items-center gap-8 p-6 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800">
-                  <div className="relative group">
-                    <div className="w-24 h-24 rounded-2xl bg-white dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center overflow-hidden shadow-inner">
-                      {logoUrl ? (
-                        <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
-                      ) : (
-                        <Store className="w-8 h-8 text-slate-300" />
-                      )}
+                {/* Compact Media Upload Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  {/* Logo Upload */}
+                  <div className="flex items-center gap-4">
+                    <input
+                      ref={logoFileRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleLogoChange}
+                    />
+                    <div className="relative group shrink-0">
+                      <div className="w-16 h-16 rounded-xl bg-white dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center overflow-hidden shadow-inner">
+                        {logoPreview || logoUrl ? (
+                          <img src={logoPreview || logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                        ) : (
+                          <Store className="w-6 h-6 text-slate-300" />
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => logoFileRef.current?.click()}
+                        className="absolute -bottom-1 -right-1 p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-lg transition-transform hover:scale-110"
+                      >
+                        <Upload className="w-3 h-3" />
+                      </button>
                     </div>
-                    <button className="absolute -bottom-2 -right-2 p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg transition-transform hover:scale-110 active:scale-95">
-                      <Upload className="w-4 h-4" />
-                    </button>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Business Logo</h3>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">Login & sidebar icon.</p>
+                    </div>
                   </div>
-                  <div className="flex-1 text-center md:text-left">
-                    <h3 className="font-bold text-slate-900 dark:text-white">Business Logo</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Upload a square logo (e.g. 512x512px). This will appear on the login page and sidebar.
-                    </p>
+
+                  {/* Favicon Upload */}
+                  <div className="flex items-center gap-4 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-800 pt-4 md:pt-0 md:pl-6">
+                    <input
+                      ref={faviconFileRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFaviconChange}
+                    />
+                    <div className="relative group shrink-0">
+                      <div className="w-12 h-12 rounded-lg bg-white dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center overflow-hidden shadow-inner">
+                        {faviconPreview || store.faviconUrl ? (
+                          <img src={faviconPreview || store.faviconUrl} alt="Favicon" className="w-full h-full object-contain p-1.5" />
+                        ) : (
+                          <span className="text-[8px] font-bold text-slate-300">ICO</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => faviconFileRef.current?.click()}
+                        className="absolute -bottom-1 -right-1 p-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md shadow-lg transition-transform hover:scale-110"
+                      >
+                        <Upload className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Site Favicon</h3>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">Browser tab icon.</p>
+                    </div>
                   </div>
                 </div>
 
@@ -302,9 +448,55 @@ export default function SriLankaSettingsPage() {
                     </label>
                     <input
                       type="text"
-                      defaultValue={store.phone}
-                      onChange={() => setHasChanges(true)}
+                      value={store.phone}
+                      onChange={(e) => {
+                        setStore((prev) => ({ ...prev, phone: e.target.value }));
+                        setHasChanges(true);
+                      }}
                       className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all font-medium"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
+                      Contact Email
+                    </label>
+                    <input
+                      type="email"
+                      value={store.email}
+                      onChange={(e) => {
+                        setStore((prev) => ({ ...prev, email: e.target.value }));
+                        setHasChanges(true);
+                      }}
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all font-medium"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
+                      Dashboard Title
+                    </label>
+                    <input
+                      type="text"
+                      value={store.dashboardTitle}
+                      onChange={(e) => {
+                        setStore((prev) => ({ ...prev, dashboardTitle: e.target.value }));
+                        setHasChanges(true);
+                      }}
+                      placeholder="Admin Dashboard"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all font-medium"
+                    />
+                  </div>
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
+                      Shop Address
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={store.address}
+                      onChange={(e) => {
+                        setStore((prev) => ({ ...prev, address: e.target.value }));
+                        setHasChanges(true);
+                      }}
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all font-medium resize-none"
                     />
                   </div>
                   <div className="md:col-span-2 space-y-2">
@@ -322,6 +514,32 @@ export default function SriLankaSettingsPage() {
                     />
                   </div>
                 </div>
+              </div>
+              {/* Section Save */}
+              <div className="flex justify-end mt-6 pt-5 border-t border-slate-100 dark:border-slate-700">
+                <SaveBtn
+                  sectionKey="store"
+                  isSaving={sectionSaving["store"]}
+                  onClick={() =>
+                    saveSection("store", () => {
+                      const fd = new FormData();
+                      fd.append("site_name", businessName || "");
+                      fd.append("shop_phone", store.phone || "");
+                      fd.append("shop_email", store.email || "");
+                      fd.append("shop_address", store.address || "");
+                      fd.append("admin_dashboard_title", store.dashboardTitle || "");
+                      fd.append("footer_text", footerText || "");
+                      
+                      const logoFile = logoFileRef.current?.files[0];
+                      if (logoFile) fd.append("site_logo", logoFile);
+                      
+                      const faviconFile = faviconFileRef.current?.files[0];
+                      if (faviconFile) fd.append("site_favicon", faviconFile);
+                      
+                      return fd;
+                    })
+                  }
+                />
               </div>
             </div>
           </section>
@@ -393,6 +611,21 @@ export default function SriLankaSettingsPage() {
                    </div>
                 </div>
               </div>
+              {/* Section Save */}
+              <div className="flex justify-end mt-6 pt-5 border-t border-slate-100 dark:border-slate-700">
+                <SaveBtn
+                  sectionKey="profile"
+                  isSaving={sectionSaving["profile"]}
+                  onClick={() =>
+                    saveSection("profile", () => {
+                      const fd = new FormData();
+                      fd.append("admin_name", adminName || "");
+                      fd.append("shop_email", adminEmail || "");
+                      return fd;
+                    })
+                  }
+                />
+              </div>
             </div>
           </section>
 
@@ -414,19 +647,33 @@ export default function SriLankaSettingsPage() {
                   onChange={(e) => {
                     const selected = e.target.value;
                     let sym = "Rs.";
-                    if (selected === "USD") sym = "$";
-                    if (selected === "EUR") sym = "€";
-                    if (selected === "GBP") sym = "£";
-                    updateCurrency(selected, sym);
+                    if (selected === "usd") sym = "$";
+                    if (selected === "eur") sym = "€";
+                    if (selected === "gbp") sym = "£";
+                    updateCurrency(selected.toUpperCase(), sym);
                     setHasChanges(true);
                   }}
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all font-medium"
                 >
-                  <option value="LKR">Sri Lankan Rupee (LKR)</option>
-                  <option value="USD">US Dollar (USD)</option>
-                  <option value="EUR">Euro (EUR)</option>
-                  <option value="GBP">British Pound (GBP)</option>
+                  <option value="lkr">Sri Lankan Rupee (LKR)</option>
+                  <option value="usd">US Dollar (USD)</option>
+                  <option value="eur">Euro (EUR)</option>
+                  <option value="gbp">British Pound (GBP)</option>
                 </select>
+              </div>
+              {/* Section Save */}
+              <div className="flex justify-end mt-6 pt-5 border-t border-slate-100 dark:border-slate-700">
+                <SaveBtn
+                  sectionKey="currency"
+                  isSaving={sectionSaving["currency"]}
+                  onClick={() =>
+                    saveSection("currency", () => {
+                      const fd = new FormData();
+                      fd.append("currency", currency.toLowerCase());
+                      return fd;
+                    })
+                  }
+                />
               </div>
             </div>
           </section>
@@ -470,10 +717,131 @@ export default function SriLankaSettingsPage() {
                   </label>
                 </div>
               </div>
+              {/* Section Save */}
+              <div className="flex justify-end mt-6 pt-5 border-t border-slate-100 dark:border-slate-700">
+                <SaveBtn
+                  sectionKey="payments"
+                  isSaving={sectionSaving["payments"]}
+                  onClick={() =>
+                    saveSection("payments", () => {
+                      const fd = new FormData();
+                      fd.append("cod_enabled", payments.cod ? "1" : "0");
+                      return fd;
+                    })
+                  }
+                />
+              </div>
             </div>
           </section>
 
-          {/* C. INTEGRATIONS */}
+          {/* C. NOTIFICATIONS */}
+          <section id="notifications" className="animate-section scroll-mt-32">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-8">
+              <SectionHeader
+                icon={AlertCircle}
+                title="Notifications & Alerts"
+                description="Configure email notifications for orders and stock alerts."
+                colorClass="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400"
+              />
+              
+              <div className="space-y-6">
+                {/* Admin Order Notifications */}
+                <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+                  <div className="flex-1">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Admin Order Notifications</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Receive an email whenever a new order is placed.</p>
+                    {notifications.orderEnabled && (
+                      <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Notification Email</label>
+                        <input 
+                          type="email"
+                          value={notifications.orderEmail}
+                          onChange={(e) => {
+                            setNotifications(prev => ({ ...prev, orderEmail: e.target.value }));
+                            setHasChanges(true);
+                          }}
+                          placeholder="admin@gmail.com"
+                          className="w-full max-w-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer ml-4">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={notifications.orderEnabled}
+                      onChange={() => {
+                        setNotifications(prev => ({ ...prev, orderEnabled: !prev.orderEnabled }));
+                        setHasChanges(true);
+                      }}
+                    />
+                    <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:bg-indigo-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                  </label>
+                </div>
+
+                {/* Customer Order Notifications */}
+                <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Customer Order Notifications</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Send confirmation emails to customers after they place an order.</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer ml-4">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={notifications.customerEnabled}
+                      onChange={() => {
+                        setNotifications(prev => ({ ...prev, customerEnabled: !prev.customerEnabled }));
+                        setHasChanges(true);
+                      }}
+                    />
+                    <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:bg-indigo-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                  </label>
+                </div>
+
+                {/* Low Stock Alerts */}
+                <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Low Stock Alerts</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Get notified when product stock levels fall below the threshold.</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer ml-4">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={notifications.lowStockEnabled}
+                      onChange={() => {
+                        setNotifications(prev => ({ ...prev, lowStockEnabled: !prev.lowStockEnabled }));
+                        setHasChanges(true);
+                      }}
+                    />
+                    <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:bg-indigo-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Section Save */}
+              <div className="flex justify-end mt-6 pt-5 border-t border-slate-100 dark:border-slate-700">
+                <SaveBtn
+                  sectionKey="notifications"
+                  isSaving={sectionSaving["notifications"]}
+                  onClick={() =>
+                    saveSection("notifications", () => {
+                      const fd = new FormData();
+                      fd.append("order_notification_enabled", notifications.orderEnabled ? "1" : "0");
+                      fd.append("order_notification_email", notifications.orderEmail || "");
+                      fd.append("customer_order_notification_enabled", notifications.customerEnabled ? "1" : "0");
+                      fd.append("low_stock_alert_enabled", notifications.lowStockEnabled ? "1" : "0");
+                      return fd;
+                    })
+                  }
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* D. INTEGRATIONS */}
           <section id="integrations" className="animate-section scroll-mt-32">
             {/* ... (Existing Integrations Code) ... */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-8">
@@ -489,9 +857,26 @@ export default function SriLankaSettingsPage() {
                 </label>
                 <input
                   type="text"
-                  defaultValue={integrations.whatsappNumber}
-                  onChange={() => setHasChanges(true)}
+                  value={integrations.whatsappNumber}
+                  onChange={(e) => {
+                    setIntegrations((prev) => ({ ...prev, whatsappNumber: e.target.value }));
+                    setHasChanges(true);
+                  }}
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-green-500 outline-none transition-all font-medium font-mono"
+                />
+              </div>
+              {/* Section Save */}
+              <div className="flex justify-end mt-6 pt-5 border-t border-slate-100 dark:border-slate-700">
+                <SaveBtn
+                  sectionKey="integrations"
+                  isSaving={sectionSaving["integrations"]}
+                  onClick={() =>
+                    saveSection("integrations", () => {
+                      const fd = new FormData();
+                      fd.append("whatsapp_number", integrations.whatsappNumber || "");
+                      return fd;
+                    })
+                  }
                 />
               </div>
             </div>
@@ -636,12 +1021,31 @@ export default function SriLankaSettingsPage() {
                   </label>
                   <input
                     type="text"
-                    defaultValue={smtp.host}
-                    onChange={() => setHasChanges(true)}
+                    value={smtp.host}
+                    onChange={(e) => {
+                      setSmtp((prev) => ({ ...prev, host: e.target.value }));
+                      setHasChanges(true);
+                    }}
                     placeholder="smtp.gmail.com"
                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm dark:text-white font-mono"
                   />
                 </div>
+              </div>
+              {/* Section Save */}
+              <div className="flex justify-end mt-6 pt-5 border-t border-slate-100 dark:border-slate-700">
+                <SaveBtn
+                  sectionKey="smtp"
+                  isSaving={sectionSaving["smtp"]}
+                  onClick={() =>
+                    saveSection("smtp", () => {
+                      const fd = new FormData();
+                      fd.append("smtp_host", smtp.host || "");
+                      fd.append("smtp_port", smtp.port || "");
+                      fd.append("smtp_user", smtp.user || "");
+                      return fd;
+                    })
+                  }
+                />
               </div>
             </div>
           </section>
@@ -649,34 +1053,6 @@ export default function SriLankaSettingsPage() {
         </div>
       </div>
 
-      {/* 4. FLOATING SAVE BAR */}
-      <div
-        ref={saveBarRef}
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4 opacity-0 pointer-events-none z-50"
-        style={{ pointerEvents: hasChanges ? "auto" : "none" }}
-      >
-        <div className="bg-slate-900 dark:bg-slate-950 text-white p-4 rounded-2xl shadow-2xl flex items-center justify-between border border-slate-700/50 dark:border-slate-800 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>
-            <span className="font-bold text-sm">Unsaved changes</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setHasChanges(false)}
-              className="px-4 py-2 text-xs font-bold text-slate-300 hover:text-white transition-colors"
-            >
-              Discard
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={loading}
-              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-900/50 flex items-center gap-2"
-            >
-              {loading ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

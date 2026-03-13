@@ -14,10 +14,41 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata = {
-  title: "Admin Dashboard | Igen",
-  description: "Developed By : Inzeedo",
-};
+// --- DYNAMIC METADATA FETCH ---
+export async function generateMetadata() {
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const BASE_URL = API_BASE ? new URL(API_BASE).origin : "";
+
+  try {
+    const res = await fetch(`${API_BASE}/admin/settings`, {
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      const data = json.data || {};
+      const title = data.admin_dashboard_title || "Admin Dashboard";
+      const favicon = data.site_favicon ? (data.site_favicon.startsWith('http') ? data.site_favicon : `${BASE_URL}/${data.site_favicon}`) : "/favicon.ico";
+
+      return {
+        title: title,
+        description: "Developed By : Inzeedo",
+        icons: {
+          icon: favicon,
+          shortcut: favicon,
+        }
+      };
+    }
+  } catch (err) {
+    console.error("Root metadata fetch failed:", err);
+  }
+
+  return {
+    title: "Admin Dashboard | Igen",
+    description: "Developed By : Inzeedo",
+  };
+}
 
 export default function RootLayout({ children }) {
   return (

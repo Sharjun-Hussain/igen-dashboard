@@ -85,7 +85,7 @@ export default function LoginPage() {
   const containerRef = useRef(null);
   const router = useRouter();
   const { data: session, status } = useSession();
-  const { businessName, logoUrl, footerText } = useGlobalSettings();
+  const { dashboardTitle, logoUrl, footerText } = useGlobalSettings();
   const [isLoading, setIsLoading] = useState(false);
 
   // Redirect if already authenticated
@@ -163,9 +163,9 @@ export default function LoginPage() {
         {/* Header */}
         <div className="flex items-center gap-2 text-xl font-bold tracking-tight stagger-in">
           <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-black/20 overflow-hidden p-1.5">
-            <img src="/igen_mobiles_logo.png" alt="Igen" className="w-full h-full object-contain" />
+            <img src={logoUrl || "/igen_mobiles_logo.png"} alt={dashboardTitle || "Igen"} className="w-full h-full object-contain" />
           </div>
-          Igen
+          {dashboardTitle || "Igen"}
         </div>
 
         {/* Middle Content */}

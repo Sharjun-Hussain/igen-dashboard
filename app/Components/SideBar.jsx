@@ -159,7 +159,7 @@ const MENU_GROUPS = [
 export default function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const { businessName, logoUrl } = useGlobalSettings();
+  const { dashboardTitle, logoUrl } = useGlobalSettings();
   const [openSubmenu, setOpenSubmenu] = useState("");
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -241,21 +241,17 @@ export default function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed
         <div className={`h-20 flex items-center px-4 border-b border-slate-200 dark:border-slate-800 shrink-0 transition-all duration-300 ${isCollapsed ? "justify-center" : "justify-between sticky top-0 z-10 bg-white dark:bg-slate-900"}`}>
           <Link 
             href="/app" 
-            onMouseEnter={(e) => showTooltip(e, businessName)}
+            onMouseEnter={(e) => showTooltip(e, dashboardTitle || "IGEN")}
             onMouseLeave={hideTooltip}
             className="flex items-center gap-3 group overflow-hidden shrink-0"
           >
             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20 group-hover:scale-105 transition-transform overflow-hidden shrink-0">
-              {logoUrl ? (
-                <img src={logoUrl} alt={businessName} className="w-full h-full object-cover" />
-              ) : (
-                <Layers className="w-6 h-6 text-white" />
-              )}
+              <Layers className="w-6 h-6 text-white" />
             </div>
             {!isCollapsed && (
               <div className="animate-in fade-in slide-in-from-left-2 duration-300">
                 <h1 className="font-bold text-lg tracking-tight leading-none text-slate-900 dark:text-white truncate max-w-[120px]">
-                  {businessName}
+                  Igen
                 </h1>
                 <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 tracking-widest uppercase">
                   Admin Dashboard
