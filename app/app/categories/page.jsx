@@ -421,72 +421,72 @@ function CategoriesContent() {
             <>
               {viewMode === "grid" ? (
                 /* GRID VIEW */
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
                   {categories.map((cat) => (
                     <div
                       key={cat.id}
-                      className="category-item group relative bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 hover:border-indigo-100 dark:hover:border-indigo-900/50 shadow-sm hover:shadow-xl hover:shadow-indigo-900/5 transition-all duration-500 ease-out cursor-pointer flex flex-col h-full will-change-transform"
+                      className="category-item group relative bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 hover:border-indigo-100 dark:hover:border-indigo-900/50 shadow-sm hover:shadow-lg hover:shadow-indigo-900/5 transition-all duration-500 ease-out cursor-pointer flex flex-col h-full will-change-transform"
                     >
                       {/* Text Area */}
                       <div className="flex-1">
-                        <div className="flex justify-between items-start mb-4">
-                          <h3 className="font-bold text-xl text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300 line-clamp-1">
+                        <div className="flex justify-between items-start gap-2 mb-2">
+                          <h3 className="font-bold text-lg text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300 line-clamp-1">
                             {cat.name}
                           </h3>
-                          <div className="flex flex-col gap-1 items-end">
+                          <div className="flex shrink-0">
                             <span
-                              className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                                 cat.is_active
-                                  ? "text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/50"
-                                  : "text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-700"
+                                  ? "text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/50 bg-green-50/50"
+                                  : "text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-700 bg-slate-50/50"
                               }`}
                             >
                               {cat.is_active ? "Active" : "Inactive"}
                             </span>
-                            {cat.is_featured && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 flex items-center gap-1">
-                                <Star className="w-3 h-3 fill-current" /> Featured
-                              </span>
-                            )}
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 mb-4">
-                          <span className="bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-md text-slate-600 dark:text-slate-400 font-mono">
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                          <span className="bg-slate-100/80 dark:bg-slate-900/80 px-1.5 py-0.5 rounded text-[10px] text-slate-500 dark:text-slate-400 font-mono">
                             {cat.slug}
                           </span>
+                          {cat.is_featured && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800/50 flex items-center gap-1">
+                              <Star className="w-2.5 h-2.5 fill-current" /> Featured
+                            </span>
+                          )}
                         </div>
                         
                         {cat.description && (
-                          <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-3 leading-relaxed">
                             {cat.description}
                           </p>
                         )}
                       </div>
 
                       {/* Footer / Actions */}
-                      <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-700/50 mt-auto">
-                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
-                          ID: {cat.id}
+                      <div className="flex items-center justify-between pt-3 border-t border-slate-50 dark:border-slate-700/50 mt-auto">
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                          ID: #{cat.id}
                         </span>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                        <div className="flex gap-1 md:opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenEdit(cat);
                             }}
-                            className="p-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors"
+                            className="p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors"
                           >
-                            <Edit3 className="w-4 h-4" />
+                            <Edit3 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenDelete(cat);
                             }}
-                            className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors"
+                            className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
