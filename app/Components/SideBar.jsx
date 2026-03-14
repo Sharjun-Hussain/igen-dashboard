@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useSession, signOut } from "next-auth/react";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -166,6 +168,11 @@ export default function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [tooltip, setTooltip] = useState({ text: "", top: 0, visible: false });
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  // --- REFS FOR LOGOUT MODAL ---
+  const logoutOverlayRef = useRef(null);
+  const logoutContentRef = useRef(null);
 
   // Handle hydration mismatch
   useEffect(() => {
@@ -206,6 +213,37 @@ export default function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed
   const hideTooltip = () => {
     setTooltip(prev => ({ ...prev, visible: false }));
   };
+
+  // --- LOGOUT MODAL ANIMATION ---
+  const closeLogoutWithAnim = () => {
+    if (!logoutContentRef.current) return;
+    const tl = gsap.timeline({ onComplete: () => setShowLogoutConfirm(false) });
+    tl.to(logoutContentRef.current, {
+      scale: 0.95,
+      opacity: 0,
+      duration: 0.2,
+      ease: "power2.in",
+    }).to(logoutOverlayRef.current, { opacity: 0, duration: 0.2 }, "<");
+  };
+
+  const openLogoutWithAnim = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  useGSAP(() => {
+    if (showLogoutConfirm && logoutContentRef.current) {
+      gsap.fromTo(
+        logoutOverlayRef.current,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.4, ease: "power2.out" }
+      );
+      gsap.fromTo(
+        logoutContentRef.current,
+        { scale: 0.9, opacity: 0, y: 20 },
+        { scale: 1, opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.5)" }
+      );
+    }
+  }, [showLogoutConfirm]);
 
   if (!mounted) {
     return null;
@@ -420,7 +458,7 @@ export default function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed
                         </p>
                     </div>
                     <button
-                        onClick={() => signOut({ callbackUrl: "/login" })}
+                        onClick={openLogoutWithAnim}
                         className="text-slate-400 hover:text-red-500 transition-colors"
                     >
                         <LogOut className="w-4 h-4" />
@@ -446,6 +484,52 @@ export default function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed
           </button>
         </div>
       </aside>
+
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-1000 flex items-center justify-center p-4">
+          <div
+            ref={logoutOverlayRef}
+            className="absolute inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-md transition-opacity"
+            onClick={closeLogoutWithAnim}
+          />
+          <div
+            ref={logoutContentRef}
+            className="relative bg-white dark:bg-slate-800 rounded-[2rem] shadow-2xl max-w-sm w-full p-8 overflow-hidden border border-slate-100 dark:border-slate-700 font-sans"
+          >
+            {/* Background Decoration */}
+            <div className="absolute top-0 left-0 w-full h-24 bg-linear-to-b from-indigo-50/50 to-transparent dark:from-indigo-900/10 pointer-events-none" />
+            
+            <div className="relative text-center">
+              <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-red-500/10 rotate-3 transform transition-transform hover:rotate-6">
+                <LogOut className="w-8 h-8" />
+              </div>
+              
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">
+                Sign Out?
+              </h3>
+              
+              <p className="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed mb-8">
+                Are you sure you want to end your session? You'll need to log in again to access the dashboard.
+              </p>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={closeLogoutWithAnim}
+                  className="flex-1 py-3 px-4 rounded-xl font-bold text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  className="flex-1 py-3 px-4 rounded-xl font-bold text-sm text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/20 transition-all transform active:scale-95"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
