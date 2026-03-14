@@ -23,6 +23,7 @@ import {
   Lock,
   Monitor,
   ShieldCheck,
+  History,
 } from "lucide-react";
 
 import { useGlobalSettings } from "../app/context/GlobalSettingsContext";
@@ -150,6 +151,7 @@ const MENU_GROUPS = [
     label: "Administration",
     items: [
       { title: "Settings", icon: Settings, href: "/app/settings" },
+      { title: "Activity Logs", icon: History, href: "/app/logs" },
       { title: "Roles", icon: ShieldCheck, href: "/app/roles" },
       { title: "Permissions", icon: Lock, href: "/app/permissions" },
     ],
