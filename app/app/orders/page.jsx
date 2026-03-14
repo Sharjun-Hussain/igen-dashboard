@@ -357,7 +357,7 @@ export default function InteractiveOrdersPage() {
           ...prev,
           latest_payment: {
             ...(prev.latest_payment || {}),
-            payment_status: "Paid"
+            payment_status: "completed"
           }
         }));
       }
@@ -418,6 +418,7 @@ export default function InteractiveOrdersPage() {
   const getPaymentColor = (status) => {
     switch (status?.toLowerCase()) {
       case "paid":
+      case "completed":
         return "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50";
       case "pending":
         return "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/50";
@@ -1081,13 +1082,6 @@ export default function InteractiveOrdersPage() {
                       >
                         <RotateCcw className="w-4 h-4 text-slate-400 dark:text-slate-500" /> Refund Items
                       </button>
-                      <div className="h-px bg-slate-100 dark:bg-slate-700"></div>
-                      <button
-                        onClick={() => performDrawerAction("Cancel Order")}
-                        className="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 font-medium flex items-center gap-3"
-                      >
-                        <Ban className="w-4 h-4" /> Cancel Order
-                      </button>
                     </div>
                   )}
                 </div>
@@ -1119,21 +1113,48 @@ export default function InteractiveOrdersPage() {
                 >
                   <Printer className="w-4 h-4" /> Print Slip
                 </button>
-                {selectedOrder.latest_payment?.payment_status?.toLowerCase() !== "paid" && (
-                  <button
-                    onClick={() => handleVerifyPayment(selectedOrder.id)}
-                    className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 active:scale-95 transition-all flex items-center gap-2"
-                  >
-                    <Check className="w-4 h-4" /> Verify Payment
-                  </button>
-                )}
 
-                <button
-                  onClick={() => setShowShipmentModal(true)}
-                  className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
-                >
-                  Fulfill Order
-                </button>
+                {/* Conditional Action Buttons */}
+                {(() => {
+                  const paymentStatus = (selectedOrder.payment_status || selectedOrder.latest_payment?.payment_status)?.toLowerCase();
+                  const isPaid = paymentStatus === "paid" || paymentStatus === "completed";
+                  const isCancelled = selectedOrder.order_status?.toLowerCase() === "cancelled";
+                  const isShipped = ["shipped", "delivered", "fulfilled", "completed"].includes(selectedOrder.order_status?.toLowerCase());
+
+                  if (isCancelled) return null;
+
+                  if (!isPaid) {
+                    return (
+                      <>
+                        <button
+                          onClick={() => setShowCancellationModal(true)}
+                          className="px-5 py-2.5 rounded-xl text-sm font-bold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 transition-all flex items-center gap-2"
+                        >
+                          <Ban className="w-4 h-4" /> Cancel Order
+                        </button>
+                        <button
+                          onClick={() => handleVerifyPayment(selectedOrder.id)}
+                          className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 active:scale-95 transition-all flex items-center gap-2"
+                        >
+                          <Check className="w-4 h-4" /> Verify Payment
+                        </button>
+                      </>
+                    );
+                  }
+
+                  if (!isShipped) {
+                    return (
+                      <button
+                        onClick={() => setShowShipmentModal(true)}
+                        className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 active:scale-95 transition-all flex items-center gap-2"
+                      >
+                        <Package className="w-4 h-4" /> Fulfill Order
+                      </button>
+                    );
+                  }
+
+                  return null;
+                })()}
               </div>
             </div>
           </div>
