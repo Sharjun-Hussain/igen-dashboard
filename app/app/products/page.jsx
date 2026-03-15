@@ -645,11 +645,12 @@ export default function ProductsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [conditionFilter, setConditionFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [brandFilter, setBrandFilter] = useState("all");
 
   // Reset page when filters/search changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, conditionFilter, categoryFilter]);
+  }, [searchTerm, statusFilter, conditionFilter, categoryFilter, brandFilter]);
 
   // --- API FETCHING ---
   const fetcher = async (url) => {
@@ -670,12 +671,18 @@ export default function ProductsPage() {
     toast.success("Local draft removed");
   };
 
-  // Fetch Categories for Filter
+  // Fetch Categories & Brands for Filter
   const { data: categoriesRes } = useSWR(
     session?.accessToken ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories`, session.accessToken] : null,
-    fetcher
+    ([url]) => fetcher(url)
   );
-  const categories = categoriesRes?.data || [];
+  const categories = categoriesRes?.data?.data || [];
+
+  const { data: brandsRes } = useSWR(
+    session?.accessToken ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/brands`, session.accessToken] : null,
+    ([url]) => fetcher(url)
+  );
+  const brands = brandsRes?.data?.data || [];
 
   // Build API Query
   const buildApiUrl = () => {
@@ -684,6 +691,7 @@ export default function ProductsPage() {
     if (statusFilter !== "all") url += `&status=${statusFilter}`;
     if (conditionFilter !== "all") url += `&condition=${conditionFilter}`;
     if (categoryFilter !== "all") url += `&category_id=${categoryFilter}`;
+    if (brandFilter !== "all") url += `&brand_id=${brandFilter}`;
     return url;
   };
 
@@ -943,14 +951,14 @@ export default function ProductsPage() {
                   setShowFilterMenu(!showFilterMenu);
                 }}
                 className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  showFilterMenu || statusFilter !== "all" || conditionFilter !== "all" || categoryFilter !== "all"
+                  showFilterMenu || statusFilter !== "all" || conditionFilter !== "all" || categoryFilter !== "all" || brandFilter !== "all"
                     ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800"
                     : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-transparent"
                 }`}
               >
                 <div className="relative">
                   <Filter className="w-4 h-4" />
-                  {(statusFilter !== "all" || conditionFilter !== "all" || categoryFilter !== "all") && (
+                  {(statusFilter !== "all" || conditionFilter !== "all" || categoryFilter !== "all" || brandFilter !== "all") && (
                     <span className="absolute -top-1 -right-1 w-2 h-2 bg-indigo-600 rounded-full border border-white dark:border-slate-800"></span>
                   )}
                 </div>
@@ -960,16 +968,17 @@ export default function ProductsPage() {
               {showFilterMenu && (
                 <div
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute top-full mt-2 right-0 md:right-auto md:left-0 lg:right-0 lg:left-auto w-72 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 p-4 z-30 animate-in fade-in slide-in-from-top-2 duration-200"
+                  className="absolute top-full mt-2 right-0 md:right-auto md:left-0 lg:right-0 lg:left-auto w-72 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 p-4 z-30 animate-in fade-in slide-in-from-top-2 duration-200 overflow-y-auto max-h-[80vh]"
                 >
                     <div className="flex items-center justify-between mb-3">
                         <h4 className="text-sm font-bold text-slate-900 dark:text-white">Filter Products</h4>
-                        {(statusFilter !== "all" || conditionFilter !== "all" || categoryFilter !== "all") && (
+                        {(statusFilter !== "all" || conditionFilter !== "all" || categoryFilter !== "all" || brandFilter !== "all") && (
                             <button
                                 onClick={() => {
                                     setStatusFilter("all");
                                     setConditionFilter("all");
                                     setCategoryFilter("all");
+                                    setBrandFilter("all");
                                 }}
                                 className="text-xs text-indigo-600 font-medium hover:underline"
                             >
@@ -992,6 +1001,25 @@ export default function ProductsPage() {
                       {categories.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Brand Filter */}
+                  <div className="mb-4">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block px-1">
+                      Brand
+                    </label>
+                    <select
+                      value={brandFilter}
+                      onChange={(e) => setBrandFilter(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none text-slate-700 dark:text-slate-300"
+                    >
+                      <option value="all">All Brands</option>
+                      {brands.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
                         </option>
                       ))}
                     </select>
