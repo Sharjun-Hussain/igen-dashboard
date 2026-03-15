@@ -124,14 +124,6 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
   // Ensure price is a number
   const price = parseFloat(productData.price || productData.variants?.[0]?.price || 0);
 
-  // Mock Stats (placeholder)
-  const stats = {
-    revenue: (price * 142).toLocaleString(),
-    sold: 142,
-    returns: "2.4%",
-    views: "1.2k",
-  };
-
   useGSAP(() => {
     gsap.fromTo(
       sheetRef.current,
@@ -274,7 +266,7 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
                   <div className="flex gap-3">
                     <Link 
                       href={`/app/products/new?productId=${productData.id}`}
-                      className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-sm font-bold shadow-md shadow-indigo-200 transition-colors text-center"
+                      className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-sm font-bold  transition-colors text-center"
                     >
                       Edit Product
                     </Link>
@@ -284,7 +276,7 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
 
               {/* Tabs */}
               <div className="sheet-animate flex gap-6 border-b border-slate-200 dark:border-slate-700 px-2 overflow-x-auto">
-                {["overview", "variants", "gallery", "orders"].map((tab) => (
+                {["overview", "variants", "gallery", "related", "buy_together", "orders"].map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
@@ -294,7 +286,7 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
                         : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                     }`}
                   >
-                    {tab}
+                    {tab.replace("_", " ")}
                     {activeTab === tab && (
                       <div className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 rounded-t-full"></div>
                     )}
@@ -324,6 +316,12 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
                         <span className="text-slate-500">Brand</span>
                         <span className="font-bold text-slate-700 dark:text-slate-300">
                           {productData.brand?.name || "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between p-4 text-sm">
+                        <span className="text-slate-500">Condition</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-300 capitalize">
+                          {productData.condition || "N/A"}
                         </span>
                       </div>
                       <div className="flex justify-between p-4 text-sm">
@@ -392,9 +390,9 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
                   
                   {/* Description */}
                   {productData.full_description && (
-                     <div className="sheet-animate bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4">
+                     <div className="sheet-animate bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 overflow-hidden w-full">
                         <h3 className="font-bold text-slate-900 dark:text-white text-sm mb-2">Description</h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed break-words whitespace-pre-wrap">
                           {productData.full_description}
                         </p>
                      </div>
@@ -431,8 +429,8 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
                           </div>
                           <div className="flex items-center gap-4">
                              <div className="text-right">
-                                <p className="font-bold text-slate-900 dark:text-white text-sm">Rs {formatPrice(variant.price)}</p>
-                                <p className={`text-[10px] font-bold ${variant.stock_quantity > 0 ? "text-emerald-600" : "text-red-600"}`}>
+                                <p className="font-bold  text-slate-900 dark:text-white text-sm">Rs {formatPrice(variant.price)}</p>
+                                <p className={`text-[2px] font-bold ${variant.stock_quantity > 0 ? "text-emerald-600" : "text-red-600"}`}>
                                     {variant.stock_quantity} in stock
                                 </p>
                              </div>
@@ -546,6 +544,64 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
                 </div>
               )}
 
+              {/* Tab Content: Related Products */}
+              {activeTab === "related" && (
+                <div className="space-y-4">
+                  <h3 className="font-bold text-slate-900 dark:text-white text-sm px-1 sheet-animate">Related Products</h3>
+                  {productData.compatible_products?.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {productData.compatible_products.map((product) => (
+                        <div key={product.id} className="sheet-animate bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-3 shadow-sm hover:shadow-md transition-shadow">
+                          <div className="aspect-square rounded-lg bg-slate-100 dark:bg-slate-700 overflow-hidden mb-2 relative">
+                            {product.primary_image_path ? (
+                              <img src={getImageUrl(product.primary_image_path)} className="w-full h-full object-cover" alt={product.name} />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                <ImageIcon className="w-6 h-6" />
+                              </div>
+                            )}
+                          </div>
+                          <h4 className="font-bold text-slate-900 dark:text-white text-xs line-clamp-2">{product.name}</h4>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="sheet-animate p-8 text-center text-slate-500 bg-slate-50 dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                      No related products found.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Tab Content: Buy Together */}
+              {activeTab === "buy_together" && (
+                <div className="space-y-4">
+                  <h3 className="font-bold text-slate-900 dark:text-white text-sm px-1 sheet-animate">Frequently Bought Together</h3>
+                  {productData.bundled_products?.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {productData.bundled_products.map((product) => (
+                        <div key={product.id} className="sheet-animate bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-3 shadow-sm hover:shadow-md transition-shadow">
+                          <div className="aspect-square rounded-lg bg-slate-100 dark:bg-slate-700 overflow-hidden mb-2 relative">
+                            {product.primary_image_path ? (
+                              <img src={getImageUrl(product.primary_image_path)} className="w-full h-full object-cover" alt={product.name} />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                <ImageIcon className="w-6 h-6" />
+                              </div>
+                            )}
+                          </div>
+                          <h4 className="font-bold text-slate-900 dark:text-white text-xs line-clamp-2">{product.name}</h4>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="sheet-animate p-8 text-center text-slate-500 bg-slate-50 dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                      No frequently bought together products found.
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Tab Content: Orders (Placeholder) */}
               {activeTab === "orders" && (
                 <div className="sheet-animate bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-8 text-center">
@@ -584,10 +640,16 @@ export default function ProductsPage() {
   const debouncedSearch = useDebounce(searchTerm, 500);
   const { mutate } = useSWRConfig();
 
-  // Reset page when search changes
+  // --- FILTER STATES ---
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [conditionFilter, setConditionFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+
+  // Reset page when filters/search changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, statusFilter, conditionFilter, categoryFilter]);
 
   // --- API FETCHING ---
   const fetcher = async (url) => {
@@ -608,10 +670,25 @@ export default function ProductsPage() {
     toast.success("Local draft removed");
   };
 
+  // Fetch Categories for Filter
+  const { data: categoriesRes } = useSWR(
+    session?.accessToken ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories`, session.accessToken] : null,
+    fetcher
+  );
+  const categories = categoriesRes?.data || [];
+
+  // Build API Query
+  const buildApiUrl = () => {
+    let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products?page=${currentPage}`;
+    if (debouncedSearch) url += `&search=${encodeURIComponent(debouncedSearch)}`;
+    if (statusFilter !== "all") url += `&status=${statusFilter}`;
+    if (conditionFilter !== "all") url += `&condition=${conditionFilter}`;
+    if (categoryFilter !== "all") url += `&category_id=${categoryFilter}`;
+    return url;
+  };
+
   const { data: apiResponse, error, isLoading } = useSWR(
-    session?.accessToken
-      ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products?page=${currentPage}&search=${debouncedSearch}`, session.accessToken]
-      : null,
+    session?.accessToken ? [buildApiUrl(), session.accessToken] : null,
     ([url]) => fetcher(url),
     { keepPreviousData: true }
   );
@@ -654,6 +731,27 @@ export default function ProductsPage() {
     return apiProducts;
   }, [productsData, localDrafts, currentPage, debouncedSearch]);
 
+  // Calculate dynamic stats from current view products
+  const { lowStockCount, outOfStockCount, avgPrice } = useMemo(() => {
+    if (products.length === 0) return { lowStockCount: 0, outOfStockCount: 0, avgPrice: 0 };
+    
+    let lowStock = 0;
+    let outOfStock = 0;
+    let totalPrice = 0;
+
+    products.forEach(p => {
+      if (p.stock === 0) outOfStock++;
+      else if (p.stock < 10) lowStock++;
+      totalPrice += p.price;
+    });
+
+    return {
+      lowStockCount: lowStock,
+      outOfStockCount: outOfStock,
+      avgPrice: totalPrice / products.length
+    };
+  }, [products]);
+
   // --- ANIMATIONS ---
   useGSAP(
     () => {
@@ -675,6 +773,19 @@ export default function ProductsPage() {
         return "text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700";
       default:
         return "text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800";
+    }
+  };
+
+  const getConditionColor = (condition) => {
+    switch (condition?.toLowerCase()) {
+      case "new":
+        return "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border-emerald-100 dark:border-emerald-800/50";
+      case "used":
+        return "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border-amber-100 dark:border-amber-800/50";
+      case "refurbished":
+        return "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border-blue-100 dark:border-blue-800/50";
+      default:
+        return "text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700";
     }
   };
 
@@ -719,6 +830,9 @@ export default function ProductsPage() {
     <div
       ref={containerRef}
       className="min-h-screen bg-slate-50/50 dark:bg-slate-900 font-sans text-slate-900 dark:text-white relative"
+      onClick={() => {
+        if (showFilterMenu) setShowFilterMenu(false);
+      }}
     >
       <DeleteModal
         isOpen={!!deleteProduct}
@@ -759,7 +873,7 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {/* 2. STATS OVERVIEW (Placeholder values for now) */}
+        {/* 2. STATS OVERVIEW */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
             {
@@ -769,21 +883,21 @@ export default function ProductsPage() {
               color: "text-indigo-600",
             },
             {
-              label: "Low Stock",
-              val: "12",
+              label: "Low Stock ",
+              val: lowStockCount.toString(),
               icon: AlertTriangle,
               color: "text-amber-600",
             },
             {
-              label: "Out of Stock",
-              val: "4",
+              label: "Out of Stock ",
+              val: outOfStockCount.toString(),
               icon: XCircle,
               color: "text-red-600",
             },
             {
-              label: "Avg Price",
-              val: "Rs 245.00", // Placeholder, ideally this should also use formatPrice if it were dynamic
-              icon: Clock,
+              label: "Avg Price ",
+              val: `Rs ${formatPrice(avgPrice)}`,
+              icon: DollarSign,
               color: "text-emerald-600",
             },
           ].map((stat, i) => (
@@ -800,7 +914,7 @@ export default function ProductsPage() {
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">
                   {stat.label}
                 </p>
-                <h4 className="text-2xl font-bold text-slate-900 dark:text-white">
+                <h4 className="text-xl font-bold text-slate-900 dark:text-white">
                   {stat.val}
                 </h4>
               </div>
@@ -821,9 +935,113 @@ export default function ProductsPage() {
             />
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto p-1">
-            <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-              <Filter className="w-4 h-4" /> Filters
-            </button>
+            {/* MORE FILTERS DROPDOWN */}
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowFilterMenu(!showFilterMenu);
+                }}
+                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  showFilterMenu || statusFilter !== "all" || conditionFilter !== "all" || categoryFilter !== "all"
+                    ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800"
+                    : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-transparent"
+                }`}
+              >
+                <div className="relative">
+                  <Filter className="w-4 h-4" />
+                  {(statusFilter !== "all" || conditionFilter !== "all" || categoryFilter !== "all") && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-indigo-600 rounded-full border border-white dark:border-slate-800"></span>
+                  )}
+                </div>
+                Filters
+              </button>
+
+              {showFilterMenu && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-full mt-2 right-0 md:right-auto md:left-0 lg:right-0 lg:left-auto w-72 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 p-4 z-30 animate-in fade-in slide-in-from-top-2 duration-200"
+                >
+                    <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">Filter Products</h4>
+                        {(statusFilter !== "all" || conditionFilter !== "all" || categoryFilter !== "all") && (
+                            <button
+                                onClick={() => {
+                                    setStatusFilter("all");
+                                    setConditionFilter("all");
+                                    setCategoryFilter("all");
+                                }}
+                                className="text-xs text-indigo-600 font-medium hover:underline"
+                            >
+                                Clear All
+                            </button>
+                        )}
+                    </div>
+
+                  {/* Category Filter */}
+                  <div className="mb-4">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block px-1">
+                      Category
+                    </label>
+                    <select
+                      value={categoryFilter}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none text-slate-700 dark:text-slate-300"
+                    >
+                      <option value="all">All Categories</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Status Filter */}
+                  <div className="mb-4">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block px-1">
+                      Status
+                    </label>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none text-slate-700 dark:text-slate-300"
+                    >
+                      <option value="all">All Statuses</option>
+                      <option value="published">Published</option>
+                      <option value="draft">Draft</option>
+                    </select>
+                  </div>
+
+                  {/* Condition Filter */}
+                  <div className="mb-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block px-1">
+                      Condition
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { id: "all", label: "All" },
+                        { id: "new", label: "New" },
+                        { id: "used", label: "Used" },
+                        { id: "refurbished", label: "Refurbished" },
+                      ].map((cond) => (
+                        <button
+                          key={cond.id}
+                          onClick={() => setConditionFilter(cond.id)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                            conditionFilter === cond.id
+                              ? "bg-indigo-600 text-white shadow-sm"
+                              : "bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600"
+                          }`}
+                        >
+                          {cond.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1"></div>
             <div className="flex bg-slate-100/50 dark:bg-slate-900 rounded-lg p-1">
               <button
@@ -904,6 +1122,9 @@ export default function ProductsPage() {
                         <th className="p-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                           Price
                         </th>
+                         <th className="p-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                          Condition
+                        </th>
                         <th className="p-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                           Status
                         </th>
@@ -968,8 +1189,13 @@ export default function ProductsPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="p-4 text-sm font-bold text-slate-900 dark:text-white">
+                           <td className="p-4 text-sm text-slate-900 dark:text-white">
                             Rs {formatPrice(product.price)}
+                          </td>
+                          <td className="p-4">
+                            <span className={`px-2 py-1 rounded-lg text-[10px] font-bold border capitalize ${getConditionColor(product.condition)}`}>
+                                {product.condition || "N/A"}
+                            </span>
                           </td>
                           <td className="p-4">
                             <span
@@ -1047,22 +1273,28 @@ export default function ProductsPage() {
                               product.status
                             )}`}
                           >
-                            {product.is_local_draft ? (
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                Local Draft
-                              </span>
-                            ) : (
-                              product.status
-                            )}
-                          </span>
-                        </div>
-                      </div><div className="px-1 pb-2">
+                             {product.is_local_draft ? (
+                               <span className="flex items-center gap-1">
+                                 <Clock className="w-3 h-3" />
+                                 Local Draft
+                               </span>
+                             ) : (
+                               product.status
+                             )}
+                           </span>
+                           {product.condition && (
+                             <span className="backdrop-blur-md px-2 py-1 rounded-full text-[10px] font-bold border bg-white/10 text-white border-white/20 capitalize">
+                               {product.condition}
+                             </span>
+                           )}
+                         </div>
+                       </div>
+<div className="px-1 pb-2">
                         <div className="flex justify-between items-start mb-1">
-                          <h3 className="font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                          <h3 className="font-bold text-slate-900 dark:text-white line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                             {product.name}
                           </h3>
-                          <p className="font-bold text-indigo-600 dark:text-indigo-400">
+                          <p className="font-bold text-sm text-indigo-600 dark:text-indigo-400">
                             Rs {formatPrice(product.price)}
                           </p>
                         </div>

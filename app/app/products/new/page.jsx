@@ -48,8 +48,10 @@ const ProductRelationshipSelector = ({
   searchTerm,
   onSearchChange,
   results,
+  productDetailsMap, // Add map of product details
 }) => {
-  const toggleProduct = (id) => {
+  const toggleProduct = (product) => {
+    const id = product.id;
     if (selectedIds.includes(id)) {
       onUpdate(selectedIds.filter((item) => item !== id));
     } else {
@@ -122,7 +124,7 @@ const ProductRelationshipSelector = ({
                       </div>
                     </div>
                     <button
-                      onClick={() => toggleProduct(product.id)}
+                      onClick={() => toggleProduct(product)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                         selectedIds.includes(product.id)
                           ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100"
@@ -150,11 +152,12 @@ const ProductRelationshipSelector = ({
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-2">
-              {results
-                .filter((p) => selectedIds.includes(p.id))
-                .map((product) => (
+              {selectedIds.map((id) => {
+                const product = productDetailsMap[id];
+                if (!product) return null;
+                return (
                   <div
-                    key={product.id}
+                    key={id}
                     className="flex items-center justify-between p-3 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-900/30"
                   >
                     <div className="flex items-center gap-3">
@@ -181,13 +184,14 @@ const ProductRelationshipSelector = ({
                       </div>
                     </div>
                     <button
-                      onClick={() => toggleProduct(product.id)}
+                      onClick={() => toggleProduct(product)}
                       className="p-2 text-slate-400 hover:text-red-500 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -290,6 +294,7 @@ function CreateProductContent() {
     is_active: true,
     bundled_product_ids: [],
     compatible_product_ids: [],
+    condition: "new",
   });
 
   // MEDIA STATE
@@ -303,7 +308,6 @@ function CreateProductContent() {
   const [variants, setVariants] = useState([]);
   const [currentVariant, setCurrentVariant] = useState({
     variant_name: "",
-    condition: "new",
     sku: "",
     barcode: "",
     imei: "",
@@ -340,6 +344,64 @@ function CreateProductContent() {
   // Variant Editing State
   const [editingVariantId, setEditingVariantId] = useState(null);
   const [expandedVariantId, setExpandedVariantId] = useState(null);
+
+  // --- API FETCHING ---
+  const fetcher = async (url) => {
+    const data = await globalFetcher(url, session?.accessToken);
+    return data;
+  };
+
+  const { data: categoriesData } = useSWR(
+    session?.accessToken
+      ? [
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories`,
+          session.accessToken,
+        ]
+      : null,
+    ([url]) => globalFetcher(url, session.accessToken),
+  );
+
+  const { data: brandsData } = useSWR(
+    session?.accessToken
+      ? [
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/brands`,
+          session.accessToken,
+        ]
+      : null,
+    ([url]) => fetcher(url),
+  );
+
+  const { data: tagsData } = useSWR(
+    session?.accessToken
+      ? [
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/get/tags`,
+          session.accessToken,
+        ]
+      : null,
+    ([url]) => globalFetcher(url, session.accessToken),
+  );
+
+  const { data: featuresData } = useSWR(
+    session?.accessToken
+      ? [
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/get/features`,
+          session.accessToken,
+        ]
+      : null,
+    ([url]) => globalFetcher(url, session.accessToken),
+  );
+
+  const categories = categoriesData?.data?.data || [];
+  const brands = brandsData?.data?.data || [];
+  const availableTags = tagsData?.data || [];
+  const availableFeatures = featuresData?.data || [];
+
+  const isPhoneCategory = React.useMemo(() => {
+    if (!formData.category_id || !categories) return false;
+    const cat = categories.find(c => String(c.id) === String(formData.category_id));
+    const name = cat?.name?.toLowerCase() || "";
+    return (name.includes("phone") || name.includes("mobile")) && !name.includes("accessor");
+  }, [formData.category_id, categories]);
 
   const isFormValid =
     formData.name &&
@@ -486,6 +548,7 @@ function CreateProductContent() {
   const [debouncedProductSearch, setDebouncedProductSearch] = useState("");
   const [productSearchResults, setProductSearchResults] = useState([]);
   const [isSearchingProducts, setIsSearchingProducts] = useState(false);
+  const [productDetailsMap, setProductDetailsMap] = useState({}); // Stores details for all fetched/selected products
 
   // Debounce product search
   React.useEffect(() => {
@@ -508,7 +571,17 @@ function CreateProductContent() {
 
   React.useEffect(() => {
     if (searchResponse?.data?.data) {
-      setProductSearchResults(searchResponse.data.data);
+      const results = searchResponse.data.data;
+      setProductSearchResults(results);
+      
+      // Update details map with new results
+      setProductDetailsMap(prev => {
+        const next = { ...prev };
+        results.forEach(p => {
+          next[p.id] = p;
+        });
+        return next;
+      });
     }
   }, [searchResponse]);
 
@@ -566,9 +639,16 @@ function CreateProductContent() {
           if (product.variants && product.variants.length > 0) {
             setVariants(product.variants.map(v => ({
               ...v,
-              condition: v.condition || "new",
               variant_name: v.variant_name || "",
             })));
+            
+            // Set global condition from the first variant
+            if (product.variants[0]?.condition) {
+              setFormData(prev => ({
+                ...prev,
+                condition: product.variants[0].condition
+              }));
+            }
           }
 
           // Load specifications
@@ -597,6 +677,20 @@ function CreateProductContent() {
             const galleryUrls = product.images.map(img => getImageUrl(img.image_path));
             setGalleryImagePreviews(galleryUrls);
           }
+
+          // Build details map for existing relationships
+          const existingDetails = {};
+          if (product.bundled_products) {
+            product.bundled_products.forEach(p => existingDetails[p.id] = p);
+          }
+          if (product.compatible_products) {
+            product.compatible_products.forEach(p => existingDetails[p.id] = p);
+          }
+
+          setProductDetailsMap(prev => ({
+            ...prev,
+            ...existingDetails
+          }));
 
           toast.success("Product loaded for editing");
         } catch (error) {
@@ -659,65 +753,6 @@ function CreateProductContent() {
     galleryImageFiles,
     isLoading,
   ]);
-
-  // --- API FETCHING ---
-  const fetcher = async (url) => {
-    const data = await globalFetcher(url, session?.accessToken);
-    return data;
-  };
-
-  const { data: categoriesData } = useSWR(
-    session?.accessToken
-      ? [
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories`,
-          session.accessToken,
-        ]
-      : null,
-    ([url]) => globalFetcher(url, session.accessToken),
-  );
-
-  const { data: brandsData } = useSWR(
-    session?.accessToken
-      ? [
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/brands`,
-          session.accessToken,
-        ]
-      : null,
-    ([url]) => fetcher(url),
-  );
-
-  const { data: tagsData } = useSWR(
-    session?.accessToken
-      ? [
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/get/tags`,
-          session.accessToken,
-        ]
-      : null,
-    ([url]) => globalFetcher(url, session.accessToken),
-  );
-
-  const { data: featuresData } = useSWR(
-    session?.accessToken
-      ? [
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/get/features`,
-          session.accessToken,
-        ]
-      : null,
-    ([url]) => globalFetcher(url, session.accessToken),
-  );
-
-  const categories = categoriesData?.data?.data || [];
-  const brands = brandsData?.data?.data || [];
-  const availableTags = tagsData?.data || [];
-  const availableFeatures = featuresData?.data || [];
-
-  const isPhoneCategory = React.useMemo(() => {
-    if (!formData.category_id || !categories) return false;
-    const cat = categories.find(c => c.id === formData.category_id);
-    const name = cat?.name?.toLowerCase() || "";
-    return (name.includes("phone") || name.includes("mobile")) && !name.includes("accessor");
-  }, [formData.category_id, categories]);
-
 
   // Filter suggestions based on input
   const filteredTags = availableTags.filter(
@@ -972,6 +1007,7 @@ function CreateProductContent() {
     data.append("is_trending", formData.is_trending ? "1" : "0");
     data.append("is_active", formData.is_active ? "1" : "0");
     data.append("is_featured", formData.is_featured ? "1" : "0");
+    data.append("condition", formData.condition || "new");
 
     // Images
     if (heroImageFile) {
@@ -1009,7 +1045,6 @@ function CreateProductContent() {
     // Variants
     variants.forEach((variant, index) => {
       data.append(`variants[${index}][variant_name]`, variant.variant_name || "");
-      data.append(`variants[${index}][condition]`, variant.condition || "new");
       data.append(`variants[${index}][sku]`, variant.sku);
       data.append(`variants[${index}][barcode]`, variant.barcode || "");
       data.append(`variants[${index}][imei]`, variant.imei || "");
@@ -1050,12 +1085,12 @@ function CreateProductContent() {
     });
 
     // Product Relationships
-    formData.bundled_product_ids.forEach((id) => {
-      data.append("bundled_product_ids[]", id);
-    });
-    formData.compatible_product_ids.forEach((id) => {
-      data.append("compatible_product_ids[]", id);
-    });
+    if (formData.bundled_product_ids.length > 0) {
+      data.append("bundled_product_ids", formData.bundled_product_ids.join(","));
+    }
+    if (formData.compatible_product_ids.length > 0) {
+      data.append("compatible_product_ids", formData.compatible_product_ids.join(","));
+    }
 
     return data;
   };
@@ -1437,6 +1472,26 @@ function CreateProductContent() {
                           <option value="service">Service</option>
                         </select>
                         <ErrorText message={errors.type} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 block">
+                          Condition <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={formData.condition}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              condition: e.target.value,
+                            })
+                          }
+                          className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white"
+                        >
+                          <option value="new">New</option>
+                          <option value="used">Used</option>
+                          <option value="refurbished">Refurbished</option>
+                        </select>
+                        <ErrorText message={errors.condition} />
                       </div>
                     </div>
 
@@ -2026,6 +2081,7 @@ function CreateProductContent() {
                   searchTerm={productSearchTerm}
                   onSearchChange={setProductSearchTerm}
                   results={productSearchResults}
+                  productDetailsMap={productDetailsMap}
                 />
 
                 <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
@@ -2058,6 +2114,7 @@ function CreateProductContent() {
                   searchTerm={productSearchTerm}
                   onSearchChange={setProductSearchTerm}
                   results={productSearchResults}
+                  productDetailsMap={productDetailsMap}
                 />
 
                 <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
@@ -2115,26 +2172,6 @@ function CreateProductContent() {
                       </div>
                     )}
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                      <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                          Condition
-                        </label>
-                        <select
-                          value={currentVariant.condition}
-                          onChange={(e) =>
-                            setCurrentVariant({
-                              ...currentVariant,
-                              condition: e.target.value,
-                            })
-                          }
-                          className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                        >
-                          <option value="new">New</option>
-                          <option value="used">Used</option>
-                          <option value="refurbished">Refurbished</option>
-                        </select>
-                        <ErrorText message={editingVariantId ? errors[`variants.${variants.findIndex(v => v.id === editingVariantId)}.condition`] : null} />
-                      </div>
                       <div>
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
                           Variant Name <span className="text-slate-400 font-normal">(Optional)</span>
