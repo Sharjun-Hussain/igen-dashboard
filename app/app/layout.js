@@ -1,4 +1,6 @@
 import AdminLayoutClient from "./Components/AdminLayoutClient";
+import SidebarServer from "../Components/SidebarServer";
+import { cookies } from "next/headers";
 
 // --- SERVER-SIDE METADATA ---
 // This ensures that the title and favicon are stable from the first byte of HTML.
@@ -39,6 +41,16 @@ export async function generateMetadata() {
   };
 }
 
-export default function AdminLayout({ children }) {
-  return <AdminLayoutClient>{children}</AdminLayoutClient>;
+export default async function AdminLayout({ children }) {
+  const cookieStore = await cookies();
+  const isCollapsed = cookieStore.get("sidebar_collapsed")?.value === "true";
+
+  return (
+    <AdminLayoutClient
+      initialCollapsed={isCollapsed}
+      sidebar={<SidebarServer />}
+    >
+      {children}
+    </AdminLayoutClient>
+  );
 }

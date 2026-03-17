@@ -3,34 +3,31 @@
 import React, { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Menu, Bell, Search, ChevronRight, Plus, Box, Layers, Tag, Ticket, Smartphone, PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import Sidebar from "../../Components/SideBar";
+import { Menu, Bell, ChevronRight, Plus, Box, Layers, Tag, Ticket, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useRouter } from "next/navigation";
 import NextTopLoader from "nextjs-toploader";
-import { useSearch } from "../context/SearchContext";
 import GlobalSearch from "./GlobalSearch";
 import { useGlobalSettings } from "../context/GlobalSettingsContext";
 
-export default function AdminLayoutClient({ children }) {
+export default function AdminLayoutClient({ children, sidebar, initialCollapsed }) {
   const { dashboardTitle, faviconUrl } = useGlobalSettings();
   const pathname = usePathname();
-  const router = useRouter();
-
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(initialCollapsed);
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Persistence for sidebar state
+  // Sync with Sidebar events for layout padding
   useEffect(() => {
-    const saved = localStorage.getItem("sidebar_collapsed") === "true";
-    setIsCollapsed(saved);
+    const handleToggle = (e) => {
+      setIsCollapsed(e.detail);
+    };
+    window.addEventListener("sidebar_toggle", handleToggle);
+    return () => window.removeEventListener("sidebar_toggle", handleToggle);
   }, []);
 
   const toggleCollapse = () => {
-    const newState = !isCollapsed;
-    setIsCollapsed(newState);
-    localStorage.setItem("sidebar_collapsed", newState);
+    // Dispatch event so SidebarClient can react
+    window.dispatchEvent(new CustomEvent("sidebar_toggle_request"));
   };
 
   // Close dropdown when clicking outside
@@ -79,13 +76,8 @@ export default function AdminLayoutClient({ children }) {
         shadow="0 0 10px #4f46e5,0 0 5px #4f46e5"
       />
 
-      {/* Sidebar Component */}
-      <Sidebar
-        isOpen={sidebarOpen}
-        setIsOpen={setSidebarOpen}
-        isCollapsed={isCollapsed}
-        setIsCollapsed={toggleCollapse}
-      />
+      {/* Render Server-Provided Sidebar directly */}
+      {sidebar}
 
       {/* MAIN CONTENT AREA */}
       <div className={`flex flex-col min-h-screen transition-all duration-300 ${isCollapsed ? "lg:pl-20" : "lg:pl-64"}`}>
@@ -96,7 +88,7 @@ export default function AdminLayoutClient({ children }) {
           <div className="flex items-center gap-4">
             {/* Mobile Toggle */}
             <button
-              onClick={() => setSidebarOpen(true)}
+              onClick={() => window.dispatchEvent(new CustomEvent("sidebar_mobile_toggle", { detail: true }))}
               className="p-2 -ml-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 lg:hidden"
             >
               <Menu className="w-6 h-6" />

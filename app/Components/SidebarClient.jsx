@@ -4,37 +4,54 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useSession, signOut } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import {
+  ChevronRight,
+  LogOut,
+  X,
+  Layers,
+  Sun,
+  Moon,
+  LayoutDashboard, 
+  ShoppingBag, 
+  Users, 
+  ShoppingCart, 
+  Settings, 
+  BarChart3, 
+  Tag, 
+  MessageSquare, 
+  Monitor, 
+  ShieldCheck, 
+  History,
+  Lock
+} from "lucide-react";
+
+import { useGlobalSettings } from "../app/context/GlobalSettingsContext";
+import { setCookie } from "@/lib/cookies";
+
+const IconMap = {
   LayoutDashboard,
   ShoppingBag,
   Users,
   ShoppingCart,
   Settings,
-  ChevronRight,
-  LogOut,
   BarChart3,
-  X,
   Layers,
   Tag,
   MessageSquare,
-  Sun,
-  Moon,
-  Lock,
   Monitor,
   ShieldCheck,
   History,
-} from "lucide-react";
-
-import { useGlobalSettings } from "../app/context/GlobalSettingsContext";
+  Lock,
+};
 
 // --- FLOATING TOOLTIP COMPONENT ---
 const FloatingTooltip = ({ text, top, visible }) => {
   return (
     <div 
-      className={`fixed left-20 ml-3 px-2.5 py-1.5 bg-slate-900 dark:bg-slate-800 text-white text-[10px] font-bold rounded-lg pointer-events-none z-[9999] shadow-2xl border border-slate-700 dark:border-slate-700/50 transition-all duration-150 ease-out ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+      className={`fixed left-20 ml-3 px-2.5 py-1.5 bg-slate-900 dark:bg-slate-800 text-white text-[10px] font-bold rounded-lg pointer-events-none z-9999 shadow-2xl border border-slate-700 dark:border-slate-700/50 transition-all duration-150 ease-out ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
       style={{ top: `${top}px`, transform: 'translateY(-50%)' }}
     >
       {text}
@@ -66,104 +83,11 @@ const SCROLLBAR_STYLES = `
   }
 `;
 
-// --- MENU DATA ---
-const MENU_GROUPS = [
-  {
-    label: "Overview",
-    items: [
-      { title: "Dashboard", icon: LayoutDashboard, href: "/app" },
-      { title: "Analytics", icon: BarChart3, href: "/app/analytics" },
-    ],
-  },
-  {
-    label: "Product Catalog",
-    items: [
-      {
-        title: "Products",
-        icon: ShoppingBag,
-        href: "/app/products",
-        submenu: [
-          { title: "All Products", href: "/app/products" },
-          { title: "Add Product", href: "/app/products/new" },
-        ],
-      },
-      { title: "Categories", icon: Layers, href: "/app/categories" },
-      { title: "Brands", icon: Tag, href: "/app/brand" },
-    ],
-  },
-  {
-    label: "Sales Management",
-    items: [
-      { title: "Orders", icon: ShoppingCart, href: "/app/orders", badge: "12" },
-      { title: "Reviews", icon: MessageSquare, href: "/app/reviews" },
-    ],
-  },
-  {
-    label: "Promotions",
-    items: [
-      { title: "Coupons", icon: Tag, href: "/app/coupons" },
-    ],
-  },
-  {
-    label: "User Management",
-    items: [
-      { title: "Customers", icon: Users, href: "/app/customers" },
-      { title: "Staff", icon: ShieldCheck, href: "/app/users" },
-    ],
-  },
-  {
-    label: "Design & Content",
-    items: [
-      {
-        title: "Home Page",
-        icon: Monitor,
-        href: "#",
-        submenu: [
-          { title: "Hero Banners", href: "/app/cms/hero" },
-          { title: "Collections Grid", href: "/app/cms/collections" },
-          { title: "Flash Sales", href: "/app/cms/flash-sales" },
-          { title: "Promo Banners", href: "/app/cms/featured-sections" },
-          { title: "Promises", href: "/app/cms/promises" },
-          { title: "Product Showcase", href: "/app/cms/product-showcase" },
-          { title: "Delivery Process", href: "/app/cms/delivery-process" },
-          { title: "FAQs", href: "/app/cms/faqs" },
-          { title: "Header", href: "/app/cms/header" },
-          { title: "Footer", href: "/app/cms/footer" },
-        ],
-      },
-      {
-        title: "Shop Page",
-        icon: Monitor,
-        href: "#",
-        submenu: [
-          { title: "Shop Hero", href: "/app/cms/shop" },
-        ],
-      },
-      {
-        title: "Contact Page",
-        icon: Monitor,
-        href: "#",
-        submenu: [
-          { title: "Contact Hero", href: "/app/cms/contact" },
-        ],
-      },
-    ],
-  },
-  {
-    label: "Administration",
-    items: [
-      { title: "Settings", icon: Settings, href: "/app/settings" },
-      { title: "Activity Logs", icon: History, href: "/app/logs" },
-      { title: "Roles", icon: ShieldCheck, href: "/app/roles" },
-      { title: "Permissions", icon: Lock, href: "/app/permissions" },
-    ],
-  },
-];
-
-export default function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }) {
+export default function SidebarClient({ menuGroups, initialCollapsed, session, toggleSidebarMobile }) {
   const pathname = usePathname();
-  const { data: session } = useSession();
-  const { dashboardTitle, logoUrl } = useGlobalSettings();
+  const { dashboardTitle } = useGlobalSettings(); // logoUrl handled by layout/server usually
+  const [isCollapsed, setIsCollapsed] = useState(initialCollapsed);
+  const [isOpen, setIsOpen] = useState(false);
   const [openSubmenu, setOpenSubmenu] = useState("");
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -179,21 +103,53 @@ export default function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed
     setMounted(true);
   }, []);
 
+  // Update collapse state and cookie
+  const handleToggleCollapse = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    setCookie("sidebar_collapsed", newState.toString());
+    // Also notify parent if needed for layout adjustments
+    if (window.dispatchEvent) {
+      window.dispatchEvent(new CustomEvent("sidebar_toggle", { detail: newState }));
+    }
+  };
+
+  // Synchronize state if props change (though typically they won't)
+  useEffect(() => {
+    setIsCollapsed(initialCollapsed);
+  }, [initialCollapsed]);
+
+  // Listen for mobile overlay toggle
+  useEffect(() => {
+    const handleMobileToggle = (e) => setIsOpen(e.detail);
+    window.addEventListener("sidebar_mobile_toggle", handleMobileToggle);
+    return () => window.removeEventListener("sidebar_mobile_toggle", handleMobileToggle);
+  }, []);
+
+  // Listen for external toggle requests (e.g. from Header)
+  useEffect(() => {
+    const handleToggleRequest = () => {
+      handleToggleCollapse();
+    };
+    window.addEventListener("sidebar_toggle_request", handleToggleRequest);
+    return () => window.removeEventListener("sidebar_toggle_request", handleToggleRequest);
+  }, [isCollapsed]);
+
   // Auto-expand menu based on current path
   useEffect(() => {
     if (isCollapsed) return;
-    for (const group of MENU_GROUPS) {
+    for (const group of menuGroups) {
       for (const item of group.items) {
         if (item.submenu && item.submenu.some((sub) => sub.href === pathname)) {
           setOpenSubmenu(item.title);
         }
       }
     }
-  }, [pathname, isCollapsed]);
+  }, [pathname, isCollapsed, menuGroups]);
 
   const toggleSubmenu = (title) => {
     if (isCollapsed) {
-        setIsCollapsed(false);
+        handleToggleCollapse();
         setOpenSubmenu(title);
         return;
     }
@@ -314,7 +270,7 @@ export default function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed
 
         {/* 2. NAVIGATION LINKS */}
         <div className={`flex-1 overflow-y-auto ${isCollapsed ? 'no-scrollbar overflow-x-hidden' : 'p-4'} py-6 space-y-8 custom-tiny-scrollbar`}>
-          {MENU_GROUPS.map((group, gIdx) => (
+          {menuGroups.map((group, gIdx) => (
             <div key={gIdx}>
               {!isCollapsed && (
                 <h3 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 px-3 animate-in fade-in duration-300">
@@ -349,9 +305,9 @@ export default function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed
                             }`}
                         >
                           <div className="flex items-center gap-3">
-                            <item.icon
-                              className={`w-5 h-5 shrink-0 ${isParentActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500 group-hover:text-indigo-600 dark:group-hover:text-white"}`}
-                            />
+                            {item.icon && IconMap[item.icon] && React.createElement(IconMap[item.icon], {
+                              className: `w-5 h-5 shrink-0 ${isParentActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500 group-hover:text-indigo-600 dark:group-hover:text-white"}`
+                            })}
                             {!isCollapsed && <span className="animate-in fade-in slide-in-from-left-1 duration-200">{item.title}</span>}
                           </div>
                           {!isCollapsed && (
@@ -378,9 +334,9 @@ export default function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed
                             }`}
                         >
                           <div className="flex items-center gap-3">
-                            <item.icon
-                              className={`w-5 h-5 shrink-0 ${isActive ? "text-white" : "text-slate-400 dark:text-slate-500 group-hover:text-indigo-600 dark:group-hover:text-white"}`}
-                            />
+                            {item.icon && IconMap[item.icon] && React.createElement(IconMap[item.icon], {
+                              className: `w-5 h-5 shrink-0 ${isActive ? "text-white" : "text-slate-400 dark:text-slate-500 group-hover:text-indigo-600 dark:group-hover:text-white"}`
+                            })}
                             {!isCollapsed && <span className="animate-in fade-in slide-in-from-left-1 duration-200">{item.title}</span>}
                           </div>
                           {!isCollapsed && item.badge && (
@@ -440,7 +396,7 @@ export default function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed
           >
             <div className="relative shrink-0">
                 <img
-                    src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=2000&auto=format&fit=crop"
+                    src={session?.user?.image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200" }
                     alt="Admin"
                     loading="lazy"
                     className="w-8 h-8 rounded-lg object-cover"
