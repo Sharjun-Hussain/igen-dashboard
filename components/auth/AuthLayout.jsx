@@ -1,5 +1,6 @@
 import React from "react";
 import { ShieldCheck } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
 
 /**
  * Server Component: AuthLayout
@@ -16,10 +17,10 @@ const AuthLayout = ({
   tagLabel = "Secure Access"
 }) => {
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-background overflow-hidden font-sans">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-background overflow-hidden font-sans relative">
       {/* --- LEFT PANEL: BRANDING --- */}
       <div className="animate-fade-in w-full lg:w-[45%] bg-[#1e293b] text-white p-8 lg:p-16 flex flex-col justify-between relative z-10">
-        {/* Header */}
+        {/* Header content ... */}
         <div className="animate-slide-up flex items-center gap-2 text-xl font-bold tracking-tight">
           <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-black/20 overflow-hidden p-1.5">
             <img 
@@ -67,6 +68,11 @@ const AuthLayout = ({
         <div className="animate-slide-up delay-300 w-full max-w-md">
           {children}
         </div>
+      </div>
+
+      {/* Theme Toggle: Small & Tiny in bottom right */}
+      <div className="absolute bottom-6 right-6 z-20 animate-fade-in delay-500">
+        <ThemeToggle />
       </div>
     </div>
   );
