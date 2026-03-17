@@ -17,9 +17,9 @@ const AuthLayout = ({
   tagLabel = "Secure Access"
 }) => {
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-background overflow-hidden font-sans relative">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-background overflow-x-hidden font-sans relative">
       {/* --- LEFT PANEL: BRANDING --- */}
-      <div className="animate-fade-in w-full lg:w-[45%] bg-[#1e293b] text-white p-8 lg:p-16 flex flex-col justify-between relative z-10">
+      <div className="animate-fade-in w-full lg:w-[45%] bg-[#1e293b] text-white p-8 lg:p-16 flex flex-col justify-between relative z-10 shrink-0">
         {/* Header content ... */}
         <div className="animate-slide-up flex items-center gap-2 text-xl font-bold tracking-tight">
           <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-black/20 overflow-hidden p-1.5">
@@ -64,8 +64,8 @@ const AuthLayout = ({
       </div>
 
       {/* --- RIGHT PANEL --- */}
-      <div className="animate-fade-in w-full lg:w-[55%] p-8 lg:p-16 flex flex-col justify-center items-center bg-white dark:bg-slate-950">
-        <div className="animate-slide-up delay-300 w-full max-w-md">
+      <div className="animate-fade-in w-full lg:flex-1 p-8 lg:p-16 flex flex-col justify-center items-center bg-white dark:bg-slate-950 relative">
+        <div className="animate-slide-up delay-300 w-full max-w-md relative">
           {children}
         </div>
       </div>

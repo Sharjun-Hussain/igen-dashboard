@@ -63,15 +63,15 @@ const ForgotPasswordForm = () => {
   }
 
   return (
-    <div className="w-full max-w-md relative">
+    <div className="w-full max-w-md relative animate-fade-in">
       <a
         href="/login"
-        className="absolute -top-20 left-0 text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-2 transition-colors animate-slide-up"
+        className="absolute -top-16 lg:-top-20 left-0 text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-2 transition-colors animate-slide-up"
       >
         <ArrowLeft className="w-4 h-4" /> Back to Login
       </a>
 
-      <div className="animate-slide-up delay-100 space-y-8">
+      <div className="animate-slide-up delay-100 space-y-8 relative">
         <div className="mb-8">
           <div className="w-14 h-14 bg-blue-50 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6">
             <KeyRound className="w-7 h-7 text-blue-600" />
