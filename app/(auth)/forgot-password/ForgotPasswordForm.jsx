@@ -4,7 +4,6 @@ import React, { useRef, useState } from "react";
 import { Mail, ArrowRight, CheckCircle2, ArrowLeft, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import AuthInput from "../../../components/auth/AuthInput";
-import { gsap } from "gsap";
 
 const ForgotPasswordForm = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -21,26 +20,12 @@ const ForgotPasswordForm = () => {
     }
 
     setEmailValue(email);
-    
-    // Simulate API call and success animation
-    gsap.to(".form-content", {
-      opacity: 0,
-      y: -20,
-      duration: 0.3,
-      onComplete: () => {
-        setIsSubmitted(true);
-        gsap.fromTo(
-          ".success-content",
-          { opacity: 0, y: 20 },
-          { opacity: 1, y: 0, duration: 0.4, delay: 0.1 }
-        );
-      },
-    });
+    setIsSubmitted(true);
   };
 
   if (isSubmitted) {
     return (
-      <div className="success-content text-center space-y-6 w-full max-w-md">
+      <div className="animate-slide-up text-center space-y-6 w-full max-w-md">
         <div className="w-20 h-20 bg-green-50 dark:bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 ring-8 ring-green-50/50 dark:ring-green-500/20">
           <CheckCircle2 className="w-10 h-10 text-green-600" />
         </div>
@@ -81,13 +66,13 @@ const ForgotPasswordForm = () => {
     <div className="w-full max-w-md relative">
       <a
         href="/login"
-        className="absolute -top-20 left-0 text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-2 transition-colors stagger-in"
+        className="absolute -top-20 left-0 text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-2 transition-colors animate-slide-up"
       >
         <ArrowLeft className="w-4 h-4" /> Back to Login
       </a>
 
-      <div className="form-content space-y-8">
-        <div className="mb-8 stagger-in">
+      <div className="animate-slide-up delay-100 space-y-8">
+        <div className="mb-8">
           <div className="w-14 h-14 bg-blue-50 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6">
             <KeyRound className="w-7 h-7 text-blue-600" />
           </div>
@@ -99,7 +84,7 @@ const ForgotPasswordForm = () => {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 stagger-in">
+        <form onSubmit={handleSubmit} className="space-y-6 animate-slide-up delay-200">
           <AuthInput
             ref={emailRef}
             label="Email Address"

@@ -1,11 +1,9 @@
 import React from "react";
 import { ShieldCheck } from "lucide-react";
-import AuthAnimationWrapper from "./AuthAnimationWrapper";
 
 /**
  * Server Component: AuthLayout
- * Provides the visual structure for auth pages.
- * Minimal client-side JS is used via AuthAnimationWrapper.
+ * Provides the visual structure for auth pages with lightweight CSS animations.
  */
 const AuthLayout = ({ 
   children, 
@@ -18,11 +16,11 @@ const AuthLayout = ({
   tagLabel = "Secure Access"
 }) => {
   return (
-    <AuthAnimationWrapper>
+    <div className="min-h-screen flex flex-col lg:flex-row bg-background overflow-hidden font-sans">
       {/* --- LEFT PANEL: BRANDING --- */}
-      <div className="left-panel w-full lg:w-[45%] bg-[#1e293b] text-white p-8 lg:p-16 flex flex-col justify-between relative z-10">
+      <div className="animate-fade-in w-full lg:w-[45%] bg-[#1e293b] text-white p-8 lg:p-16 flex flex-col justify-between relative z-10">
         {/* Header */}
-        <div className="flex items-center gap-2 text-xl font-bold tracking-tight stagger-in">
+        <div className="animate-slide-up flex items-center gap-2 text-xl font-bold tracking-tight">
           <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-black/20 overflow-hidden p-1.5">
             <img 
               src={logoUrl || "/igen_mobiles_logo.png"} 
@@ -34,19 +32,19 @@ const AuthLayout = ({
         </div>
 
         {/* Middle Content */}
-        <div className="max-w-md stagger-in my-12 lg:my-0">
+        <div className="max-w-md my-12 lg:my-0">
           {showTag && (
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-wider mb-6">
+            <div className="animate-slide-up delay-100 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-wider mb-6">
               <ShieldCheck className="w-4 h-4" /> {tagLabel}
             </div>
           )}
-          <h1 className="text-4xl lg:text-5xl font-bold mb-6 leading-tight whitespace-pre-line">
+          <h1 className="animate-slide-up delay-200 text-4xl lg:text-5xl font-bold mb-6 leading-tight whitespace-pre-line">
             {tagline}
           </h1>
-          <p className="text-slate-400 text-lg leading-relaxed">
+          <p className="animate-slide-up delay-300 text-slate-400 text-lg leading-relaxed">
             {description}
           </p>
-          <div className="mt-12 stagger-in">
+          <div className="animate-slide-up delay-400 mt-12">
             <a 
               href="https://igen.lk" 
               target="_blank" 
@@ -59,16 +57,18 @@ const AuthLayout = ({
         </div>
 
         {/* Footer */}
-        <div className="text-sm text-slate-500 stagger-in">
+        <div className="animate-slide-up delay-500 text-sm text-slate-500">
           {footerText}
         </div>
       </div>
 
       {/* --- RIGHT PANEL --- */}
-      <div className="right-panel w-full lg:w-[55%] p-8 lg:p-16 flex flex-col justify-center items-center bg-white dark:bg-slate-950">
-        {children}
+      <div className="animate-fade-in w-full lg:w-[55%] p-8 lg:p-16 flex flex-col justify-center items-center bg-white dark:bg-slate-950">
+        <div className="animate-slide-up delay-300 w-full max-w-md">
+          {children}
+        </div>
       </div>
-    </AuthAnimationWrapper>
+    </div>
   );
 };
 

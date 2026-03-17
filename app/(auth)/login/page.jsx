@@ -5,6 +5,11 @@ import { authOptions } from "@/lib/auth";
 import AuthLayout from "@/components/auth/AuthLayout";
 import LoginForm from "./LoginForm";
 
+export const metadata = {
+  title: "Login | Igen Admin Dashboard",
+  description: "Secure login for the Igen Admin Dashboard.",
+};
+
 /**
  * Optimized Server-Side Login Page
  * Handles immediate server-side redirection if already authenticated.

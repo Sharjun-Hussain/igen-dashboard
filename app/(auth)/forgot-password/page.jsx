@@ -5,6 +5,11 @@ import { authOptions } from "@/lib/auth";
 import AuthLayout from "@/components/auth/AuthLayout";
 import ForgotPasswordForm from "./ForgotPasswordForm";
 
+export const metadata = {
+  title: "Forgot Password | Igen Admin Dashboard",
+  description: "Recover your Igen account access securely.",
+};
+
 /**
  * Optimized Server-Side Forgot Password Page
  */

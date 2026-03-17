@@ -5,6 +5,11 @@ import { authOptions } from "@/lib/auth";
 import AuthLayout from "@/components/auth/AuthLayout";
 import ResetPasswordForm from "./ResetPasswordForm";
 
+export const metadata = {
+  title: "Reset Password | Igen Admin Dashboard",
+  description: "Set a new secure password for your Igen account.",
+};
+
 /**
  * Optimized Server-Side Reset Password Page
  */

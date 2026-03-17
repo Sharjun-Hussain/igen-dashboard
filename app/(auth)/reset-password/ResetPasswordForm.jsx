@@ -4,7 +4,6 @@ import React, { useRef, useState } from "react";
 import { Lock, ArrowRight, CheckCircle2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import AuthInput from "../../../components/auth/AuthInput";
-import { gsap } from "gsap";
 
 const ResetPasswordForm = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -26,25 +25,12 @@ const ResetPasswordForm = () => {
       return;
     }
 
-    // Simulate API call and success animation
-    gsap.to(".form-content", {
-      opacity: 0,
-      y: -20,
-      duration: 0.3,
-      onComplete: () => {
-        setIsSubmitted(true);
-        gsap.fromTo(
-          ".success-content",
-          { opacity: 0, y: 20 },
-          { opacity: 1, y: 0, duration: 0.4, delay: 0.1 }
-        );
-      },
-    });
+    setIsSubmitted(true);
   };
 
   if (isSubmitted) {
     return (
-      <div className="success-content text-center space-y-6 w-full max-w-md">
+      <div className="animate-slide-up text-center space-y-6 w-full max-w-md">
         <div className="w-20 h-20 bg-green-50 dark:bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 ring-8 ring-green-50/50 dark:ring-green-500/20">
           <CheckCircle2 className="w-10 h-10 text-green-600" />
         </div>
@@ -71,9 +57,9 @@ const ResetPasswordForm = () => {
   }
 
   return (
-    <div className="w-full max-w-md relative">
-      <div className="form-content space-y-8">
-        <div className="mb-8 stagger-in">
+    <div className="w-full max-w-md relative animate-slide-up">
+      <div className="space-y-8">
+        <div className="mb-8">
           <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
             Set new password
           </h2>
@@ -82,7 +68,7 @@ const ResetPasswordForm = () => {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 stagger-in">
+        <form onSubmit={handleSubmit} className="space-y-6 animate-slide-up delay-100">
           <AuthInput
             ref={passwordRef}
             label="New Password"
@@ -112,7 +98,7 @@ const ResetPasswordForm = () => {
           </button>
         </form>
 
-        <div className="text-center stagger-in">
+        <div className="text-center animate-slide-up delay-200">
           <a
             href="/login"
             className="text-sm font-bold text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 flex items-center justify-center gap-2 transition-colors"

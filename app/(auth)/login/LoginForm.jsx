@@ -52,7 +52,7 @@ const LoginForm = () => {
 
   return (
     <div className="max-w-md w-full">
-      <div className="mb-10 text-center lg:text-left stagger-in">
+      <div className="mb-10 text-center lg:text-left animate-slide-up">
         <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
           Log in to your account
         </h2>
@@ -61,7 +61,7 @@ const LoginForm = () => {
         </p>
       </div>
 
-      <div className="space-y-6 stagger-in">
+      <div className="space-y-6 animate-slide-up delay-100">
         <form className="space-y-5" onSubmit={onSubmit}>
           <AuthInput
             ref={emailRef}
