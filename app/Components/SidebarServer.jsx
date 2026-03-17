@@ -63,7 +63,7 @@ const ALL_MENU_GROUPS = [
         submenu: [
           { title: "Hero Banners", href: "/app/cms/hero" },
           { title: "Collections Grid", href: "/app/cms/collections" },
-          { title: "Flash Sales", href: "/app/cms/flash-sales" },
+          { title: "Trending Variants", href: "/app/cms/trending" },
           { title: "Promo Banners", href: "/app/cms/featured-sections" },
           { title: "Promises", href: "/app/cms/promises" },
           { title: "Product Showcase", href: "/app/cms/product-showcase" },

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
 import {
   Save,
   Clock,
@@ -17,7 +18,13 @@ import {
   Zap,
   ChevronRight,
   Timer,
+  RefreshCw,
+  AlertCircle,
+  Upload,
 } from "lucide-react";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const STORAGE_BASE = API_BASE?.replace("/api/v1", "");
 
 // --- INITIAL DATA ---
 
@@ -83,13 +90,103 @@ const INITIAL_SIDE_DEALS = [
   },
 ];
 
-export default function FlashSalesManager() {
+export default function TrendingVariantsManager() {
+  const { data: session } = useSession();
   const [headerData, setHeaderData] = useState(INITIAL_SECTION_HEADER);
   const [mainDeal, setMainDeal] = useState(INITIAL_MAIN_DEAL);
-  const [sideDeals, setSideDeals] = useState(INITIAL_SIDE_DEALS);
+  const [sideDeals, setSideDeals] = useState([]); // Fetched from public API
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Previews
+  const [previews, setPreviews] = useState({ main_deal: null });
+  const imageRef = useRef(null);
+
+  // --- FETCH CMS & TRENDING DATA ---
+  useEffect(() => {
+    if (!session?.accessToken) return;
+
+    const fetchAllData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        // 1. Fetch CMS Config (Header & Main Deal)
+        const cmsRes = await fetch(`${API_BASE}/admin/cms`, {
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+            Accept: "application/json",
+          },
+        });
+        const cmsApiData = await cmsRes.json();
+        
+        let fetchedHeader = { ...INITIAL_SECTION_HEADER };
+        let fetchedMain = { ...INITIAL_MAIN_DEAL };
+
+        if (cmsRes.ok && cmsApiData?.data?.home) {
+          const sections = cmsApiData.data.home;
+
+          // Header
+          const headerSec = sections.trending_header || [];
+          if (headerSec.length > 0) {
+            const mapped = {};
+            headerSec.forEach(i => mapped[i.key] = i.value);
+            fetchedHeader = { ...fetchedHeader, ...mapped };
+          }
+
+          // Main Deal
+          const mainSec = sections.trending_main || [];
+          if (mainSec.length > 0) {
+            const mapped = {};
+            mainSec.forEach(i => mapped[i.key] = i.value);
+            if (mapped.image && !mapped.image.startsWith("http")) {
+              mapped.image = `${STORAGE_BASE}/${mapped.image}`;
+            }
+            fetchedMain = { ...fetchedMain, ...mapped };
+          }
+        }
+
+        setHeaderData(fetchedHeader);
+        setMainDeal(fetchedMain);
+
+        // 2. Fetch Public Trending Variants
+        const trendingRes = await fetch(`${API_BASE}/public/trending-variants`, {
+          headers: { Accept: "application/json" },
+        });
+        const trendingApiData = await trendingRes.json();
+        
+        if (trendingRes.ok && trendingApiData.data) {
+          // Map API data to UI structure
+          const mappedDeals = trendingApiData.data.slice(0, 4).map((variant, idx) => ({
+            id: `deal_${variant.id}`,
+            type: "side_deal",
+            brand: variant.product?.slug?.split('-')[0]?.toUpperCase() || "BRAND", // Fallback assumption
+            name: variant.product?.name || variant.variant_name,
+            originalPrice: `Rs. ${parseFloat(variant.price).toLocaleString()}`,
+            salePrice: `Rs. ${parseFloat(variant.sales_price || variant.price).toLocaleString()}`,
+            rating: (variant.average_rating || 5).toString(),
+            image: variant.product?.primary_image_path 
+              ? `${STORAGE_BASE}/${variant.product.primary_image_path}`
+              : "https://via.placeholder.com/150",
+            badge: variant.is_offer ? "SALE" : (idx === 0 ? "HOT" : "NEW"), 
+          }));
+          setSideDeals(mappedDeals);
+        }
+
+      } catch (err) {
+        console.warn("Failed to load trending data:", err);
+        setError("Failed to load data. Showing defaults.");
+        setSideDeals(INITIAL_SIDE_DEALS); // Fallback to initial if public API fails
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAllData();
+  }, [session]);
 
   // --- HANDLERS ---
   const handleUpdate = (e) => {
@@ -102,22 +199,93 @@ export default function FlashSalesManager() {
       setHeaderData((prev) => ({ ...prev, [name]: value }));
     } else if (selectedItem.type === "main_deal") {
       setMainDeal((prev) => ({ ...prev, [name]: value }));
-    } else if (selectedItem.type === "side_deal") {
-      setSideDeals((prev) =>
-        prev.map((d) =>
-          d.id === selectedItem.id ? { ...d, [name]: value } : d,
-        ),
-      );
     }
   };
 
-  const handleSave = () => {
-    setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
-      alert("Flash Sales Updated!");
-    }, 800);
+  const handleImageChange = (e, type) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviews(prev => ({ ...prev, [type]: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
+
+  const handleSave = async () => {
+    if (!session?.accessToken) return;
+    setIsSaving(true);
+    setSaveSuccess(false);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      let idx = 0;
+
+      const append = (section, key, value, type) => {
+        formData.append(`contents[${idx}][page]`, "home");
+        formData.append(`contents[${idx}][section]`, section);
+        formData.append(`contents[${idx}][key]`, key);
+        formData.append(`contents[${idx}][type]`, type);
+        if (value instanceof File) {
+          formData.append(`contents[${idx}][value]`, value);
+        } else {
+          formData.append(`contents[${idx}][value]`, value || "");
+        }
+        idx++;
+      };
+
+      // Header
+      append("trending_header", "badge", headerData.badge, "text");
+      append("trending_header", "title", headerData.title, "text");
+      append("trending_header", "linkText", headerData.linkText, "text");
+
+      // Main Deal
+      append("trending_main", "endTime", mainDeal.endTime, "text");
+      append("trending_main", "productName", mainDeal.productName, "text");
+      append("trending_main", "salePrice", mainDeal.salePrice, "text");
+      append("trending_main", "originalPrice", mainDeal.originalPrice, "text");
+      append("trending_main", "saveAmount", mainDeal.saveAmount, "text");
+      append("trending_main", "tag", mainDeal.tag, "text");
+      append("trending_main", "discountBadge", mainDeal.discountBadge, "text");
+      
+      const dealFile = imageRef.current?.files[0];
+      if (dealFile) {
+        append("trending_main", "image", dealFile, "image");
+      }
+
+      const res = await fetch(`${API_BASE}/admin/cms/update`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.accessToken}`,
+          Accept: "application/json",
+        },
+        body: formData,
+      });
+
+      const resData = await res.json();
+      if (!res.ok) throw new Error(resData.message || "Save failed");
+
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin mx-auto mb-3" />
+          <p className="text-slate-600 dark:text-slate-400 font-medium">Loading Trending CMS data…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans">
@@ -126,26 +294,35 @@ export default function FlashSalesManager() {
         <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-6 flex justify-between items-center sticky top-0 z-10 shrink-0">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              Flash Sales Manager
+              Trending Variants Manager
             </h1>
             <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-              Manage your "Deals of the Week" timer and products.
+              Manage your trending header and featured deal. Right side fetches live variants.
             </p>
           </div>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-50"
-          >
-            {isSaving ? (
-              "Saving..."
-            ) : (
-              <>
-                <Save className="w-4 h-4" /> Save Changes
-              </>
+          <div className="flex items-center gap-3">
+            {saveSuccess && (
+              <span className="flex items-center gap-1.5 text-sm font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-lg border border-emerald-100 dark:border-emerald-800">
+                <CheckCircle2 className="w-4 h-4" /> Saved!
+              </span>
             )}
-          </button>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-50"
+            >
+              {isSaving ? "Saving..." : <><Save className="w-4 h-4" /> Save Changes</>}
+            </button>
+          </div>
         </header>
+
+        {error && (
+          <div className="mx-8 mt-4 flex items-start gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm text-red-600">
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <p className="flex-1">{error}</p>
+            <button onClick={() => setError(null)}><X className="w-4 h-4" /></button>
+          </div>
+        )}
 
         {/* --- PREVIEW CANVAS --- */}
         <div className="flex-1 p-8 md:p-12 overflow-x-hidden">
@@ -192,9 +369,9 @@ export default function FlashSalesManager() {
                 `}
               >
                 {/* Background Image Effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-900 to-transparent z-0"></div>
+                <div className="absolute inset-0 bg-linear-to-br from-slate-900 via-slate-900 to-transparent z-0"></div>
                 <img
-                  src={mainDeal.image}
+                  src={previews.main_deal || mainDeal.image}
                   className="absolute bottom-[-10%] right-[-10%] w-[80%] h-auto object-contain z-0 opacity-50 md:opacity-100 transition-transform duration-700 group-hover:scale-105 group-hover:rotate-1"
                   alt="Main Deal"
                 />
@@ -476,100 +653,44 @@ export default function FlashSalesManager() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block flex items-center gap-2">
-                      <ImageIcon className="w-3 h-3" /> Image URL
+                    <label className="text-xs font-bold text-slate-500 uppercase mb-1 flex items-center gap-2">
+                      <ImageIcon className="w-3 h-3" /> Image Upload
                     </label>
-                    <input
-                      name="image"
-                      value={mainDeal.image}
-                      onChange={handleUpdate}
-                      className="input-field text-xs"
-                    />
+                    <div className="mt-2 flex items-center justify-center w-full">
+                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 dark:bg-slate-900 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <Upload className="w-6 h-6 mb-2 text-slate-500" />
+                          <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
+                            Click to upload new image
+                          </p>
+                        </div>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          ref={imageRef}
+                          onChange={(e) => handleImageChange(e, "main_deal")}
+                        />
+                      </label>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* --- SIDE DEAL EDITOR --- */}
+              {/* --- SIDE DEAL EDITOR (REMOVED) --- */}
               {selectedItem.type === "side_deal" && (
                 <div className="space-y-4">
-                  <div className="w-24 h-24 mx-auto bg-slate-100 dark:bg-slate-800 rounded-xl p-2">
-                    <img
-                      src={selectedItem.image}
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">
-                      Product Name
-                    </label>
-                    <input
-                      name="name"
-                      value={selectedItem.name}
-                      onChange={handleUpdate}
-                      className="input-field font-bold"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">
-                        Sale Price
-                      </label>
-                      <input
-                        name="salePrice"
-                        value={selectedItem.salePrice}
-                        onChange={handleUpdate}
-                        className="input-field"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">
-                        Original
-                      </label>
-                      <input
-                        name="originalPrice"
-                        value={selectedItem.originalPrice}
-                        onChange={handleUpdate}
-                        className="input-field"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">
-                        Brand
-                      </label>
-                      <input
-                        name="brand"
-                        value={selectedItem.brand}
-                        onChange={handleUpdate}
-                        className="input-field"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">
-                        Corner Badge
-                      </label>
-                      <input
-                        name="badge"
-                        value={selectedItem.badge}
-                        onChange={handleUpdate}
-                        className="input-field"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block flex items-center gap-2">
-                      <ImageIcon className="w-3 h-3" /> Image URL
-                    </label>
-                    <input
-                      name="image"
-                      value={selectedItem.image}
-                      onChange={handleUpdate}
-                      className="input-field text-xs"
-                    />
+                  <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800 text-sm text-amber-700 dark:text-amber-400">
+                    <p className="font-bold flex items-center gap-2 mb-1">
+                      <Zap className="w-4 h-4" /> Live Data
+                    </p>
+                    <p>
+                      These items are automatically fetched from trending variants. You cannot edit them from the CMS.
+                    </p>
                   </div>
                 </div>
               )}
+
             </div>
 
             <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">

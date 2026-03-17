@@ -98,6 +98,14 @@ export default function SidebarClient({ menuGroups, initialCollapsed, session, t
   const logoutOverlayRef = useRef(null);
   const logoutContentRef = useRef(null);
 
+  // --- COMPUTE USER IMAGE ---
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "");
+  const userImage = session?.user?.image
+    ? session.user.image.startsWith("http")
+      ? session.user.image
+      : `${baseUrl}/${session.user.image}`
+    : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200";
+
   // Handle hydration mismatch
   useEffect(() => {
     setMounted(true);
@@ -396,7 +404,7 @@ export default function SidebarClient({ menuGroups, initialCollapsed, session, t
           >
             <div className="relative shrink-0">
                 <img
-                    src={session?.user?.image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200" }
+                    src={userImage}
                     alt="Admin"
                     loading="lazy"
                     className="w-8 h-8 rounded-lg object-cover"
