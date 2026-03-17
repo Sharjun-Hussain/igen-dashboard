@@ -291,6 +291,7 @@ function CreateProductContent() {
     full_description: "",
     is_featured: false,
     is_trending: false,
+    is_new_arrival: false,
     is_active: true,
     bundled_product_ids: [],
     compatible_product_ids: [],
@@ -324,6 +325,7 @@ function CreateProductContent() {
     is_trending: false,
     is_active: true,
     is_featured: false,
+    is_new_arrival: false,
   });
 
   // INPUT BUFFERS
@@ -630,6 +632,7 @@ function CreateProductContent() {
             full_description: product.full_description || "",
             is_featured: product.is_featured || false,
             is_trending: product.is_trending || false,
+            is_new_arrival: product.is_new_arrival || false,
             is_active: product.is_active || false,
             bundled_product_ids: product.bundled_products?.map(p => p.id) || [],
             compatible_product_ids: product.compatible_products?.map(p => p.id) || [],
@@ -930,6 +933,7 @@ function CreateProductContent() {
       is_trending: false,
       is_active: true,
       is_featured: false,
+      is_new_arrival: false,
     });
   };
 
@@ -1007,6 +1011,7 @@ function CreateProductContent() {
     data.append("is_trending", formData.is_trending ? "1" : "0");
     data.append("is_active", formData.is_active ? "1" : "0");
     data.append("is_featured", formData.is_featured ? "1" : "0");
+    data.append("is_new_arrival", formData.is_new_arrival ? "1" : "0");
     data.append("condition", formData.condition || "new");
 
     // Images
@@ -1081,6 +1086,10 @@ function CreateProductContent() {
       data.append(
         `variants[${index}][is_featured]`,
         variant.is_featured ? "1" : "0",
+      );
+      data.append(
+        `variants[${index}][is_new_arrival]`,
+        variant.is_new_arrival ? "1" : "0",
       );
     });
 
@@ -1617,6 +1626,19 @@ function CreateProductContent() {
                             }
                           />
                           <span className="text-sm">Trending</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <CustomCheckbox
+                            id="is_new_arrival"
+                            checked={formData.is_new_arrival}
+                            onCheckedChange={(checked) =>
+                              setFormData({
+                                ...formData,
+                                is_new_arrival: !!checked,
+                              })
+                            }
+                          />
+                          <span className="text-sm">New Arrival</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer">
                           <CustomCheckbox
@@ -2473,6 +2495,19 @@ function CreateProductContent() {
                         />
                         <span className="text-sm">Featured</span>
                       </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <CustomCheckbox
+                          id="variant_is_new_arrival"
+                          checked={currentVariant.is_new_arrival}
+                          onCheckedChange={(checked) =>
+                            setCurrentVariant({
+                              ...currentVariant,
+                              is_new_arrival: !!checked,
+                            })
+                          }
+                        />
+                        <span className="text-sm">New Arrival</span>
+                      </label>
                     </div>
 
                     <div className="flex gap-3">
@@ -2776,6 +2811,7 @@ function CreateProductContent() {
                     full_description: "",
                     is_featured: false,
                     is_trending: false,
+                    is_new_arrival: false,
                     is_active: true,
                     bundled_product_ids: [],
                     compatible_product_ids: [],

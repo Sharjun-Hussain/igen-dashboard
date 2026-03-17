@@ -37,6 +37,7 @@ const ALL_MENU_GROUPS = [
     items: [
       { title: "Orders", icon: "ShoppingCart", href: "/app/orders", badge: "12", permission: "view-orders" },
       { title: "Reviews", icon: "MessageSquare", href: "/app/reviews", permission: "view-reviews" },
+      { title: "Inquiries", icon: "Mail", href: "/app/contacts", permission: "view-contacts" },
     ],
   },
   {
