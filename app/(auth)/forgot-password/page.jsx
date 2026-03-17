@@ -1,242 +1,60 @@
-"use client";
+import React from "react";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
+import AuthLayout from "@/components/auth/AuthLayout";
+import ForgotPasswordForm from "./ForgotPasswordForm";
 
-import React, { useRef, useState } from "react";
-import { gsap } from "gsap";
-import { useGSAP } from "@gsap/react";
-import {
-  ArrowLeft,
-  Mail,
-  ArrowRight,
-  ShieldCheck,
-  CheckCircle2,
-  KeyRound,
-} from "lucide-react";
-
-import { signIn, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useGlobalSettings } from "../../app/context/GlobalSettingsContext";
-
-// --- REUSABLE INPUT ---
-const Input = ({ label, className, icon: Icon, ...props }) => (
-  <div className="space-y-2 w-full relative">
-    {label && (
-      <label className="text-sm font-semibold text-slate-800 dark:text-slate-200">{label}</label>
-    )}
-    <div className="relative group">
-      {Icon && (
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none">
-          <Icon className="w-5 h-5" />
-        </div>
-      )}
-      <input
-        className={`flex h-12 w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:border-transparent transition-all duration-200 ${
-          Icon ? "pl-12" : ""
-        } ${className}`}
-        {...props}
-      />
-    </div>
-  </div>
-);
-
-// --- MAIN PAGE ---
-
-export default function ForgotPasswordPage() {
-  const containerRef = useRef(null);
-  const router = useRouter();
-  const { status } = useSession();
-  const { businessName, logoUrl, footerText } = useGlobalSettings();
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [email, setEmail] = useState("");
+/**
+ * Optimized Server-Side Forgot Password Page
+ */
+export default async function ForgotPasswordPage() {
+  const session = await getServerSession(authOptions);
 
   // Redirect if already authenticated
-  useEffect(() => {
-    if (status === "authenticated") {
-      router.push("/app");
-    }
-  }, [status, router]);
+  if (session) {
+    redirect("/app");
+  }
 
-  // GSAP Entrance
-  useGSAP(
-    () => {
-      const tl = gsap.timeline();
-
-      // Panel Entrance
-      tl.fromTo(
-        ".left-panel",
-        { x: -50, opacity: 0 },
-        { x: 0, opacity: 1, duration: 0.8 }
-      ).fromTo(
-        ".right-panel",
-        { x: 50, opacity: 0 },
-        { x: 0, opacity: 1, duration: 0.8 },
-        "<"
-      );
-
-      // Content Stagger
-      tl.fromTo(
-        ".stagger-in",
-        { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, stagger: 0.1, ease: "power2.out" },
-        "-=0.4"
-      );
-    },
-    { scope: containerRef }
-  );
-
-  // Handle Form Submit
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Simulate API call
-    if (email) {
-      // Animate out form
-      gsap.to(".form-content", {
-        opacity: 0,
-        y: -20,
-        duration: 0.3,
-        onComplete: () => {
-          setIsSubmitted(true);
-          // Animate in success
-          gsap.fromTo(
-            ".success-content",
-            { opacity: 0, y: 20 },
-            { opacity: 1, y: 0, duration: 0.4, delay: 0.1 }
-          );
-        },
-      });
-    }
+  // Fetch settings on the server
+  let settings = {
+    dashboardTitle: "Igen",
+    logoUrl: "/igen_mobiles_logo.png",
+    footerText: "© 2026 Igen LK. All rights reserved. | Powered by Inzeedo (PVT) Ltd"
   };
 
+  try {
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const res = await fetch(`${API_BASE}/admin/settings`, {
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      const data = json.data || {};
+      const BASE_URL = API_BASE ? new URL(API_BASE).origin : "";
+      
+      settings = {
+        dashboardTitle: data.admin_dashboard_title || "Igen",
+        logoUrl: data.site_logo ? (data.site_logo.startsWith('http') ? data.site_logo : `${BASE_URL}/${data.site_logo}`) : "/igen_mobiles_logo.png",
+        footerText: data.footer_text || "© 2026 Igen LK. All rights reserved. | Powered by Inzeedo (PVT) Ltd"
+      };
+    }
+  } catch (err) {
+    console.error("Forgot password settings fetch failed:", err);
+  }
+
   return (
-    <div
-      ref={containerRef}
-      className="min-h-screen flex flex-col lg:flex-row bg-background overflow-hidden font-sans"
+    <AuthLayout 
+      logoUrl={settings.logoUrl}
+      dashboardTitle={settings.dashboardTitle}
+      footerText={settings.footerText}
+      showTag={true}
+      tagLabel="Secure Recovery"
+      tagline="Secure Access, \nReliable Protection."
     >
-      {/* --- LEFT PANEL: BRANDING (Dark Blue) --- */}
-      <div className="left-panel w-full lg:w-[45%] bg-[#1e293b] text-white p-8 lg:p-16 flex flex-col justify-between relative z-10">
-        {/* Header */}
-        <div className="flex items-center gap-2 text-xl font-bold tracking-tight stagger-in">
-          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-black/20 overflow-hidden p-1.5">
-            <img src="/igen_mobiles_logo.png" alt="Igen" className="w-full h-full object-contain" />
-          </div>
-          Igen
-        </div>
-
-        {/* Middle Content */}
-        <div className="max-w-md stagger-in my-12 lg:my-0">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-wider mb-6">
-            <ShieldCheck className="w-4 h-4" /> Secure Recovery
-          </div>
-          <h1 className="text-4xl lg:text-5xl font-bold mb-6 leading-tight">
-            Secure Access, <br />Reliable Protection.
-          </h1>
-          <p className="text-slate-400 text-lg leading-relaxed">
-            Your security is our priority. Follow the simple steps to recover your 
-            account access securely.
-          </p>
-          <div className="mt-12 stagger-in">
-            <a 
-              href="https://igen.lk" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition-all shadow-lg shadow-blue-900/30"
-            >
-              Visit igen.lk
-            </a>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="text-sm text-slate-500 stagger-in">
-          {footerText}
-        </div>
-      </div>
-
-      {/* --- RIGHT PANEL: FORM AREA (White) --- */}
-      <div className="right-panel w-full lg:w-[55%] p-8 lg:p-16 flex flex-col justify-center items-center bg-white dark:bg-slate-950 relative">
-        <div className="max-w-md w-full relative">
-          {/* Back Button */}
-          <a
-            href="/login"
-            className="absolute -top-20 left-0 text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-2 transition-colors stagger-in"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Login
-          </a>
-
-          {!isSubmitted ? (
-            /* --- STATE 1: EMAIL FORM --- */
-            <div className="form-content space-y-8">
-              <div className="mb-8 stagger-in">
-                <div className="w-14 h-14 bg-blue-50 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6">
-                  <KeyRound className="w-7 h-7 text-blue-600" />
-                </div>
-                <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-                  Forgot Password?
-                </h2>
-                <p className="text-slate-500 dark:text-slate-400">
-                  No worries, we'll send you reset instructions.
-                </p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-6 stagger-in">
-                <Input
-                  label="Email Address"
-                  type="email"
-                  placeholder="Enter your email"
-                  icon={Mail}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-
-                <button
-                  type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 dark:shadow-none transition-all active:scale-[0.98] group"
-                >
-                  Send Reset Link
-                  <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-                </button>
-              </form>
-            </div>
-          ) : (
-            /* --- STATE 2: SUCCESS MESSAGE --- */
-            <div className="success-content text-center space-y-6">
-              <div className="w-20 h-20 bg-green-50 dark:bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 ring-8 ring-green-50/50 dark:ring-green-500/20">
-                <CheckCircle2 className="w-10 h-10 text-green-600" />
-              </div>
-              <div>
-                <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">
-                  Check your email
-                </h2>
-                <p className="text-slate-500 dark:text-slate-400 mb-2">
-                  We sent a password reset link to
-                </p>
-                <p className="font-bold text-slate-900 dark:text-slate-100 text-lg">{email}</p>
-              </div>
-
-              <p className="text-sm text-slate-400 max-w-xs mx-auto">
-                Didn't receive the email? Check your spam folder or{" "}
-                <button
-                  onClick={() => setIsSubmitted(false)}
-                  className="text-blue-600 font-bold hover:underline"
-                >
-                  try again
-                </button>
-                .
-              </p>
-
-              <div className="pt-6">
-                <a
-                  href="/login"
-                  className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" /> Back to Log In
-                </a>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+      <ForgotPasswordForm />
+    </AuthLayout>
   );
 }

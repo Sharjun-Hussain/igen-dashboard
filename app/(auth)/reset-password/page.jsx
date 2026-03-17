@@ -1,255 +1,60 @@
-"use client";
+import React from "react";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
+import AuthLayout from "@/components/auth/AuthLayout";
+import ResetPasswordForm from "./ResetPasswordForm";
 
-import React, { useRef, useState } from "react";
-import { gsap } from "gsap";
-import { useGSAP } from "@gsap/react";
-import {
-  ArrowLeft,
-  Lock,
-  Eye,
-  EyeOff,
-  ArrowRight,
-  ShieldCheck,
-  CheckCircle2,
-  Check,
-} from "lucide-react";
-
-import { signIn, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useGlobalSettings } from "../../app/context/GlobalSettingsContext";
-
-// --- REUSABLE INPUT COMPONENT ---
-const Input = ({ label, className, icon: Icon, type = "text", ...props }) => {
-  const [showPassword, setShowPassword] = useState(false);
-  const isPassword = type === "password";
-  const inputType = isPassword ? (showPassword ? "text" : "password") : type;
-
-  return (
-    <div className="space-y-2 w-full relative">
-      {label && (
-        <label className="text-sm font-semibold text-slate-800 dark:text-slate-200">{label}</label>
-      )}
-      <div className="relative group">
-        {Icon && (
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none">
-            <Icon className="w-5 h-5" />
-          </div>
-        )}
-        <input
-          type={inputType}
-          className={`flex h-12 w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:border-transparent transition-all duration-200 ${
-            Icon ? "pl-12" : ""
-          } ${isPassword ? "pr-12" : ""} ${className}`}
-          {...props}
-        />
-        {isPassword && (
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
-          >
-            {showPassword ? (
-              <EyeOff className="w-5 h-5" />
-            ) : (
-              <Eye className="w-5 h-5" />
-            )}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// --- MAIN PAGE ---
-
-export default function ResetPasswordPage() {
-  const containerRef = useRef(null);
-  const router = useRouter();
-  const { status } = useSession();
-  const { businessName, logoUrl, footerText } = useGlobalSettings();
-  const [isSubmitted, setIsSubmitted] = useState(false);
+/**
+ * Optimized Server-Side Reset Password Page
+ */
+export default async function ResetPasswordPage() {
+  const session = await getServerSession(authOptions);
 
   // Redirect if already authenticated
-  useEffect(() => {
-    if (status === "authenticated") {
-      router.push("/app");
-    }
-  }, [status, router]);
+  if (session) {
+    redirect("/app");
+  }
 
-  // GSAP Entrance
-  useGSAP(
-    () => {
-      const tl = gsap.timeline();
-
-      // Panel Entrance
-      tl.fromTo(
-        ".left-panel",
-        { x: -50, opacity: 0 },
-        { x: 0, opacity: 1, duration: 0.8 }
-      ).fromTo(
-        ".right-panel",
-        { x: 50, opacity: 0 },
-        { x: 0, opacity: 1, duration: 0.8 },
-        "<"
-      );
-
-      // Content Stagger
-      tl.fromTo(
-        ".stagger-in",
-        { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, stagger: 0.1, ease: "power2.out" },
-        "-=0.4"
-      );
-    },
-    { scope: containerRef }
-  );
-
-  // Handle Submit
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    // Animate out form
-    gsap.to(".form-content", {
-      opacity: 0,
-      y: -20,
-      duration: 0.3,
-      onComplete: () => {
-        setIsSubmitted(true);
-        // Animate in success
-        gsap.fromTo(
-          ".success-content",
-          { opacity: 0, y: 20 },
-          { opacity: 1, y: 0, duration: 0.4, delay: 0.1 }
-        );
-      },
-    });
+  // Fetch settings on the server
+  let settings = {
+    dashboardTitle: "Igen",
+    logoUrl: "/igen_mobiles_logo.png",
+    footerText: "© 2026 Igen LK. All rights reserved. | Powered by Inzeedo (PVT) Ltd"
   };
 
+  try {
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const res = await fetch(`${API_BASE}/admin/settings`, {
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      const data = json.data || {};
+      const BASE_URL = API_BASE ? new URL(API_BASE).origin : "";
+      
+      settings = {
+        dashboardTitle: data.admin_dashboard_title || "Igen",
+        logoUrl: data.site_logo ? (data.site_logo.startsWith('http') ? data.site_logo : `${BASE_URL}/${data.site_logo}`) : "/igen_mobiles_logo.png",
+        footerText: data.footer_text || "© 2026 Igen LK. All rights reserved. | Powered by Inzeedo (PVT) Ltd"
+      };
+    }
+  } catch (err) {
+    console.error("Reset password settings fetch failed:", err);
+  }
+
   return (
-    <div
-      ref={containerRef}
-      className="min-h-screen flex flex-col lg:flex-row bg-background overflow-hidden font-sans"
+    <AuthLayout 
+      logoUrl={settings.logoUrl}
+      dashboardTitle={settings.dashboardTitle}
+      footerText={settings.footerText}
+      showTag={true}
+      tagLabel="Final Step"
+      tagline="Finalize Security, \nResume Shopping."
     >
-      {/* --- LEFT PANEL: BRANDING (Dark Blue) --- */}
-      <div className="left-panel w-full lg:w-[45%] bg-[#1e293b] text-white p-8 lg:p-16 flex flex-col justify-between relative z-10">
-        {/* Header */}
-        <div className="flex items-center gap-2 text-xl font-bold tracking-tight stagger-in">
-          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-black/20 overflow-hidden p-1.5">
-            <img src="/igen_mobiles_logo.png" alt="Igen" className="w-full h-full object-contain" />
-          </div>
-          Igen
-        </div>
-
-        {/* Middle Content */}
-        <div className="max-w-md stagger-in my-12 lg:my-0">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold mb-6">
-            <ShieldCheck className="w-4 h-4" /> Final Step
-          </div>
-          <h1 className="text-4xl lg:text-5xl font-bold mb-6 leading-tight">
-            Finalize Security, <br />Resume Shopping.
-          </h1>
-          <p className="text-slate-400 text-lg leading-relaxed">
-            One last step to secure your world. Set a strong password to protect your 
-            account and continue your journey with Igen.
-          </p>
-          <div className="mt-12 stagger-in">
-            <a 
-              href="https://igen.lk" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition-all shadow-lg shadow-blue-900/30"
-            >
-              Visit igen.lk
-            </a>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="text-sm text-slate-500 stagger-in">
-          {footerText}
-        </div>
-      </div>
-
-      {/* --- RIGHT PANEL: FORM AREA (White) --- */}
-      <div className="right-panel w-full lg:w-[55%] p-8 lg:p-16 flex flex-col justify-center items-center bg-white dark:bg-slate-950 relative">
-        <div className="max-w-md w-full relative">
-          {!isSubmitted ? (
-            /* --- STATE 1: RESET FORM --- */
-            <div className="form-content space-y-8">
-              <div className="mb-8 stagger-in">
-                <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-                  Set new password
-                </h2>
-                <p className="text-slate-500 dark:text-slate-400">
-                  Your new password must be different from previous used
-                  passwords.
-                </p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-6 stagger-in">
-                <Input
-                  label="New Password"
-                  type="password"
-                  placeholder="Create new password"
-                  icon={Lock}
-                  required
-                />
-                <Input
-                  label="Confirm Password"
-                  type="password"
-                  placeholder="Repeat new password"
-                  icon={Lock}
-                  required
-                />
-
-                <button
-                  type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 dark:shadow-none transition-all active:scale-[0.98] group mt-2"
-                >
-                  Reset Password
-                  <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-                </button>
-              </form>
-
-              <div className="text-center stagger-in">
-                <a
-                  href="/login"
-                  className="text-sm font-bold text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 flex items-center justify-center gap-2 transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" /> Back to Login
-                </a>
-              </div>
-            </div>
-          ) : (
-            /* --- STATE 2: SUCCESS MESSAGE --- */
-            <div className="success-content text-center space-y-6">
-              <div className="w-20 h-20 bg-green-50 dark:bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 ring-8 ring-green-50/50 dark:ring-green-500/20">
-                <CheckCircle2 className="w-10 h-10 text-green-600" />
-              </div>
-              <div>
-                <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">
-                  Password updated
-                </h2>
-                <p className="text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
-                  Your password has been successfully reset. Click below to log
-                  in securely.
-                </p>
-              </div>
-
-              <div className="pt-6">
-                <a
-                  href="/login"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 dark:shadow-none transition-all active:scale-[0.98] group"
-                >
-                  Continue to Login
-                  <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-                </a>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+      <ResetPasswordForm />
+    </AuthLayout>
   );
 }
