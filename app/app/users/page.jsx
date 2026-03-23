@@ -94,7 +94,7 @@ export default function UsersPage() {
   );
 
   const { data: rolesData } = useSWR(
-    session?.accessToken ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/roles` : null,
+    session?.accessToken ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/roles/list` : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -200,7 +200,7 @@ export default function UsersPage() {
 
   useEffect(() => {
     if (rolesData) {
-      setAllRoles(rolesData.data || []);
+      setAllRoles(rolesData || []);
     }
   }, [rolesData]);
 
