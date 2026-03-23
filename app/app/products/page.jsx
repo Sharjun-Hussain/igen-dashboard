@@ -639,6 +639,10 @@ export default function ProductsPage() {
   const [localDrafts, setLocalDrafts] = useState([]);
   const debouncedSearch = useDebounce(searchTerm, 500);
   const { mutate } = useSWRConfig();
+  const DRAFTS_KEY = useMemo(() => 
+    session?.user?.id ? `igen_product_drafts_${session.user.id}` : "igen_product_drafts",
+    [session?.user?.id]
+  );
 
   // --- FILTER STATES ---
   const [showFilterMenu, setShowFilterMenu] = useState(false);
@@ -660,13 +664,14 @@ export default function ProductsPage() {
 
   // Load local drafts
   useEffect(() => {
-    const drafts = JSON.parse(localStorage.getItem("igen_product_drafts") || "[]");
+    if (!session?.user?.id) return;
+    const drafts = JSON.parse(localStorage.getItem(DRAFTS_KEY) || "[]");
     setLocalDrafts(drafts);
-  }, []);
+  }, [DRAFTS_KEY, session]);
 
   const handleDeleteLocalDraft = (id) => {
     const updatedDrafts = localDrafts.filter((d) => d.id !== id);
-    localStorage.setItem("igen_product_drafts", JSON.stringify(updatedDrafts));
+    localStorage.setItem(DRAFTS_KEY, JSON.stringify(updatedDrafts));
     setLocalDrafts(updatedDrafts);
     toast.success("Local draft removed");
   };

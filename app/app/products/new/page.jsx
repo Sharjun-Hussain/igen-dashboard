@@ -242,6 +242,14 @@ function CreateProductContent() {
   const productId = searchParams.get("productId");
   const isEditMode = !!productId;
   const { data: session } = useSession();
+  const DRAFT_KEY = React.useMemo(() => 
+    session?.user?.id ? `igen_temp_product_create_draft_${session.user.id}` : "igen_temp_product_create_draft",
+    [session?.user?.id]
+  );
+  const DRAFTS_LIST_KEY = React.useMemo(() => 
+    session?.user?.id ? `igen_product_drafts_${session.user.id}` : "igen_product_drafts",
+    [session?.user?.id]
+  );
 
   const STEPS = [
     { id: "general", label: "General Info", icon: FileText },
@@ -499,7 +507,7 @@ function CreateProductContent() {
         selectedFeatures,
         updatedAt: new Date().toISOString(),
       };
-      localStorage.setItem("igen_temp_product_create_draft", JSON.stringify(draft));
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     }, 2000);
 
     return () => clearTimeout(timer);
@@ -509,7 +517,7 @@ function CreateProductContent() {
   React.useEffect(() => {
     if (isEditMode || draftId) return;
 
-    const saved = localStorage.getItem("igen_temp_product_create_draft");
+    const saved = localStorage.getItem(DRAFT_KEY);
     if (saved) {
       try {
         const draft = JSON.parse(saved);
@@ -537,11 +545,11 @@ function CreateProductContent() {
           },
           cancel: {
             label: "Discard",
-            onClick: () => localStorage.removeItem("igen_temp_product_create_draft"),
+            onClick: () => localStorage.removeItem(DRAFT_KEY),
           },
         });
       } catch (e) {
-        localStorage.removeItem("igen_temp_product_create_draft");
+        localStorage.removeItem(DRAFT_KEY);
       }
     }
   }, [isEditMode, draftId]);
@@ -1125,15 +1133,15 @@ function CreateProductContent() {
       };
 
       const existingDrafts = JSON.parse(
-        localStorage.getItem("igen_product_drafts") || "[]",
+        localStorage.getItem(DRAFTS_LIST_KEY) || "[]",
       );
       const otherDrafts = existingDrafts.filter((d) => d.id !== draftId);
       localStorage.setItem(
-        "igen_product_drafts",
+        DRAFTS_LIST_KEY,
         JSON.stringify([draftData, ...otherDrafts]),
       );
 
-      localStorage.removeItem("igen_temp_product_create_draft");
+      localStorage.removeItem(DRAFT_KEY);
       toast.success("Draft saved to local storage!");
       // Set isLoading to true briefly to bypass the beforeunload warning
       setIsLoading(true);
@@ -1195,11 +1203,11 @@ function CreateProductContent() {
       if (draftId) {
         try {
           const drafts = JSON.parse(
-            localStorage.getItem("igen_product_drafts") || "[]",
+            localStorage.getItem(DRAFTS_LIST_KEY) || "[]",
           );
           const updatedDrafts = drafts.filter((d) => d.id !== draftId);
           localStorage.setItem(
-            "igen_product_drafts",
+            DRAFTS_LIST_KEY,
             JSON.stringify(updatedDrafts),
           );
         } catch (e) {
@@ -1207,7 +1215,7 @@ function CreateProductContent() {
         }
       }
 
-      localStorage.removeItem("igen_temp_product_create_draft");
+      localStorage.removeItem(DRAFT_KEY);
 
       toast.success(
         `Product ${isEditMode ? "updated" : "created"} successfully!`,
@@ -2799,7 +2807,7 @@ function CreateProductContent() {
               onClick={() => {
                 if (window.confirm("Are you sure you want to discard this draft? All unsaved changes will be lost.")) {
                   // Clear local storage
-                  localStorage.removeItem("igen_temp_product_create_draft");
+                  localStorage.removeItem(DRAFT_KEY);
                   // Reset states
                   setFormData({
                     name: "",

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
 import useSWR, { useSWRConfig } from "swr";
 import { fetcher as globalFetcher } from "../../../lib/fetcher";
+import { sanitizeHtml } from "../../../lib/utils";
 import { toast } from "sonner";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -330,7 +331,7 @@ export default function RolesPage() {
       const data = await globalFetcher(url, session?.accessToken, {
         method,
         body: JSON.stringify({
-          name: formData.name,
+          name: sanitizeHtml(formData.name),
           is_protected: formData.is_protected,
           permissions: formData.permissions,
         }),
