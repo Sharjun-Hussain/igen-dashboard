@@ -673,16 +673,16 @@ export default function ProductsPage() {
 
   // Fetch Categories & Brands for Filter
   const { data: categoriesRes } = useSWR(
-    session?.accessToken ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories`, session.accessToken] : null,
+    session?.accessToken ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories/active/list`, session.accessToken] : null,
     ([url]) => fetcher(url)
   );
-  const categories = categoriesRes?.data?.data || [];
+  const categories = categoriesRes?.data || [];
 
   const { data: brandsRes } = useSWR(
-    session?.accessToken ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/brands`, session.accessToken] : null,
+    session?.accessToken ? [`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/brands/active/list`, session.accessToken] : null,
     ([url]) => fetcher(url)
   );
-  const brands = brandsRes?.data?.data || [];
+  const brands = brandsRes?.data || [];
 
   // Build API Query
   const buildApiUrl = () => {

@@ -40,10 +40,10 @@ export const SearchProvider = ({ children }) => {
                     fetch(`${baseUrl}/admin/products?search=${debouncedSearchTerm}`, {
                         headers: { Authorization: `Bearer ${token}` },
                     }).then((r) => r.json()),
-                    fetch(`${baseUrl}/admin/categories?search=${debouncedSearchTerm}`, {
+                    fetch(`${baseUrl}/admin/categories/active/list?search=${debouncedSearchTerm}`, {
                         headers: { Authorization: `Bearer ${token}` },
                     }).then((r) => r.json()),
-                    fetch(`${baseUrl}/admin/brands?search=${debouncedSearchTerm}`, {
+                    fetch(`${baseUrl}/admin/brands/active/list?search=${debouncedSearchTerm}`, {
                         headers: { Authorization: `Bearer ${token}` },
                     }).then((r) => r.json()),
                     fetch(`${baseUrl}/admin/coupons?search=${debouncedSearchTerm}`, {
@@ -53,8 +53,8 @@ export const SearchProvider = ({ children }) => {
 
                 setResults({
                     products: prodRes?.data?.data || [],
-                    categories: catRes?.data?.data || [],
-                    brands: brandRes?.data?.data || [],
+                    categories: catRes?.data || [],
+                    brands: brandRes?.data || [],
                     coupons: couponRes?.data?.data || [],
                 });
             } catch (error) {

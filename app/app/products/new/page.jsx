@@ -356,7 +356,7 @@ function CreateProductContent() {
   const { data: categoriesData } = useSWR(
     session?.accessToken
       ? [
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/categories/active/list`,
           session.accessToken,
         ]
       : null,
@@ -366,7 +366,7 @@ function CreateProductContent() {
   const { data: brandsData } = useSWR(
     session?.accessToken
       ? [
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/brands`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/brands/active/list`,
           session.accessToken,
         ]
       : null,
@@ -393,8 +393,8 @@ function CreateProductContent() {
     ([url]) => globalFetcher(url, session.accessToken),
   );
 
-  const categories = categoriesData?.data?.data || [];
-  const brands = brandsData?.data?.data || [];
+  const categories = categoriesData?.data || [];
+  const brands = brandsData?.data || [];
   const availableTags = tagsData?.data || [];
   const availableFeatures = featuresData?.data || [];
 
