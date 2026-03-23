@@ -89,7 +89,7 @@ export default function RolesPage() {
   );
 
   const { data: permissionsData } = useSWR(
-    session?.accessToken ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/permissions` : null,
+    session?.accessToken ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/permissions/list` : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -116,7 +116,7 @@ export default function RolesPage() {
 
   useEffect(() => {
     if (permissionsData) {
-      setAllPermissions(permissionsData.data || []);
+      setAllPermissions(permissionsData || []);
     }
   }, [permissionsData]);
 
