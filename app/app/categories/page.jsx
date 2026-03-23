@@ -35,6 +35,16 @@ function CategoriesContent() {
   const containerRef = useRef(null);
   const { data: session } = useSession();
   const { mutate } = useSWRConfig();
+
+  const userRoles = session?.user?.roles || [];
+  const isAdmin = userRoles.some(role => role.name === "Admin" || role.name === "Super Admin");
+
+  const hasPermission = (permissionName) => {
+    if (isAdmin) return true;
+    return userRoles.some(role => 
+      role.permissions?.some(p => p.name === permissionName)
+    );
+  };
   const [viewMode, setViewMode] = useState("grid"); // 'grid' | 'list'
   const searchParams = useSearchParams();
   
@@ -337,13 +347,15 @@ function CategoriesContent() {
           </div>
 
           <div className="animate-header flex items-center gap-3">
-            <button
-              onClick={handleOpenCreate}
-              className="group flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 will-change-transform"
-            >
-              <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-              <span>Create New</span>
-            </button>
+            {hasPermission("Category Create") && (
+              <button
+                onClick={handleOpenCreate}
+                className="group flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 will-change-transform"
+              >
+                <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                <span>Create New</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -470,24 +482,28 @@ function CategoriesContent() {
                           ID: #{cat.id}
                         </span>
                         <div className="flex gap-1 md:opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenEdit(cat);
-                            }}
-                            className="p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenDelete(cat);
-                            }}
-                            className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {hasPermission("Category Update") && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEdit(cat);
+                              }}
+                              className="p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {hasPermission("Category Delete") && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenDelete(cat);
+                              }}
+                              className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -556,18 +572,22 @@ function CategoriesContent() {
                           </td>
                           <td className="p-4 pr-8 text-right">
                             <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                              <button
-                                onClick={() => handleOpenEdit(cat)}
-                                className="p-2 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm rounded-lg transition-all"
-                              >
-                                <Edit3 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleOpenDelete(cat)}
-                                className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm rounded-lg transition-all"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              {hasPermission("Category Update") && (
+                                <button
+                                  onClick={() => handleOpenEdit(cat)}
+                                  className="p-2 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm rounded-lg transition-all"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </button>
+                              )}
+                              {hasPermission("Category Delete") && (
+                                <button
+                                  onClick={() => handleOpenDelete(cat)}
+                                  className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm rounded-lg transition-all"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>

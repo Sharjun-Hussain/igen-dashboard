@@ -42,6 +42,16 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [allRoles, setAllRoles] = useState([]);
 
+  const userRoles = session?.user?.roles || [];
+  const isAdmin = userRoles.some(role => role.name === "Admin" || role.name === "Super Admin");
+
+  const hasPermission = (permissionName) => {
+    if (isAdmin) return true;
+    return userRoles.some(role => 
+      role.permissions?.some(p => p.name === permissionName)
+    );
+  };
+
   // --- PAGINATION & SORTING STATES ---
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
@@ -354,13 +364,15 @@ export default function UsersPage() {
             </p>
           </div>
 
-          <button
-            onClick={handleOpenInvite}
-            className="animate-header group flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3.5 rounded-2xl font-bold text-sm shadow-xl shadow-indigo-600/20 active:scale-95 transition-all"
-          >
-            <UserPlus className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-            Invite User
-          </button>
+          {hasPermission("Admin User Create") && (
+            <button
+              onClick={handleOpenInvite}
+              className="animate-header group flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3.5 rounded-2xl font-bold text-sm shadow-xl shadow-indigo-600/20 active:scale-95 transition-all"
+            >
+              <UserPlus className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+              Invite User
+            </button>
+          )}
         </div>
 
         {/* 2. TOOLBAR */}
@@ -474,12 +486,16 @@ export default function UsersPage() {
                       Joined {new Date(user.created_at).toLocaleDateString()}
                     </span>
                     <div className="flex gap-1">
-                      <button onClick={() => handleOpenEdit(user)} className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-all">
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleOpenDelete(user)} className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-all">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {hasPermission("Admin User Update") && (
+                        <button onClick={() => handleOpenEdit(user)} className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-all">
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                      )}
+                      {hasPermission("Admin User Delete") && (
+                        <button onClick={() => handleOpenDelete(user)} className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-all">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -525,12 +541,16 @@ export default function UsersPage() {
                       </td>
                       <td className="p-4 pr-8 text-right">
                         <div className="flex justify-end gap-2">
-                          <button onClick={() => handleOpenEdit(user)} className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all">
-                            <Edit3 className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => handleOpenDelete(user)} className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {hasPermission("Admin User Update") && (
+                            <button onClick={() => handleOpenEdit(user)} className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all">
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                          )}
+                          {hasPermission("Admin User Delete") && (
+                            <button onClick={() => handleOpenDelete(user)} className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

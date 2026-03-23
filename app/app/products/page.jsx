@@ -264,12 +264,14 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <Link 
-                      href={`/app/products/new?productId=${productData.id}`}
-                      className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-sm font-bold  transition-colors text-center"
-                    >
-                      Edit Product
-                    </Link>
+                    {hasPermission("Product Update") && (
+                      <Link 
+                        href={`/app/products/new?productId=${productData.id}`}
+                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-sm font-bold  transition-colors text-center"
+                      >
+                        Edit Product
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>
@@ -404,9 +406,11 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
               {activeTab === "variants" && (
                 <div className="space-y-4">
                   <div className="flex justify-end">
-                     <button className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
+                    {hasPermission("Product Variant Create") && (
+                      <button className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
                         <Plus className="w-3 h-3" /> Add Variant
-                     </button>
+                      </button>
+                    )}
                   </div>
                   
                   <div className="space-y-3">
@@ -434,15 +438,17 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
                                     {variant.stock_quantity} in stock
                                 </p>
                              </div>
-                             <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  setDeleteVariant(variant);
-                                }}
-                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                             {hasPermission("Product Variant Delete") && (
+                               <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setDeleteVariant(variant);
+                                  }}
+                                  className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                             )}
                              <ChevronRight className="w-5 h-5 text-slate-400 group-open:rotate-90 transition-transform" />
                           </div>
                         </summary>
@@ -643,6 +649,16 @@ export default function ProductsPage() {
     session?.user?.id ? `igen_product_drafts_${session.user.id}` : "igen_product_drafts",
     [session?.user?.id]
   );
+  
+  const userRoles = session?.user?.roles || [];
+  const isAdmin = userRoles.some(role => role.name === "Admin" || role.name === "Super Admin");
+
+  const hasPermission = (permissionName) => {
+    if (isAdmin) return true;
+    return userRoles.some(role => 
+      role.permissions?.some(p => p.name === permissionName)
+    );
+  };
 
   // --- FILTER STATES ---
   const [showFilterMenu, setShowFilterMenu] = useState(false);
@@ -876,13 +892,15 @@ export default function ProductsPage() {
             </p>
           </div>
           <div className="animate-up">
-            <Link
-              href="/app/products/new"
-              className="group flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 will-change-transform"
-            >
-              <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-              <span>Add Product</span>
-            </Link>
+            {hasPermission("Product Create") && (
+              <Link
+                href="/app/products/new"
+                className="group flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 will-change-transform"
+              >
+                <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                <span>Add Product</span>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -1252,15 +1270,17 @@ export default function ProductsPage() {
                             </span>
                           </td>
                           <td className="p-4 pr-6 text-right">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteProduct(product);
-                              }}
-                              className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {hasPermission("Product Delete") && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteProduct(product);
+                                }}
+                                className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -1292,15 +1312,17 @@ export default function ProductsPage() {
                           <ImageIcon className="w-10 h-10 text-slate-300 dark:text-slate-600" />
                         )}
                         <div className="absolute top-3 right-3 flex gap-2">
-                           <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteProduct(product);
-                              }}
-                              className="p-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm text-slate-400 hover:text-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-sm"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                           {hasPermission("Product Delete") && (
+                             <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteProduct(product);
+                                }}
+                                className="p-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm text-slate-400 hover:text-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                           )}
                           <span
                             className={`backdrop-blur-md px-2 py-1 rounded-full text-xs font-bold border ${getStatusColor(
                               product.status

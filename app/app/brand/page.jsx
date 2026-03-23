@@ -37,6 +37,16 @@ import { Suspense } from "react";
 function BrandContent() {
   const { data: session } = useSession();
   const { mutate } = useSWRConfig();
+
+  const userRoles = session?.user?.roles || [];
+  const isAdmin = userRoles.some(role => role.name === "Admin" || role.name === "Super Admin");
+
+  const hasPermission = (permissionName) => {
+    if (isAdmin) return true;
+    return userRoles.some(role => 
+      role.permissions?.some(p => p.name === permissionName)
+    );
+  };
   const containerRef = useRef(null);
   const [brands, setBrands] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -463,13 +473,15 @@ function BrandContent() {
           </div>
 
           <div className="animate-header flex items-center gap-3">
-            <button
-              onClick={handleOpenCreate}
-              className="group flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 will-change-transform"
-            >
-              <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-              <span>Add Brand</span>
-            </button>
+            {hasPermission("Brand Create") && (
+              <button
+                onClick={handleOpenCreate}
+                className="group flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 will-change-transform"
+              >
+                <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                <span>Add Brand</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -609,12 +621,16 @@ function BrandContent() {
                           {brand.products_count || 0} Products
                         </span>
                         <div className="flex gap-1">
-                          <button onClick={() => handleOpenEdit(brand)} className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-all">
-                            <Edit3 className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => handleOpenDelete(brand)} className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-all">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {hasPermission("Brand Update") && (
+                            <button onClick={() => handleOpenEdit(brand)} className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-all">
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                          )}
+                          {hasPermission("Brand Delete") && (
+                            <button onClick={() => handleOpenDelete(brand)} className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-all">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -658,14 +674,18 @@ function BrandContent() {
                           <td className="p-4 text-sm text-slate-500 dark:text-slate-400 font-bold">
                             {brand.products_count || 0}
                           </td>
-                          <td className="p-4 pr-8 text-right">
+                           <td className="p-4 pr-8 text-right">
                             <div className="flex justify-end gap-2">
-                              <button onClick={() => handleOpenEdit(brand)} className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all">
-                                <Edit3 className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => handleOpenDelete(brand)} className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              {hasPermission("Brand Update") && (
+                                <button onClick={() => handleOpenEdit(brand)} className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all">
+                                  <Edit3 className="w-4 h-4" />
+                                </button>
+                              )}
+                              {hasPermission("Brand Delete") && (
+                                <button onClick={() => handleOpenDelete(brand)} className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
