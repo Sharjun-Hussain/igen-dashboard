@@ -6,6 +6,7 @@ import { useGSAP } from "@gsap/react";
 import useSWR from "swr";
 import { useSession, signOut } from "next-auth/react";
 import { fetcher as globalFetcher } from "../../../../lib/fetcher";
+import { sanitizeHtml } from "../../../../lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -1000,14 +1001,14 @@ function CreateProductContent() {
     const data = new FormData();
 
     // Basic fields
-    data.append("name", formData.name);
-    data.append("code", formData.code);
+    data.append("name", sanitizeHtml(formData.name));
+    data.append("code", sanitizeHtml(formData.code));
     data.append("category_id", formData.category_id);
     data.append("brand_id", formData.brand_id);
     data.append("type", formData.type);
     data.append("status", formData.status);
-    data.append("short_description", formData.short_description);
-    data.append("full_description", formData.full_description);
+    data.append("short_description", sanitizeHtml(formData.short_description));
+    data.append("full_description", sanitizeHtml(formData.full_description));
     data.append("is_trending", formData.is_trending ? "1" : "0");
     data.append("is_active", formData.is_active ? "1" : "0");
     data.append("is_featured", formData.is_featured ? "1" : "0");

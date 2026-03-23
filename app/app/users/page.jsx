@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
 import useSWR, { useSWRConfig } from "swr";
 import { fetcher as globalFetcher } from "../../../lib/fetcher";
+import { sanitizeHtml } from "../../../lib/utils";
 import { toast } from "sonner";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -282,7 +283,8 @@ export default function UsersPage() {
       const body = new FormData();
       Object.keys(formData).forEach(key => {
         if (formData[key] !== null && formData[key] !== "") {
-          body.append(key, formData[key]);
+          const value = typeof formData[key] === "string" ? sanitizeHtml(formData[key]) : formData[key];
+          body.append(key, value);
         }
       });
       
