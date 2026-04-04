@@ -29,6 +29,7 @@ import { Loader2 } from "lucide-react";
 import { Package } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { useMemo } from "react";
 
 // --- COMPONENTS ---
 
@@ -174,7 +175,7 @@ export default function Dashboard() {
             <h3 className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">
               {kpi.title}
             </h3>
-            <p className="text-2xl font-black text-slate-900 dark:text-white">{kpi.value}</p>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white">{kpi.value}</p>
           </div>
         ))}
       </div>
@@ -263,47 +264,47 @@ export default function Dashboard() {
             <div className="space-y-4">
               {recentOrders.length > 0 ? (
                 recentOrders.map((order, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-sm">
-                        <ShoppingBag className="w-5 h-5" />
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer group gap-4"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-10 h-10 shrink-0 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-sm">
+                          <ShoppingBag className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                            {order.order_number}
+                          </p>
+                          <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                            {order.date ? new Date(order.date).toLocaleDateString("en-US", { 
+                              month: "short", 
+                              day: "numeric", 
+                              hour: "2-digit", 
+                              minute: "2-digit" 
+                            }) : "N/A"}
+                          </p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-black text-slate-900 dark:text-white truncate">
-                          {order.order_number}
+                      <div className="text-right shrink-0 flex flex-col items-end gap-1">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                          Rs. {order.amount?.toLocaleString()}
                         </p>
-                        <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
-                          {order.date ? new Date(order.date).toLocaleDateString("en-US", { 
-                            month: "short", 
-                            day: "numeric", 
-                            hour: "2-digit", 
-                            minute: "2-digit" 
-                          }) : "N/A"}
-                        </p>
+                        <StatusBadge status={order.status} />
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-sm font-black text-slate-900 dark:text-white">
-                        Rs. {order.amount?.toLocaleString()}
-                      </p>
-                      <StatusBadge status={order.status} />
-                    </div>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <Package className="w-10 h-10 text-slate-200 dark:text-slate-700 mb-2" />
+                    <p className="text-sm text-slate-500">No recent orders</p>
                   </div>
-                ))
-              ) : (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <Package className="w-10 h-10 text-slate-200 dark:text-slate-700 mb-2" />
-                  <p className="text-sm text-slate-500">No recent orders</p>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-          <Link href="/app/orders" className="mt-4 w-full py-2 text-sm font-bold text-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors border border-transparent hover:border-blue-100 dark:hover:border-blue-900/30">
-            View All Orders
-          </Link>
+            <Link href="/app/orders" className="mt-4 w-full py-2 text-sm font-medium text-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors border border-transparent hover:border-blue-100 dark:hover:border-blue-900/30">
+              View All Orders
+            </Link>
         </div>
       </div>
     </div>
