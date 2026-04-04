@@ -16,6 +16,16 @@ const LoginForm = () => {
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
 
+  // Show message if session expired
+  React.useEffect(() => {
+    if (searchParams.get("expired") === "1") {
+      toast.warning("Your session has expired. Please log in again to continue.", {
+        duration: 5000,
+        id: "session-expired", // prevent duplicate toasts
+      });
+    }
+  }, [searchParams]);
+
   async function onSubmit(e) {
     e.preventDefault();
     

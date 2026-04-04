@@ -1,6 +1,9 @@
 import AdminLayoutClient from "./Components/AdminLayoutClient";
 import SidebarServer from "../Components/SidebarServer";
 import { cookies } from "next/headers";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../../lib/auth";
+import { redirect } from "next/navigation";
 
 // --- SERVER-SIDE METADATA ---
 // This ensures that the title and favicon are stable from the first byte of HTML.
@@ -42,6 +45,31 @@ export async function generateMetadata() {
 }
 
 export default async function AdminLayout({ children }) {
+  const session = await getServerSession(authOptions);
+
+  // Validate the token on the server before rendering the dashboard pages
+  if (session?.accessToken) {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/me`, {
+        headers: {
+          Authorization: `Bearer ${session.accessToken}`,
+          Accept: "application/json",
+        },
+        cache: 'no-store',
+      });
+      
+      // If the token is invalid/expired according to Laravel, force a redirect
+      if (res.status === 401 || res.status === 419) {
+        redirect("/login?expired=1");
+      }
+    } catch (err) {
+      console.error("Error validating token server-side:", err);
+    }
+  } else {
+    // No session token at all, probably NextAuth middleware caught it, but just in case
+    redirect("/login");
+  }
+
   const cookieStore = await cookies();
   const isCollapsed = cookieStore.get("sidebar_collapsed")?.value === "true";
 
