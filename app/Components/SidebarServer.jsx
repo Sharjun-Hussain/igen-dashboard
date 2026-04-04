@@ -12,7 +12,6 @@ const ALL_MENU_GROUPS = [
     label: "Overview",
     items: [
       { title: "Dashboard", icon: "LayoutDashboard", href: "/app", permission: "Order Statistics" },
-      { title: "Analytics", icon: "BarChart3", href: "/app/analytics", permission: "Order Statistics" },
     ],
   },
   {
