@@ -737,13 +737,13 @@ export default function UsersPage() {
           <div className="absolute inset-y-0 right-0 max-w-full flex">
             <div ref={formContentRef} className="w-screen max-w-md">
               <div className="h-full flex flex-col bg-white dark:bg-slate-800 shadow-2xl border-l border-slate-200 dark:border-slate-700">
-                <div className="p-8 border-b border-slate-100 dark:border-slate-700">
-                  <div className="flex items-center justify-between mb-6">
+                <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+                  <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg">
+                      <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl">
                         <UserPlus className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                       </div>
-                      <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                      <h2 className="text-xl font-semibold text-slate-900 dark:text-white tracking-tight">
                         {formMode === "invite" ? "Invite User" : "Edit User"}
                       </h2>
                     </div>
@@ -756,19 +756,19 @@ export default function UsersPage() {
                   </p>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-8 space-y-6">
+                <div className="flex-1 overflow-y-auto p-6 space-y-5">
                   {/* Profile Image Upload */}
-                  <div className="flex flex-col items-center mb-8">
+                  <div className="flex flex-col items-center mb-6">
                     <div className="relative group cursor-pointer" onClick={() => fileInputRef.current.click()}>
-                      <div className="w-24 h-24 rounded-3xl bg-slate-100 dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center group-hover:border-indigo-500 transition-all">
+                      <div className="w-20 h-20 rounded-2xl bg-slate-100 dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center group-hover:border-indigo-500 transition-all">
                         {imagePreview ? (
                           <img src={imagePreview} className="w-full h-full object-cover" alt="Preview" />
                         ) : (
-                          <Camera className="w-8 h-8 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                          <Camera className="w-6 h-6 text-slate-400 group-hover:text-indigo-500 transition-colors" />
                         )}
                       </div>
-                      <div className="absolute -bottom-2 -right-2 p-2 bg-indigo-600 rounded-xl shadow-lg text-white group-hover:scale-110 transition-transform">
-                        <Plus className="w-4 h-4" />
+                      <div className="absolute -bottom-1 -right-1 p-1.5 bg-indigo-600 rounded-lg shadow-lg text-white group-hover:scale-110 transition-transform">
+                        <Plus className="w-3.5 h-3.5" />
                       </div>
                     </div>
                     <input
@@ -778,48 +778,48 @@ export default function UsersPage() {
                       className="hidden"
                       accept="image/*"
                     />
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-4">Profile Image</p>
+                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mt-3 text-center">Profile Member</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Full Name</label>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider ml-1">Full Name</label>
                       <div className="relative group">
                         <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                         <input
                           type="text"
                           value={formData.name}
                           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all"
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all"
                           placeholder="John Doe"
                         />
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Username</label>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider ml-1">Username</label>
                       <div className="relative group">
                         <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                         <input
                           type="text"
                           value={formData.username}
                           onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all"
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all"
                           placeholder="johndoe123"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Email Address</label>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider ml-1">Email Address</label>
                     <div className="relative group">
                       <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                       <input
                         type="email"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all"
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all"
                         placeholder="john@example.com"
                         disabled={formMode === "edit"}
                       />
@@ -827,58 +827,66 @@ export default function UsersPage() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Password</label>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider ml-1">Password</label>
                       <div className="relative group">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                         <input
                           type="password"
                           value={formData.password}
                           onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all"
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all"
                           placeholder="••••••••"
                         />
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Confirm Password</label>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider ml-1">Confirm Password</label>
                       <div className="relative group">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                         <input
                           type="password"
                           value={formData.password_confirmation}
                           onChange={(e) => setFormData({ ...formData, password_confirmation: e.target.value })}
-                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all"
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all"
                           placeholder="••••••••"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Assign Role</label>
-                    <div className="relative group">
-                      <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
-                      <select
-                        value={formData.role}
-                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 outline-none transition-all appearance-none cursor-pointer"
-                      >
-                        <option value="">Select a role</option>
-                        {allRoles.map((role) => (
-                          <option key={role.id} value={role.name}>{role.name}</option>
-                        ))}
-                      </select>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider ml-1">Assign Roles</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {allRoles.map((role) => (
+                        <button
+                          key={role.id}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, role: role.id })}
+                          className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
+                            formData.role === role.id
+                              ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 shadow-sm"
+                              : "border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900"
+                          }`}
+                        >
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                             formData.role === role.id ? "border-indigo-600" : "border-slate-300 dark:border-slate-600"
+                          }`}>
+                            {formData.role === role.id && <div className="w-2 h-2 bg-indigo-600 rounded-full" />}
+                          </div>
+                          <span className="text-xs font-semibold">{role.name}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>
 
-                <div className="p-8 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 flex gap-4">
-                  <button onClick={closeFormWithAnim} className="flex-1 py-3.5 px-4 rounded-2xl font-bold text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                <div className="p-6 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 flex gap-4">
+                  <button onClick={closeFormWithAnim} className="flex-1 py-3 px-4 rounded-xl font-semibold text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                     Cancel
                   </button>
-                  <button onClick={handleSubmit} type="button" className="flex-2 py-3.5 px-4 rounded-2xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-600/20 transition-all transform active:scale-95">
+                  <button onClick={handleSubmit} type="button" className="flex-2 py-3 px-4 rounded-xl font-semibold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all transform active:scale-95">
                     {formMode === "invite" ? "Send Invitation" : "Update User"}
                   </button>
                 </div>
