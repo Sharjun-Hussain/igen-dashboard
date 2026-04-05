@@ -273,12 +273,27 @@ function CreateProductContent() {
 
   // Sync sidebar collapsed state from localStorage (matches layout.js)
   React.useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setStepperOrientation("horizontal");
+      } else {
+        setStepperOrientation("vertical");
+      }
+    };
+    
     const checkSidebar = () => {
       setSidebarCollapsed(localStorage.getItem("sidebar_collapsed") === "true");
     };
+
+    handleResize();
     checkSidebar();
+    
+    window.addEventListener("resize", handleResize);
     window.addEventListener("storage", checkSidebar);
-    return () => window.removeEventListener("storage", checkSidebar);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("storage", checkSidebar);
+    };
   }, []);
 
   const setActiveTab = (tabId) => {
@@ -1422,10 +1437,10 @@ function CreateProductContent() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8 transition-all">
         {/* ERROR BANNER */}
         {Object.keys(errors).length > 0 && (
-          <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-3 text-red-700 dark:text-red-400 animate-fade-up">
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-3 text-red-700 dark:text-red-400 animate-fade-up">
             <AlertCircle className="w-5 h-5" />
             <span className="font-semibold text-sm">
               Please fix the validation errors highlighted below.
@@ -1433,14 +1448,14 @@ function CreateProductContent() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8">
           {/* VERTICAL STEPPER (Side Navigation) */}
-          <div className="lg:col-span-3 sticky top-20 self-start z-40">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-              <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-6 px-2">
+          <div className={`md:col-span-4 lg:col-span-3 lg:sticky lg:top-24 self-start z-30 ${stepperOrientation === "horizontal" ? "hidden md:block" : "block"}`}>
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all overflow-hidden">
+              <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4 px-2">
                 Creation Progress
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {STEPS.map((step, idx) => {
                   const isCompleted = STEPS.findIndex(s => s.id === activeTab) > idx;
                   const isActive = activeTab === step.id;
@@ -1449,26 +1464,25 @@ function CreateProductContent() {
                     <button
                       key={step.id}
                       onClick={() => setActiveTab(step.id)}
-                      className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all duration-300 group
-                        ${isActive ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400" : 
+                      className={`w-full flex items-center gap-3 p-2.5 rounded-xl transition-all duration-300 group
+                        ${isActive ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 shadow-sm shadow-indigo-100/50" : 
                           "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900/50"}`}
                     >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-300 shrink-0
                         ${isActive ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : 
                           isCompleted ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600" : 
                           "bg-slate-100 dark:bg-slate-700 text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-600"}`}
                       >
-                        {isCompleted ? <Check className="w-4 h-4 stroke-[3px]" /> : <step.icon className="w-4 h-4" />}
+                        {isCompleted ? <Check className="w-3.5 h-3.5 stroke-[3px]" /> : <step.icon className="w-3.5 h-3.5" />}
                       </div>
-                      <div className="flex flex-col items-start truncate">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold truncate">{step.label}</span>
+                      <div className="flex flex-col items-start truncate min-w-0">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className={`text-[13px] font-bold truncate ${isActive ? "text-indigo-600" : "text-slate-600 dark:text-slate-300"}`}>{step.label}</span>
                           {!isStepComplete(step.id) && (
-                            <AlertCircle className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                            <AlertCircle className="w-3 h-3 text-amber-500 shrink-0" />
                           )}
                         </div>
-                        {isActive && <span className="text-[8px] font-medium opacity-70 uppercase tracking-tighter">Current Step</span>}
-                        {isCompleted && <span className="text-[8px] font-medium text-emerald-500 uppercase tracking-tighter">Completed</span>}
+                        {isActive && <span className="text-[7px] font-bold opacity-70 uppercase tracking-tighter">Current Step</span>}
                       </div>
                     </button>
                   );
@@ -1478,7 +1492,7 @@ function CreateProductContent() {
           </div>
 
           {/* --- MAIN CONTENT --- */}
-          <div className="lg:col-span-9 space-y-8">
+          <div className="md:col-span-8 lg:col-span-9 space-y-6 lg:space-y-8 min-w-0">
             {/* TAB CONTENT: GENERAL */}
             {activeTab === "general" && (
               <div className="space-y-6 animate-fade-up">
@@ -2838,65 +2852,90 @@ function CreateProductContent() {
         </div>
       </main>
 
-      {/* FIXED BOTTOM-RIGHT STATS PILL */}
-      <div className="fixed bottom-4 right-6 z-[100] flex items-center gap-2 px-4 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-full shadow-xl text-[10px] font-bold text-slate-500 dark:text-slate-400 transition-all duration-300">
-        <span className="shrink-0">VARIANTS: <span className="text-slate-900 dark:text-white">{variants.length}</span></span>
-        <span className="text-slate-300 dark:text-slate-600">|</span>
-        <span className="flex items-center gap-1 min-w-0">
-          CATEGORY: <span className="text-slate-900 dark:text-white uppercase ml-1 max-w-[100px] truncate">{categories.find(c => String(c.id) === String(formData.category_id))?.name || "N/A"}</span>
-        </span>
-        <span className="text-slate-300 dark:text-slate-600">|</span>
-        <span className="shrink-0">IMAGES: <span className="text-slate-900 dark:text-white">{galleryImagePreviews.length + (heroImagePreview ? 1 : 0)}</span></span>
-        <span className="text-slate-300 dark:text-slate-600">|</span>
-        <span className="shrink-0">SPECS: <span className="text-slate-900 dark:text-white">{specifications.length}</span></span>
-        {isDirty && (
-          <>
-            <span className="text-slate-300 dark:text-slate-600">|</span>
-            <span className="flex items-center gap-1 text-amber-500 whitespace-nowrap">
-              <AlertCircle className="w-3 h-3" /> Unsaved
-            </span>
-            <button
-              type="button"
+      {/* FIXED BOTTOM STATS & ERRORS */}
+      <div className="fixed bottom-4 left-6 right-6 z-[100] flex items-center justify-between pointer-events-none">
+        {/* Error FAB (Bottom Left) */}
+        {Object.keys(errors).length > 0 ? (
+          <div className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-full shadow-2xl animate-in zoom-in slide-in-from-bottom-5 duration-300 border border-red-500/50">
+            <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center font-black text-xs">
+              {Object.keys(errors).length}
+            </div>
+            <span className="text-xs font-black uppercase tracking-tight">Issues Detected</span>
+            <button 
               onClick={() => {
-                if (window.confirm("Are you sure you want to discard this draft? All unsaved changes will be lost.")) {
-                  // Clear local storage
-                  localStorage.removeItem(DRAFT_KEY);
-                  // Reset states
-                  setFormData({
-                    name: "",
-                    code: "",
-                    category_id: "",
-                    brand_id: "",
-                    type: "physical",
-                    status: "draft",
-                    short_description: "",
-                    full_description: "",
-                    is_featured: false,
-                    is_trending: false,
-                    is_new_arrival: false,
-                    is_active: true,
-                    bundled_product_ids: [],
-                    compatible_product_ids: [],
-                  });
-                  setVariants([]);
-                  setSpecifications([]);
-                  setSelectedTags([]);
-                  setSelectedFeatures([]);
-                  setGalleryImageFiles([]);
-                  setGalleryImagePreviews([]);
-                  setHeroImageFile(null);
-                  setHeroImagePreview(null);
-                  setInitialData(null);
-                  setIsDirty(false);
-                  toast.success("Draft discarded and form reset.");
+                const firstErrorField = Object.keys(errors)[0];
+                const element = document.getElementsByName(firstErrorField)[0] || document.getElementById(firstErrorField);
+                if (element) {
+                   element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                   element.focus?.();
                 }
               }}
-              className="ml-2 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-600 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400 rounded-md transition-colors"
+              className="ml-1 p-1 hover:bg-white/10 rounded transition-colors"
             >
-              Discard
+              <ArrowLeft className="w-4 h-4 rotate-90" />
             </button>
-          </>
-        )}
+          </div>
+        ) : <div />}
+
+        {/* Stats Pill (Bottom Right) */}
+        <div className="pointer-events-auto flex items-center gap-2 px-4 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-full shadow-xl text-[10px] font-bold text-slate-500 dark:text-slate-400 transition-all duration-300">
+          <span className="hidden sm:inline shrink-0 uppercase opacity-60">Status:</span>
+          <span className="shrink-0">VARIANTS: <span className="text-slate-900 dark:text-white font-black">{variants.length}</span></span>
+          <span className="text-slate-300 dark:text-slate-600 mx-1">|</span>
+          <span className="shrink-0">IMAGES: <span className="text-slate-900 dark:text-white font-black">{galleryImagePreviews.length + (heroImagePreview ? 1 : 0)}</span></span>
+          <span className="text-slate-300 dark:text-slate-600 mx-1">|</span>
+          <span className="hidden lg:flex items-center gap-1 min-w-0">
+            CATEGORY: <span className="text-slate-900 dark:text-white uppercase font-black truncate max-w-[100px]">{categories.find(c => String(c.id) === String(formData.category_id))?.name || "N/A"}</span>
+            <span className="text-slate-300 dark:text-slate-600 mx-1">|</span>
+          </span>
+          <span className="shrink-0">SPECS: <span className="text-slate-900 dark:text-white font-black">{specifications.length}</span></span>
+          {isDirty && (
+            <>
+              <span className="text-slate-300 dark:text-slate-600 mx-1">|</span>
+              <span className="flex items-center gap-1 text-amber-500 whitespace-nowrap">
+                <AlertCircle className="w-3 h-3" /> <span className="hidden sm:inline">Unsaved</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to discard this draft? All unsaved changes will be lost.")) {
+                    localStorage.removeItem(DRAFT_KEY);
+                    setFormData({
+                      name: "",
+                      code: "",
+                      category_id: "",
+                      brand_id: "",
+                      type: "physical",
+                      status: "draft",
+                      short_description: "",
+                      full_description: "",
+                      is_featured: false,
+                      is_trending: false,
+                      is_new_arrival: false,
+                      is_active: true,
+                      bundled_product_ids: [],
+                      compatible_product_ids: [],
+                    });
+                    setVariants([]);
+                    setSpecifications([]);
+                    setSelectedTags([]);
+                    setSelectedFeatures([]);
+                    setGalleryImageFiles([]);
+                    setGalleryImagePreviews([]);
+                    setHeroImageFile(null);
+                    setHeroImagePreview(null);
+                    setInitialData(null);
+                    setIsDirty(false);
+                    toast.success("Draft discarded and form reset.");
+                  }
+                }}
+                className="ml-2 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-600 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400 rounded-md transition-colors font-black uppercase"
+              >
+                Discard
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
