@@ -93,7 +93,7 @@ const DeleteModal = ({ isOpen, onClose, onConfirm, title, message, isDeleting })
 };
 
 // --- COMPONENT: PRODUCT SHEET ---
-const ProductSheet = ({ product: initialProduct, onClose }) => {
+const ProductSheet = ({ product: initialProduct, onClose, hasPermission }) => {
   const sheetRef = useRef(null);
   const contentRef = useRef(null);
   const { data: session } = useSession();
@@ -264,7 +264,7 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    {hasPermission("Product Update") && (
+                    {hasPermission ("Product Update") && (
                       <Link 
                         href={`/app/products/new?productId=${productData.id}`}
                         className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-sm font-bold  transition-colors text-center"
@@ -519,9 +519,11 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
               {activeTab === "gallery" && (
                 <div className="space-y-4">
                    <div className="flex justify-end">
-                     <button className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
+                    {hasPermission("Product Update") && (
+                      <button className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
                         <Plus className="w-3 h-3" /> Add Image
-                     </button>
+                      </button>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {productData.images?.map((img) => (
@@ -535,9 +537,11 @@ const ProductSheet = ({ product: initialProduct, onClose }) => {
                           alt="Gallery"
                         />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                            <button className="p-2 bg-white/20 hover:bg-white/40 rounded-lg text-white backdrop-blur-sm transition-colors">
-                                <Trash2 className="w-4 h-4" />
-                            </button>
+                            {hasPermission("Product Update") && (
+                              <button className="p-2 bg-white/20 hover:bg-white/40 rounded-lg text-white backdrop-blur-sm transition-colors">
+                                  <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                         </div>
                       </div>
                     ))}
@@ -877,6 +881,7 @@ export default function ProductsPage() {
         <ProductSheet
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
+          hasPermission={hasPermission}
         />
       )}
 
@@ -1146,13 +1151,15 @@ export default function ProductsPage() {
               <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-8 font-medium">
                 Start building your catalog by adding your first product with its variants and specifications.
               </p>
-              <button
-                onClick={() => router.push("/app/products/new")}
-                className="flex items-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/20 active:scale-95 group"
-              >
-                <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" /> 
-                Create Your First Product
-              </button>
+              {hasPermission("Product Create") && (
+                <button
+                  onClick={() => router.push("/app/products/new")}
+                  className="flex items-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/20 active:scale-95 group"
+                >
+                  <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" /> 
+                  Create Your First Product
+                </button>
+              )}
             </div>
           ) : (
             <>
