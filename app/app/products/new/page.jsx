@@ -63,7 +63,7 @@ const ProductRelationshipSelector = ({
   return (
     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
       <div className="mb-6">
-        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">
+        <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-1">
           {title}
         </h3>
         <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -87,7 +87,7 @@ const ProductRelationshipSelector = ({
         {/* Search Results */}
         {searchTerm.length > 2 && (
           <div className="space-y-2">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <p className="text-xs font-medium text-slate-400">
               Search Results
             </p>
             <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-2 no-scrollbar">
@@ -116,7 +116,7 @@ const ProductRelationshipSelector = ({
                         )}
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white">
                           {product.name}
                         </p>
                         <p className="text-[10px] text-slate-500 font-mono">
@@ -126,7 +126,7 @@ const ProductRelationshipSelector = ({
                     </div>
                     <button
                       onClick={() => toggleProduct(product)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                         selectedIds.includes(product.id)
                           ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100"
                           : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-600/20"
@@ -143,7 +143,7 @@ const ProductRelationshipSelector = ({
 
         {/* Selected Products */}
         <div className="space-y-3">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          <p className="text-xs font-medium text-slate-400">
             Selected Products ({selectedIds.length})
           </p>
           {selectedIds.length === 0 ? (
@@ -176,7 +176,7 @@ const ProductRelationshipSelector = ({
                         )}
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white">
                           {product.name}
                         </p>
                         <p className="text-[10px] text-slate-500 font-mono">
@@ -229,7 +229,7 @@ const ErrorText = ({ message }) => {
   return (
     <div className="flex items-center gap-1.5 mt-1 text-red-500 animate-in fade-in slide-in-from-top-1 duration-200">
       <AlertCircle className="w-3.5 h-3.5" />
-      <span className="text-[10px] font-bold uppercase tracking-tight">{message}</span>
+      <span className="text-xs text-red-500">{message}</span>
     </div>
   );
 };
@@ -1342,12 +1342,12 @@ function CreateProductContent() {
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
-                <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-1.5 sm:gap-2 min-w-0">
+                <h1 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white flex items-center gap-1.5 sm:gap-2 min-w-0">
                   <span className="shrink-0 whitespace-nowrap">{isEditMode ? "Edit" : "Create"}</span>
                   {formData.name && (
                     <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                       <span className="text-slate-300 dark:text-slate-600 font-light shrink-0">|</span>
-                      <span className="truncate text-indigo-600 dark:text-indigo-400 font-black">
+                      <span className="truncate text-indigo-600 dark:text-indigo-400 font-semibold">
                         {formData.name}
                       </span>
                     </div>
@@ -1367,7 +1367,7 @@ function CreateProductContent() {
               <div className="hidden md:flex items-center bg-slate-100 dark:bg-slate-700/50 p-1 rounded-xl border border-slate-200 dark:border-slate-600 mr-1">
                 <button
                   onClick={() => setStepperOrientation("horizontal")}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                     stepperOrientation === "horizontal"
                       ? "bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-400 shadow-sm"
                       : "text-slate-500 hover:text-slate-700"
@@ -1377,7 +1377,7 @@ function CreateProductContent() {
                 </button>
                 <button
                   onClick={() => setStepperOrientation("vertical")}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                     stepperOrientation === "vertical"
                       ? "bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-400 shadow-sm"
                       : "text-slate-500 hover:text-slate-700"
@@ -1392,7 +1392,7 @@ function CreateProductContent() {
                 <button
                   onClick={handleSave}
                   disabled={isLoading || !isFormValid}
-                  className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white rounded-l-xl text-xs sm:text-sm font-black shadow-lg shadow-indigo-600/20 transition-all active:scale-[0.98] disabled:scale-100 uppercase tracking-tight sm:tracking-normal"
+                  className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white rounded-l-xl text-xs sm:text-sm font-semibold shadow-lg shadow-indigo-600/20 transition-all active:scale-[0.98] disabled:scale-100 uppercase tracking-tight sm:tracking-normal"
                 >
                   {isLoading ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1418,7 +1418,7 @@ function CreateProductContent() {
                         handleSaveDraft();
                         setIsSaveDropdownOpen(false);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700"
                     >
                       <Save className="w-4 h-4 text-indigo-500" />
                       Save as Draft
@@ -1430,7 +1430,7 @@ function CreateProductContent() {
                           router.push("/app/products");
                         }
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                       Discard Draft
@@ -1445,10 +1445,10 @@ function CreateProductContent() {
           <div className="md:hidden mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center justify-between gap-4">
                <div className="flex flex-col">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                  <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest leading-none mb-1">
                      Step {STEPS.findIndex(s => s.id === activeTab) + 1} of {STEPS.length}
                   </span>
-                  <span className="text-sm font-black text-indigo-600 dark:text-indigo-400 capitalize">
+                  <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 capitalize">
                      {STEPS.find(s => s.id === activeTab)?.label}
                   </span>
                </div>
@@ -1494,7 +1494,7 @@ function CreateProductContent() {
                       )}
                     </button>
                     <div className="absolute top-12 flex flex-col items-center whitespace-nowrap">
-                      <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors duration-300
+                        <span className={`text-[10px] font-medium uppercase tracking-widest transition-colors duration-300
                         ${isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}`}>
                         {step.label}
                       </span>
@@ -1522,7 +1522,7 @@ function CreateProductContent() {
           {/* VERTICAL STEPPER (Side Navigation) */}
           <div className={`md:col-span-4 lg:col-span-3 lg:sticky lg:top-24 self-start z-30 ${stepperOrientation === "horizontal" ? "hidden md:block" : "block"}`}>
             <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all overflow-hidden">
-              <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4 px-2">
+              <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4 px-2">
                 Creation Progress
               </h3>
               <div className="space-y-1.5">
@@ -1547,12 +1547,12 @@ function CreateProductContent() {
                       </div>
                       <div className="flex flex-col items-start truncate min-w-0">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <span className={`text-[13px] font-bold truncate ${isActive ? "text-indigo-600" : "text-slate-600 dark:text-slate-300"}`}>{step.label}</span>
+                          <span className={`text-[13px] font-medium truncate ${isActive ? "text-indigo-600" : "text-slate-600 dark:text-slate-300"}`}>{step.label}</span>
                           {!isStepComplete(step.id) && (
                             <AlertCircle className="w-3 h-3 text-amber-500 shrink-0" />
                           )}
                         </div>
-                        {isActive && <span className="text-[7px] font-bold opacity-70 uppercase tracking-tighter">Current Step</span>}
+                        {isActive && <span className="text-[8px] font-medium opacity-70 uppercase tracking-tighter">Current Step</span>}
                       </div>
                     </button>
                   );
@@ -1567,12 +1567,12 @@ function CreateProductContent() {
             {activeTab === "general" && (
               <div className="space-y-6 animate-fade-up">
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">
+                  <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">
                     Basic Information
                   </h3>
                   <div className="space-y-4">
                     <div>
-                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 block">
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
                         Product Name <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -1589,7 +1589,7 @@ function CreateProductContent() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 block">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
                           Product Code
                         </label>
                         <div className="flex gap-2">
@@ -1604,7 +1604,7 @@ function CreateProductContent() {
                           />
                           <button
                             onClick={generateCode}
-                            className="px-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl text-slate-600 dark:text-slate-300 text-xs font-bold"
+                            className="px-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl text-slate-600 dark:text-slate-300 text-xs font-semibold"
                           >
                             Generate
                           </button>
@@ -1612,7 +1612,7 @@ function CreateProductContent() {
                         <ErrorText message={errors.code} />
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 block">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
                           Product Type <span className="text-red-500">*</span>
                         </label>
                         <select
@@ -1629,7 +1629,7 @@ function CreateProductContent() {
                         <ErrorText message={errors.type} />
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 block">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
                           Condition <span className="text-red-500">*</span>
                         </label>
                         <select
@@ -1652,7 +1652,7 @@ function CreateProductContent() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 block">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
                           Category <span className="text-red-500">*</span>
                         </label>
                         <select
@@ -1675,7 +1675,7 @@ function CreateProductContent() {
                         <ErrorText message={errors.category_id} />
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 block">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
                           Brand <span className="text-red-500">*</span>
                         </label>
                         <select
@@ -1700,7 +1700,7 @@ function CreateProductContent() {
                     </div>
 
                     <div>
-                      <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">
+                      <label className="text-xs font-medium text-slate-500 mb-1 block">
                         Short Description (Excerpt)
                       </label>
                       <textarea
@@ -1723,7 +1723,7 @@ function CreateProductContent() {
                     </div>
 
                     <div>
-                      <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">
+                      <label className="text-xs font-medium text-slate-500 mb-1 block">
                         Full Description
                       </label>
                       <textarea
@@ -1743,7 +1743,7 @@ function CreateProductContent() {
 
                     {/* Badges */}
                     <div>
-                      <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">
+                      <label className="text-xs font-medium text-slate-500 mb-2 block">
                         Product Badges
                       </label>
                       <div className="flex flex-wrap gap-3">
@@ -1808,7 +1808,7 @@ function CreateProductContent() {
                   <div />
                   <button
                     onClick={() => setActiveTab("media")}
-                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
                   >
                     Next Step <MoveRight className="w-4 h-4" />
                   </button>
@@ -1821,7 +1821,7 @@ function CreateProductContent() {
               <div className="space-y-6 animate-fade-up">
                 {/* Hero Image */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
                     <Star className="w-4 h-4 text-amber-500" /> Primary Image
                   </h3>
                   <div className="flex gap-6 items-start">
@@ -1845,7 +1845,7 @@ function CreateProductContent() {
                         <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer">
                           <div className="text-center p-2">
                             <UploadCloud className="w-8 h-8 mx-auto text-slate-400 mb-2" />
-                            <span className="text-[10px] uppercase font-bold text-slate-400">
+                            <span className="text-[10px] font-medium text-slate-400">
                               Click to Upload
                             </span>
                           </div>
@@ -1891,10 +1891,10 @@ function CreateProductContent() {
                 {/* Gallery */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">
+                    <h3 className="text-lg font-semibold text-slate-800 dark:text-white">
                       Gallery Images
                     </h3>
-                    <label className="px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm font-bold rounded-lg cursor-pointer transition-colors">
+                    <label className="px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-lg cursor-pointer transition-colors">
                       + Add Images
                       <input
                         type="file"
@@ -1954,7 +1954,7 @@ function CreateProductContent() {
                               <MoveRight className="w-4 h-4" />
                             </button>
                           </div>
-                          <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 text-white text-[10px] rounded backdrop-blur-sm font-bold">
+                          <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 text-white text-[10px] rounded backdrop-blur-sm font-medium">
                             #{idx + 1}
                           </div>
                         </div>
@@ -1966,13 +1966,13 @@ function CreateProductContent() {
                 <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
                   <button
                     onClick={() => setActiveTab("general")}
-                    className="flex items-center gap-2 px-6 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-sm font-bold transition-all active:scale-95"
+                    className="flex items-center gap-2 px-6 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-sm font-medium transition-all active:scale-95"
                   >
                     <MoveLeft className="w-4 h-4" /> Back
                   </button>
                   <button
                     onClick={() => setActiveTab("variants")}
-                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
                   >
                     Next Step <MoveRight className="w-4 h-4" />
                   </button>
@@ -1985,7 +1985,7 @@ function CreateProductContent() {
               <div className="space-y-6 animate-fade-up">
                 {/* Features with Autocomplete */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">
+                  <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">
                     Key Features <span className="text-red-500">*</span>
                   </h3>
                   <div className="relative mb-4">
@@ -2060,7 +2060,7 @@ function CreateProductContent() {
 
                 {/* Tags with Autocomplete */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">
+                  <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">
                     Product Tags
                   </h3>
                   <div className="relative mb-4">
@@ -2134,12 +2134,12 @@ function CreateProductContent() {
 
                 {/* Specs Table */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">
+                  <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">
                     Technical Specifications
                   </h3>
                   <div className="flex gap-2 mb-4 items-end">
                     <div className="flex-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">
+                      <label className="text-xs font-medium text-slate-400">
                         Label <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -2156,7 +2156,7 @@ function CreateProductContent() {
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">
+                      <label className="text-xs font-medium text-slate-400">
                         Value <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -2182,7 +2182,7 @@ function CreateProductContent() {
 
                   <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
                     <table className="w-full text-sm text-left">
-                      <thead className="bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 font-bold border-b border-slate-200 dark:border-slate-700">
+                      <thead className="bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-700">
                         <tr>
                           <th className="px-4 py-3">Specification</th>
                           <th className="px-4 py-3">Value</th>
@@ -2224,13 +2224,13 @@ function CreateProductContent() {
                 <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
                   <button
                     onClick={() => setActiveTab("variants")}
-                    className="flex items-center gap-2 px-6 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-sm font-bold transition-all active:scale-95"
+                    className="flex items-center gap-2 px-6 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-sm font-medium transition-all active:scale-95"
                   >
                     <MoveLeft className="w-4 h-4" /> Back
                   </button>
                   <button
                     onClick={() => setActiveTab("buy_together")}
-                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
                   >
                     Next Step <MoveRight className="w-4 h-4" />
                   </button>
@@ -2255,13 +2255,13 @@ function CreateProductContent() {
                 <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
                   <button
                     onClick={() => setActiveTab("specs")}
-                    className="flex items-center gap-2 px-6 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-sm font-bold transition-all active:scale-95"
+                    className="flex items-center gap-2 px-6 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-sm font-medium transition-all active:scale-95"
                   >
                     <MoveLeft className="w-4 h-4" /> Back
                   </button>
                   <button
                     onClick={() => setActiveTab("related")}
-                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
                   >
                     Next Step <MoveRight className="w-4 h-4" />
                   </button>
@@ -2288,14 +2288,14 @@ function CreateProductContent() {
                 <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
                   <button
                     onClick={() => setActiveTab("buy_together")}
-                    className="flex items-center gap-2 px-6 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-sm font-bold transition-all active:scale-95"
+                    className="flex items-center gap-2 px-6 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-sm font-medium transition-all active:scale-95"
                   >
                     <MoveLeft className="w-4 h-4" /> Back
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={isLoading || !isFormValid}
-                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -2312,7 +2312,7 @@ function CreateProductContent() {
             {activeTab === "variants" && (
               <div className="space-y-6 animate-fade-up">
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6">
+                  <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-6">
                     Manage Variants <span className="text-red-500">*</span>
                   </h3>
 
@@ -2329,11 +2329,11 @@ function CreateProductContent() {
                       <div className="flex items-center justify-between mb-4 pb-4 border-b border-indigo-100 dark:border-indigo-900/30">
                         <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
                           <Pencil className="w-4 h-4" />
-                          <span className="text-sm font-bold">Editing Variant</span>
+                          <span className="text-sm font-semibold">Editing Variant</span>
                         </div>
                         <button
                           onClick={cancelEditVariant}
-                          className="text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline underline-offset-2"
+                          className="text-xs font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline underline-offset-2"
                         >
                           Cancel Editing
                         </button>
@@ -2341,7 +2341,7 @@ function CreateProductContent() {
                     )}
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                       <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
                           Variant Name <span className="text-slate-400 font-normal">(Optional)</span>
                         </label>
                         <input
@@ -2358,7 +2358,7 @@ function CreateProductContent() {
                         />
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
                           SKU <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -2376,7 +2376,7 @@ function CreateProductContent() {
                         <ErrorText message={editingVariantId ? errors[`variants.${variants.findIndex(v => v.id === editingVariantId)}.sku`] : null} />
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
                           Barcode
                         </label>
                         <input
@@ -2395,7 +2395,7 @@ function CreateProductContent() {
                       </div>
                       {isPhoneCategory && (
                         <div>
-                          <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                          <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
                             IMEI
                           </label>
                           <input
@@ -2413,7 +2413,7 @@ function CreateProductContent() {
                         </div>
                       )}
                       <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
                           Warranty Period
                         </label>
                         <input
@@ -2432,7 +2432,7 @@ function CreateProductContent() {
                       {isPhoneCategory && (
                         <>
                           <div>
-                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
                               Storage <span className="text-red-500">*</span>
                             </label>
                             <input
@@ -2450,7 +2450,7 @@ function CreateProductContent() {
                             <ErrorText message={editingVariantId ? errors[`variants.${variants.findIndex(v => v.id === editingVariantId)}.storage_size`] : null} />
                           </div>
                           <div>
-                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
                               RAM <span className="text-red-500">*</span>
                             </label>
                             <div className="relative">
@@ -2470,7 +2470,7 @@ function CreateProductContent() {
                                 className="w-full px-3 py-2 pr-10 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                                 placeholder="8"
                               />
-                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400 pointer-events-none">
                                 GB
                               </span>
                             </div>
@@ -2479,7 +2479,7 @@ function CreateProductContent() {
                         </>
                       )}
                       <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
                           Color <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -2500,7 +2500,7 @@ function CreateProductContent() {
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
                           Price <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
@@ -2516,14 +2516,14 @@ function CreateProductContent() {
                             className="w-full px-3 py-2 pl-10 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                             placeholder="149900"
                           />
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400 pointer-events-none">
                             Rs
                           </span>
                         </div>
                         <ErrorText message={editingVariantId ? errors[`variants.${variants.findIndex(v => v.id === editingVariantId)}.price`] : null} />
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
                           Sales Price
                         </label>
                         <div className="relative">
@@ -2539,14 +2539,14 @@ function CreateProductContent() {
                             className="w-full px-3 py-2 pl-10 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                             placeholder="144900"
                           />
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400 pointer-events-none">
                             Rs
                           </span>
                         </div>
                         <ErrorText message={editingVariantId ? errors[`variants.${variants.findIndex(v => v.id === editingVariantId)}.sales_price`] : null} />
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
                           Stock Quantity <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -2564,7 +2564,7 @@ function CreateProductContent() {
                         <ErrorText message={editingVariantId ? errors[`variants.${variants.findIndex(v => v.id === editingVariantId)}.stock_quantity`] : null} />
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
                           Low Stock Alert
                         </label>
                         <input
@@ -2610,7 +2610,7 @@ function CreateProductContent() {
                             className="w-full px-3 py-2 pl-10 border dark:border-slate-700 rounded-lg text-sm dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                             placeholder="799.00"
                           />
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400 pointer-events-none">
                             Rs
                           </span>
                         </div>
@@ -2660,14 +2660,14 @@ function CreateProductContent() {
                       {editingVariantId && (
                         <button
                           onClick={cancelEditVariant}
-                          className="flex-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 py-2.5 rounded-xl font-bold transition-all"
+                          className="flex-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 py-2.5 rounded-xl font-medium transition-all"
                         >
                           Cancel
                         </button>
                       )}
                       <button
                         onClick={addVariant}
-                        className="flex-[2] py-2.5 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20"
+                        className="flex-[2] py-2.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20"
                       >
                         {editingVariantId ? (
                           <>
@@ -2687,7 +2687,7 @@ function CreateProductContent() {
                   {/* Variants List */}
                   {variants.length > 0 && (
                     <div className="space-y-3">
-                      <h4 className="font-bold text-sm text-slate-600 dark:text-slate-400">
+                      <h4 className="font-semibold text-sm text-slate-600 dark:text-slate-400">
                         Added Variants ({variants.length})
                       </h4>
                       {variants.map((variant, idx) => (
@@ -2717,16 +2717,16 @@ function CreateProductContent() {
                                 <Layers className="w-5 h-5" />
                               </div>
                               <div>
-                                <h5 className="font-bold text-slate-900 dark:text-white leading-tight">
+                                <h5 className="font-semibold text-slate-900 dark:text-white leading-tight">
                                   {variant.variant_name || variant.condition}
                                 </h5>
-                                  <p className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">
+                                  <p className="text-[10px] text-slate-500 font-mono tracking-wider">
                                     {variant.sku}
                                   </p>
                                   {Object.keys(errors).some(key => key.startsWith(`variants.${idx}.`)) && (
                                     <div className="flex items-center gap-1 mt-1 text-red-500">
                                       <AlertCircle className="w-3 h-3" />
-                                      <span className="text-[9px] font-bold uppercase">Has Validation Errors</span>
+                                      <span className="text-[9px] font-semibold uppercase">Has Validation Errors</span>
                                     </div>
                                   )}
                                 </div>
@@ -2734,7 +2734,7 @@ function CreateProductContent() {
 
                             <div className="flex items-center gap-2">
                               <div className="flex items-center gap-1 mr-2">
-                                <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                <span className="text-xs font-semibold text-slate-900 dark:text-white">
                                   Rs {formatPrice(variant.price)}
                                 </span>
                                 <span className="text-[10px] text-slate-400">
@@ -2788,7 +2788,7 @@ function CreateProductContent() {
                             <div className="px-4 pb-4 pt-2 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/20">
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div className="space-y-1">
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                  <p className="text-[10px] font-medium text-slate-400 uppercase">
                                     Barcode
                                   </p>
                                   <p className="text-xs text-slate-700 dark:text-slate-300 font-mono">
@@ -2797,7 +2797,7 @@ function CreateProductContent() {
                                 </div>
                                   {isPhoneCategory && (
                                     <div className="space-y-1">
-                                      <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                      <p className="text-[10px] font-medium text-slate-400 uppercase">
                                         IMEI
                                       </p>
                                       <p className="text-xs text-slate-700 dark:text-slate-300 font-mono">
@@ -2806,7 +2806,7 @@ function CreateProductContent() {
                                     </div>
                                   )}
                                 <div className="space-y-1">
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                  <p className="text-[10px] font-medium text-slate-400 uppercase">
                                     Warranty
                                   </p>
                                   <p className="text-xs text-slate-700 dark:text-slate-300">
@@ -2816,7 +2816,7 @@ function CreateProductContent() {
                                   {isPhoneCategory && (
                                     <>
                                       <div className="space-y-1">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                        <p className="text-[10px] font-medium text-slate-400 uppercase">
                                           Storage
                                         </p>
                                         <p className="text-xs text-slate-700 dark:text-slate-300">
@@ -2824,7 +2824,7 @@ function CreateProductContent() {
                                         </p>
                                       </div>
                                       <div className="space-y-1">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                        <p className="text-[10px] font-medium text-slate-400 uppercase">
                                           RAM
                                         </p>
                                         <p className="text-xs text-slate-700 dark:text-slate-300">
@@ -2834,7 +2834,7 @@ function CreateProductContent() {
                                     </>
                                   )}
                                 <div className="space-y-1">
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                  <p className="text-[10px] font-medium text-slate-400 uppercase">
                                     Color
                                   </p>
                                   <p className="text-xs text-slate-700 dark:text-slate-300">
@@ -2842,7 +2842,7 @@ function CreateProductContent() {
                                   </p>
                                 </div>
                                 <div className="space-y-1">
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                  <p className="text-[10px] font-medium text-slate-400 uppercase">
                                     Sales Price
                                   </p>
                                   <p className="text-xs text-slate-700 dark:text-slate-300">
@@ -2850,7 +2850,7 @@ function CreateProductContent() {
                                   </p>
                                 </div>
                                 <div className="space-y-1">
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                  <p className="text-[10px] font-medium text-slate-400 uppercase">
                                     Low Stock Alert
                                   </p>
                                   <p className="text-xs text-slate-700 dark:text-slate-300">
@@ -2858,36 +2858,36 @@ function CreateProductContent() {
                                   </p>
                                 </div>
                                 <div className="space-y-1">
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                  <p className="text-[10px] font-medium text-slate-400 uppercase">
                                     Offer Price
                                   </p>
-                                  <p className="text-xs text-amber-600 font-bold">
+                                  <p className="text-xs text-amber-600 font-semibold">
                                     {variant.is_offer
                                       ? `Rs ${formatPrice(variant.offer_price)}`
                                       : "No Offer"}
                                   </p>
                                 </div>
                                 <div className="space-y-1">
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                  <p className="text-[10px] font-medium text-slate-400 uppercase">
                                     Badges
                                   </p>
                                   <div className="flex flex-wrap gap-1">
                                     {variant.is_trending && (
-                                      <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-[8px] font-bold rounded uppercase">
+                                      <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-[8px] font-medium rounded uppercase">
                                         Trending
                                       </span>
                                     )}
                                     {variant.is_featured && (
-                                      <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[8px] font-bold rounded uppercase">
+                                      <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[8px] font-medium rounded uppercase">
                                         Featured
                                       </span>
                                     )}
                                     {variant.is_active ? (
-                                      <span className="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[8px] font-bold rounded uppercase">
+                                      <span className="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[8px] font-medium rounded uppercase">
                                         Active
                                       </span>
                                     ) : (
-                                      <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-500 text-[8px] font-bold rounded uppercase">
+                                      <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-500 text-[8px] font-medium rounded uppercase">
                                         Inactive
                                       </span>
                                     )}
@@ -2905,13 +2905,13 @@ function CreateProductContent() {
                 <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
                   <button
                     onClick={() => setActiveTab("media")}
-                    className="flex items-center gap-2 px-6 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-sm font-bold transition-all active:scale-95"
+                    className="flex items-center gap-2 px-6 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-sm font-medium transition-all active:scale-95"
                   >
                     <MoveLeft className="w-4 h-4" /> Back
                   </button>
                   <button
                     onClick={() => setActiveTab("specs")}
-                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+                    className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
                   >
                     Next Step <MoveRight className="w-4 h-4" />
                   </button>
@@ -2927,10 +2927,10 @@ function CreateProductContent() {
         {/* Error FAB (Bottom Left) */}
         {Object.keys(errors).length > 0 ? (
           <div className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-full shadow-2xl animate-in zoom-in slide-in-from-bottom-5 duration-300 border border-red-500/50">
-            <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center font-black text-xs">
+            <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center font-semibold text-xs">
               {Object.keys(errors).length}
             </div>
-            <span className="text-xs font-black uppercase tracking-tight">Issues Detected</span>
+            <span className="text-xs font-semibold uppercase tracking-tight">Issues Detected</span>
             <button 
               onClick={() => {
                 const firstErrorField = Object.keys(errors)[0];
@@ -2948,17 +2948,17 @@ function CreateProductContent() {
         ) : <div />}
 
         {/* Stats Pill (Bottom Right) */}
-        <div className="pointer-events-auto flex items-center gap-2 px-4 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-full shadow-xl text-[10px] font-bold text-slate-500 dark:text-slate-400 transition-all duration-300">
+        <div className="pointer-events-auto flex items-center gap-2 px-4 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-full shadow-xl text-[10px] font-medium text-slate-500 dark:text-slate-400 transition-all duration-300">
           <span className="hidden sm:inline shrink-0 uppercase opacity-60">Status:</span>
-          <span className="shrink-0">VARIANTS: <span className="text-slate-900 dark:text-white font-black">{variants.length}</span></span>
+          <span className="shrink-0">VARIANTS: <span className="text-slate-900 dark:text-white font-semibold">{variants.length}</span></span>
           <span className="text-slate-300 dark:text-slate-600 mx-1">|</span>
-          <span className="shrink-0">IMAGES: <span className="text-slate-900 dark:text-white font-black">{galleryImagePreviews.length + (heroImagePreview ? 1 : 0)}</span></span>
+          <span className="shrink-0">IMAGES: <span className="text-slate-900 dark:text-white font-semibold">{galleryImagePreviews.length + (heroImagePreview ? 1 : 0)}</span></span>
           <span className="text-slate-300 dark:text-slate-600 mx-1">|</span>
           <span className="hidden lg:flex items-center gap-1 min-w-0">
-            CATEGORY: <span className="text-slate-900 dark:text-white uppercase font-black truncate max-w-[100px]">{categories.find(c => String(c.id) === String(formData.category_id))?.name || "N/A"}</span>
+            CATEGORY: <span className="text-slate-900 dark:text-white uppercase font-semibold truncate max-w-[100px]">{categories.find(c => String(c.id) === String(formData.category_id))?.name || "N/A"}</span>
             <span className="text-slate-300 dark:text-slate-600 mx-1">|</span>
           </span>
-          <span className="shrink-0">SPECS: <span className="text-slate-900 dark:text-white font-black">{specifications.length}</span></span>
+          <span className="shrink-0">SPECS: <span className="text-slate-900 dark:text-white font-semibold">{specifications.length}</span></span>
           {isDirty && (
             <>
               <span className="text-slate-300 dark:text-slate-600 mx-1">|</span>
@@ -2999,7 +2999,7 @@ function CreateProductContent() {
                     toast.success("Draft discarded and form reset.");
                   }
                 }}
-                className="ml-2 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-600 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400 rounded-md transition-colors font-black uppercase"
+                className="ml-2 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-600 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400 rounded-md transition-colors font-semibold uppercase"
               >
                 Discard
               </button>
