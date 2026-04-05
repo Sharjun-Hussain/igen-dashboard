@@ -50,7 +50,12 @@ export async function generateMetadata() {
   };
 }
 
-export default function RootLayout({ children }) {
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+
+export default async function RootLayout({ children }) {
+  const session = await getServerSession(authOptions);
+
   return (
     <html lang="en">
       <body
@@ -62,7 +67,7 @@ export default function RootLayout({ children }) {
           enableSystem={false}
           disableTransitionOnChange
         >
-          <AllProvider>
+          <AllProvider session={session}>
             {children}
             <Toaster />
           </AllProvider>

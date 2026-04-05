@@ -1188,16 +1188,56 @@ function CreateProductContent() {
         ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products/${productId}`
         : `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/products`;
 
-      const data = await globalFetcher(url, session?.accessToken, {
+      // --- DEBUG LOGGING ---
+      console.group("🚀 PRODUCT SUBMISSION DEBUG");
+      console.log("URL:", url);
+      console.log("Method:", isEditMode ? "PUT (via _method)" : "POST");
+      
+      const payloadObj = {};
+      formDataPayload.forEach((value, key) => {
+        if (value instanceof File) {
+          payloadObj[key] = `File: ${value.name} (${value.size} bytes)`;
+        } else {
+          payloadObj[key] = value;
+        }
+      });
+      console.log("Payload Content:", payloadObj);
+      console.groupEnd();
+
+      // RAW FETCH FOR MAXIMUM VISIBILITY IN NETWORK TAB
+      const response = await fetch(url, {
         method: "POST",
         body: formDataPayload,
+        headers: {
+          Authorization: `Bearer ${session?.accessToken}`,
+          Accept: "application/json",
+          // Note: Don't set Content-Type for FormData, browser does it automatically with boundary
+        },
       });
 
-      if (!data) {
-        throw new Error(
-          `Failed to ${isEditMode ? "update" : "create"} product`
-        );
+      // Handle raw response for debugging
+      const responseText = await response.text();
+      let responseData = {};
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        console.error("Failed to parse JSON response:", responseText);
       }
+      
+      console.group("📥 SERVER RESPONSE DEBUG");
+      console.log("Status:", response.status, response.statusText);
+      console.log("Data:", responseData);
+      console.groupEnd();
+
+      if (!response.ok) {
+        // Create an error object similar to what globalFetcher would throw
+        const error = new Error(responseData?.message || "Server Validation Error");
+        error.status = response.status;
+        error.info = responseData;
+        throw error;
+      }
+
+      const data = responseData;
 
       // If it was a draft, remove it from localStorage
       if (draftId) {
@@ -1223,15 +1263,28 @@ function CreateProductContent() {
       );
       router.push("/app/products");
     } catch (error) {
+      console.error("❌ SUBMISSION ERROR:", error);
+      
       if (error.info?.errors) {
         const backendErrors = {};
-        error.info.errors.forEach((err) => {
-          backendErrors[err.field] = err.messages[0];
-        });
+        const errors = error.info.errors;
+        
+        // Handle both array and object formats for errors
+        if (Array.isArray(errors)) {
+          errors.forEach((err) => {
+            backendErrors[err.field || err.key] = err.messages ? err.messages[0] : err.message;
+          });
+        } else {
+          // Standard Laravel format: { field: [messages] } or { field: message }
+          Object.keys(errors).forEach((key) => {
+            const val = errors[key];
+            backendErrors[key] = Array.isArray(val) ? val[0] : val;
+          });
+        }
         setErrors(backendErrors);
         toast.error("Please correct the highlighted errors", { id: loadingToast });
       } else {
-        toast.error(error.message, { id: loadingToast });
+        toast.error(error.message || "An unexpected error occurred", { id: loadingToast });
       }
     } finally {
       setIsLoading(false);
