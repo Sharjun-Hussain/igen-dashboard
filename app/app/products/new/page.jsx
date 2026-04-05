@@ -1345,8 +1345,8 @@ function CreateProductContent() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 p-1 rounded-xl border border-slate-200 dark:border-slate-600">
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center bg-slate-100 dark:bg-slate-700/50 p-1 rounded-xl border border-slate-200 dark:border-slate-600">
                 <button
                   onClick={() => setStepperOrientation("horizontal")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -1368,26 +1368,47 @@ function CreateProductContent() {
                   Vertical
                 </button>
               </div>
-              <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
+              <div className="hidden sm:block h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
               <button
                 onClick={handleSaveDraft}
                 disabled={isLoading}
-                className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-sm font-bold transition-all active:scale-95"
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-xs sm:text-sm font-bold transition-all active:scale-95"
               >
-                <Save className="w-4 h-4" /> Save Draft
+                <Save className="w-3.5 h-3.5 sm:w-4 h-4" /> <span className="hidden xs:inline">Save</span><span className="hidden sm:inline"> Draft</span>
               </button>
               <button
                 onClick={handleSave}
                 disabled={isLoading || !isFormValid}
-                className="flex items-center gap-2 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 transition-all active:scale-95 disabled:scale-100"
+                className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-xl text-xs sm:text-sm font-black shadow-lg shadow-indigo-600/20 transition-all active:scale-95 disabled:scale-100 uppercase"
               >
                 {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 sm:w-4 h-4 animate-spin" />
                 ) : (
-                  <Check className="w-4 h-4" />
+                  <Check className="w-3.5 h-3.5 sm:w-4 h-4" />
                 )}
-                {isEditMode ? "Update Product" : "Publish Product"}
+                <span className="hidden xs:inline">{isEditMode ? "Update" : "Publish"}</span>
+                <span className="hidden sm:inline"> Product</span>
               </button>
+            </div>
+          </div>
+
+          {/* MOBILE STEP INDICATOR (Show only on < 768px) */}
+          <div className="md:hidden mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between gap-4">
+               <div className="flex flex-col">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                     Step {STEPS.findIndex(s => s.id === activeTab) + 1} of {STEPS.length}
+                  </span>
+                  <span className="text-sm font-black text-indigo-600 dark:text-indigo-400 capitalize">
+                     {STEPS.find(s => s.id === activeTab)?.label}
+                  </span>
+               </div>
+               <div className="flex-1 max-w-[120px] h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-indigo-600 transition-all duration-500 rounded-full"
+                    style={{ width: `${((STEPS.findIndex(s => s.id === activeTab) + 1) / STEPS.length) * 100}%` }}
+                  />
+               </div>
             </div>
           </div>
 
@@ -1437,7 +1458,7 @@ function CreateProductContent() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8 transition-all">
+      <main className="max-w-7xl mx-auto px-4 sm:px-8 py-4 sm:py-8 transition-all">
         {/* ERROR BANNER */}
         {Object.keys(errors).length > 0 && (
           <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-3 text-red-700 dark:text-red-400 animate-fade-up">
