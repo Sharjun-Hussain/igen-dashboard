@@ -556,30 +556,34 @@ export default function UsersPage() {
             <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-50 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
-                    <th className="p-4 pl-8 w-10">
-                      <Checkbox
-                        checked={isAllSelected}
-                        indeterminate={isIndeterminate}
-                        onChange={toggleSelectAll}
-                      />
+                  <tr className="border-b border-slate-50 dark:border-slate-700 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-md sticky top-0 z-20">
+                    <th className="p-4 px-6 w-12 text-center">
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={isAllSelected}
+                          indeterminate={isIndeterminate}
+                          onChange={toggleSelectAll}
+                        />
+                      </div>
                     </th>
-                    <th className="p-4 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">User</th>
-                    <th className="p-4 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Roles</th>
-                    <th className="p-4 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Joined Date</th>
-                    <th className="p-4 pr-8 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Actions</th>
+                    <th className="p-4 px-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">User</th>
+                    <th className="p-4 px-4 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Roles</th>
+                    <th className="p-4 px-4 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Joined Date</th>
+                    <th className="p-4 px-6 text-right text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sortedUsers.map((user) => (
-                    <tr key={user.id} className="group border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
-                      <td className="p-4 pl-8 w-10" onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={selectedIds.includes(user.id)}
-                          onChange={() => toggleSelectItem(user.id)}
-                        />
+                    <tr key={user.id} className="group border-b border-slate-100/50 dark:border-slate-700/50 hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-all cursor-pointer">
+                      <td className="p-4 px-6 w-12 text-center" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-center">
+                          <Checkbox
+                            checked={selectedIds.includes(user.id)}
+                            onChange={() => toggleSelectItem(user.id)}
+                          />
+                        </div>
                       </td>
-                      <td className="p-4">
+                      <td className="p-4 px-2">
                         <div className="flex items-center gap-4">
                           <img
                             src={user.image || `https://ui-avatars.com/api/?name=${user.name}&background=random`}
@@ -600,18 +604,18 @@ export default function UsersPage() {
                           ))}
                         </div>
                       </td>
-                      <td className="p-4 text-sm text-slate-500 dark:text-slate-400 font-medium">
+                      <td className="p-4 px-4 text-sm text-slate-500 dark:text-slate-400 font-medium">
                         {new Date(user.created_at).toLocaleDateString()}
                       </td>
-                      <td className="p-4 pr-8 text-right">
-                        <div className="flex justify-end gap-2">
+                      <td className="p-4 px-6 text-right">
+                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
                           {hasPermission("Admin User Update") && (
-                            <button onClick={() => handleOpenEdit(user)} className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all">
+                            <button onClick={() => handleOpenEdit(user)} className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all active:scale-90">
                               <Edit3 className="w-4 h-4" />
                             </button>
                           )}
                           {hasPermission("Admin User Delete") && (
-                            <button onClick={() => handleOpenDelete(user)} className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all">
+                            <button onClick={() => handleOpenDelete(user)} className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all active:scale-90">
                               <Trash2 className="w-4 h-4" />
                             </button>
                           )}
@@ -625,45 +629,66 @@ export default function UsersPage() {
           )}
         </div>
 
-        {/* 4. PAGINATION */}
+        {/* 4. PAGINATION FOOTER */}
         {!loading && users.length > 0 && (
-          <div className="animate-toolbar mt-10 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-            <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-              Showing <span className="text-slate-900 dark:text-white font-bold">{users.length}</span> of <span className="text-slate-900 dark:text-white font-bold">{totalPages}</span> users
+          <div className="border-t border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30 p-4 px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <div className="flex items-center gap-1">
+                {users.length > 0 ? (
+                  <>
+                    <span className="opacity-40">Showing</span>
+                    <span className="text-slate-900 dark:text-white mx-1">{users.length}</span>
+                    <span className="opacity-40">of</span>
+                    <span className="text-slate-900 dark:text-white ml-1">{totalPages}</span>
+                    <span className="ml-1 opacity-40 uppercase tracking-widest">Users</span>
+                  </>
+                ) : (
+                  <span>0 results</span>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="flex items-center gap-1.5">
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className="w-4 h-4" />
               </button>
-              <div className="flex items-center gap-1">
-                {[...Array(lastPage)].map((_, i) => {
+              
+              <div className="flex items-center gap-1 mx-1">
+                {[...Array(Math.min(5, lastPage))].map((_, i) => {
                   const pageNum = i + 1;
-                  if (pageNum === 1 || pageNum === lastPage || (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)) {
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${currentPage === pageNum ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 border border-transparent hover:border-slate-200 dark:hover:border-slate-700"}`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  } else if (pageNum === currentPage - 2 || pageNum === currentPage + 2) {
-                    return <span key={pageNum} className="px-1 text-slate-400">...</span>;
+                  // Simple window logic
+                  let displayNum = pageNum;
+                  if (lastPage > 5) {
+                    if (currentPage > 3) displayNum = currentPage - 2 + i;
+                    if (displayNum > lastPage) return null;
                   }
-                  return null;
+                  
+                  return (
+                    <button
+                      key={displayNum}
+                      onClick={() => setCurrentPage(displayNum)}
+                      className={`w-9 h-9 rounded-xl text-xs font-bold transition-all flex items-center justify-center ${
+                        currentPage === displayNum 
+                          ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" 
+                          : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-indigo-500 hover:text-indigo-600 transition-all active:scale-90"
+                      }`}
+                    >
+                      {displayNum}
+                    </button>
+                  );
                 })}
               </div>
+
               <button
                 disabled={currentPage === lastPage}
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, lastPage))}
-                className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90"
               >
-                <ChevronRight className="w-5 h-5" />
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>

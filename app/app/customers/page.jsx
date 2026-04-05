@@ -584,34 +584,36 @@ export default function CustomersPage() {
              </div>
           ) : (
           <table className="w-full text-left border-collapse" ref={tableRef}>
-            <thead className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-700">
+            <thead className="bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 sticky top-0 z-20">
               <tr>
-                <th className="p-4 pl-6 w-10">
-                  <Checkbox
-                    checked={isAllSelected}
-                    indeterminate={isIndeterminate}
-                    onChange={toggleSelectAll}
-                  />
+                <th className="p-4 px-6 w-12 text-center">
+                  <div className="flex justify-center">
+                    <Checkbox
+                      checked={isAllSelected}
+                      indeterminate={isIndeterminate}
+                      onChange={toggleSelectAll}
+                    />
+                  </div>
                 </th>
-                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 px-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Customer
                 </th>
-                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 px-4 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 px-4 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Location
                 </th>
-                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 px-4 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Joined
                 </th>
-                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 px-4 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Spent
                 </th>
-                <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right pr-6"></th>
+                <th className="p-4 px-6 text-[11px] font-semibold text-slate-500 uppercase tracking-wider text-right"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+            <tbody className="divide-y divide-slate-100/50 dark:divide-slate-700/50">
               {filteredCustomers.length > 0 ? (
                 filteredCustomers.map((customer) => (
                   <tr
@@ -620,15 +622,17 @@ export default function CustomersPage() {
                     className="customer-row hover:bg-slate-50/80 dark:hover:bg-slate-700/80 transition-colors cursor-pointer group"
                   >
                     <td
-                      className="p-4 pl-6"
+                      className="p-4 px-6 w-12"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <Checkbox
-                        checked={selectedIds.includes(customer.id)}
-                        onChange={() => toggleSelectItem(customer.id)}
-                      />
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={selectedIds.includes(customer.id)}
+                          onChange={() => toggleSelectItem(customer.id)}
+                        />
+                      </div>
                     </td>
-                    <td className="p-4">
+                    <td className="p-4 px-2">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden shrink-0 border border-slate-100 dark:border-slate-600">
                           <img
@@ -662,11 +666,11 @@ export default function CustomersPage() {
                     <td className="p-4 text-sm text-slate-500 dark:text-slate-400">
                       {customer.joinedDateStr}
                     </td>
-                    <td className="p-4 text-sm font-semibold text-slate-900 dark:text-white">
+                    <td className="p-4 px-4 text-sm font-semibold text-slate-900 dark:text-white">
                       {symbol}{customer.totalSpent}
                     </td>
-                    <td className="p-4 pr-6 text-right">
-                      <button className="p-2 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                    <td className="p-4 px-6 text-right">
+                      <button className="p-2 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all opacity-0 group-hover:opacity-100">
                         <ChevronRight className="w-4 h-4" />
                       </button>
                     </td>
@@ -688,75 +692,84 @@ export default function CustomersPage() {
         </div>
 
         {/* 5. PAGINATION FOOTER (MATCHING ORDERS PAGE) */}
-        <div className="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
-            <span>Rows:</span>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => {
-                setItemsPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 focus:border-indigo-500 outline-none font-bold text-slate-700 dark:text-slate-300"
-            >
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-            </select>
-            <span className="hidden sm:inline ml-2">
+        <div className="border-t border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30 p-4 px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4 text-xs font-semibold text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-2">
+              <span className="uppercase tracking-wider opacity-60">Rows:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all cursor-pointer"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+            
+            <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
+
+            <div className="flex items-center gap-1">
               {filteredCustomers.length > 0 ? (
                 <>
-                  <span className="font-bold text-slate-900 dark:text-white">
-                    {(currentPage - 1) * itemsPerPage + 1}-
-                    {Math.min(
-                      currentPage * itemsPerPage,
-                      totalPages,
-                    )}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-bold text-slate-900 dark:text-white">
+                  <span className="text-slate-900 dark:text-white">
+                    {(currentPage - 1) * itemsPerPage + 1}
+                  </span>
+                  <span className="opacity-40">-</span>
+                  <span className="text-slate-900 dark:text-white">
+                    {Math.min(currentPage * itemsPerPage, totalPages)}
+                  </span>
+                  <span className="opacity-40 ml-1">of</span>
+                  <span className="text-slate-900 dark:text-white ml-1">
                     {totalPages}
                   </span>
                 </>
               ) : (
                 <span>0 results</span>
               )}
-            </span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
-              className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            {/* Page Numbers */}
-            {[...Array(Math.min(3, lastPage))].map((_, i) => {
-               // Simple pagination logic for display
-               let pageNum = i + 1;
-               if (lastPage > 5) {
-                   // If many pages, show window around current page
-                   if (currentPage > 2) pageNum = currentPage - 1 + i;
-                   if (pageNum > lastPage) return null;
-               }
-               
-               return (
-              <button
-                key={pageNum}
-                onClick={() => setCurrentPage(pageNum)}
-                className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${currentPage === pageNum ? "bg-indigo-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"}`}
-              >
-                {pageNum}
-              </button>
-            )})}
+            
+            <div className="flex items-center gap-1 mx-1">
+              {[...Array(Math.min(5, lastPage))].map((_, i) => {
+                 let pageNum = i + 1;
+                 if (lastPage > 5) {
+                     if (currentPage > 3) pageNum = currentPage - 2 + i;
+                     if (pageNum > lastPage) return null;
+                 }
+                 
+                 return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`w-9 h-9 rounded-xl text-xs font-bold transition-all flex items-center justify-center ${
+                      currentPage === pageNum 
+                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" 
+                        : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-indigo-500 hover:text-indigo-600 transition-all active:scale-90"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                )
+              })}
+            </div>
+
             <button
-              onClick={() =>
-                setCurrentPage(Math.min(lastPage, currentPage + 1))
-              }
+              onClick={() => setCurrentPage(Math.min(lastPage, currentPage + 1))}
               disabled={currentPage === lastPage || lastPage === 0}
-              className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
