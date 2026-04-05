@@ -29,7 +29,38 @@ import {
   CheckCircle2,
   DollarSign,
   Check,
+  Trash2,
+  X,
 } from "lucide-react";
+
+// --- THEMED CHECKBOX COMPONENT ---
+const Checkbox = ({ checked, onChange, indeterminate = false }) => {
+  const checkboxRef = useRef(null);
+
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = indeterminate;
+    }
+  }, [indeterminate]);
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onChange(!checked);
+      }}
+      className={`w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center ${
+        checked || indeterminate
+          ? "bg-indigo-600 border-indigo-600 shadow-lg shadow-indigo-600/20"
+          : "border-slate-300 dark:border-slate-600 hover:border-indigo-400"
+      }`}
+    >
+      {checked && !indeterminate && <Check className="w-3.5 h-3.5 text-white stroke-3" />}
+      {indeterminate && <div className="w-2 h-0.5 bg-white rounded-full" />}
+    </button>
+  );
+};
 
 export default function CustomersPage() {
   const { data: session } = useSession();
@@ -58,6 +89,9 @@ export default function CustomersPage() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
   const [lastPage, setLastPage] = useState(1);
+
+  // Bulk Selection
+  const [selectedIds, setSelectedIds] = useState([]);
 
   // Drawer Actions
   const [showActionsMenu, setShowActionsMenu] = useState(false);
@@ -157,6 +191,24 @@ export default function CustomersPage() {
     () => setCurrentPage(1),
     [searchTerm, activeTab, dateRange, statusFilters, itemsPerPage]
   );
+
+  // --- SELECTION HANDLERS ---
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredCustomers.length && filteredCustomers.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredCustomers.map((c) => c.id));
+    }
+  };
+
+  const toggleSelectItem = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const isAllSelected = filteredCustomers.length > 0 && selectedIds.length === filteredCustomers.length;
+  const isIndeterminate = selectedIds.length > 0 && selectedIds.length < filteredCustomers.length;
 
   // --- ANIMATIONS ---
   useGSAP(
@@ -312,8 +364,42 @@ export default function CustomersPage() {
           >
             <Download className="w-4 h-4" /> Export
           </button>
-         
         </div>
+
+        {/* BULK ACTION BAR */}
+        {selectedIds.length > 0 && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-fit px-4">
+            <div className="bg-slate-900 dark:bg-slate-800 text-white rounded-full shadow-2xl py-1.5 px-3 flex items-center gap-3 border border-white/10 backdrop-blur-md animate-in slide-in-from-bottom-5 fade-in duration-300">
+              <div className="flex items-center gap-2 px-2 shrink-0">
+                <div className="w-5 h-5 bg-indigo-500 rounded-full flex items-center justify-center text-[10px] font-bold">
+                  {selectedIds.length}
+                </div>
+                <span className="text-[11px] font-semibold whitespace-nowrap">Selected</span>
+              </div>
+              
+              <div className="h-4 w-px bg-white/10" />
+
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setSelectedIds([])}
+                  className="px-2.5 py-1 hover:bg-white/5 rounded-full text-[11px] font-medium transition-colors whitespace-nowrap"
+                >
+                  Clear
+                </button>
+                <button
+                   onClick={() => {
+                     toast.success(`Bulk delete initiated for ${selectedIds.length} customers`);
+                     setSelectedIds([]);
+                   }}
+                   className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-lg shadow-red-500/20 whitespace-nowrap"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 2. STATS CARDS */}
@@ -501,9 +587,10 @@ export default function CustomersPage() {
             <thead className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th className="p-4 pl-6 w-10">
-                  <input
-                    type="checkbox"
-                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  <Checkbox
+                    checked={isAllSelected}
+                    indeterminate={isIndeterminate}
+                    onChange={toggleSelectAll}
                   />
                 </th>
                 <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -536,9 +623,9 @@ export default function CustomersPage() {
                       className="p-4 pl-6"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <input
-                        type="checkbox"
-                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      <Checkbox
+                        checked={selectedIds.includes(customer.id)}
+                        onChange={() => toggleSelectItem(customer.id)}
                       />
                     </td>
                     <td className="p-4">
