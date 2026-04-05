@@ -637,25 +637,25 @@ export default function InteractiveOrdersPage() {
                     className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                   />
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Order
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Date
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Customer
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Total
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Payment
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Fulfillment
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right pr-6"></th>
+                <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right pr-6"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -684,7 +684,7 @@ export default function InteractiveOrdersPage() {
                         className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                       />
                     </td>
-                    <td className="p-4 font-bold text-slate-900 dark:text-white text-sm">
+                    <td className="p-4 font-semibold text-slate-900 dark:text-white text-sm">
                       #{order.order_number}
                     </td>
                     <td className="p-4 text-sm text-slate-500 dark:text-slate-400">
@@ -704,25 +704,25 @@ export default function InteractiveOrdersPage() {
                           />
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                             {order.user?.name || "Unknown Customer"}
                           </span>
                         </div>
                       </div>
                     </td>
-                    <td className="p-4 text-sm font-bold text-slate-900 dark:text-white">
+                    <td className="p-4 text-sm font-semibold text-slate-900 dark:text-white">
                       LKR {parseFloat(order.total_amount).toLocaleString()}
                     </td>
                     <td className="p-4">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${getPaymentColor(order.latest_payment?.payment_status)}`}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getPaymentColor(order.latest_payment?.payment_status)}`}
                       >
                         {order.latest_payment?.payment_status || "N/A"}
                       </span>
                     </td>
                     <td className="p-4">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${getFulfillmentColor(order.order_status)}`}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getFulfillmentColor(order.order_status)}`}
                       >
                         {order.order_status}
                       </span>

@@ -515,13 +515,13 @@ function CategoriesContent() {
                   <table className="w-full text-left">
                     <thead className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
                       <tr>
-                        <th className="p-5 pl-8 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                        <th className="p-5 pl-8 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                           Category
                         </th>
-                        <th className="p-5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                        <th className="p-5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                           Status
                         </th>
-                        <th className="p-5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                        <th className="p-5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                           Featured
                         </th>
                         <th className="p-5 pr-8"></th>
@@ -536,7 +536,7 @@ function CategoriesContent() {
                           <td className="p-4 pl-8">
                             <div className="flex items-center gap-4">
                               <div>
-                                <div className="font-bold text-slate-900 dark:text-white">
+                                <div className="font-semibold text-slate-900 dark:text-white">
                                   {cat.name}
                                 </div>
                                 <div className="text-xs text-slate-400 dark:text-slate-500 font-mono">
@@ -547,7 +547,7 @@ function CategoriesContent() {
                           </td>
                           <td className="p-4">
                             <div
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
                                 cat.is_active
                                   ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50"
                                   : "bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700"
@@ -563,7 +563,7 @@ function CategoriesContent() {
                           </td>
                           <td className="p-4">
                             {cat.is_featured ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800/30">
+                               <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800/30">
                                 <Star className="w-3 h-3 fill-current" /> Featured
                               </span>
                             ) : (

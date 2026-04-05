@@ -55,7 +55,7 @@ const RatingBadge = ({ rating }) => {
         ? "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800"
         : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800";
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border ${colors}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${colors}`}>
       <Star className="w-3 h-3 fill-current" />
       {rating}
     </span>
@@ -64,11 +64,11 @@ const RatingBadge = ({ rating }) => {
 
 const StatusBadge = ({ isApproved }) => {
   return isApproved ? (
-    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border capitalize bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border capitalize bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">
       approved
     </span>
   ) : (
-    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border capitalize bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800">
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border capitalize bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800">
       pending
     </span>
   );
@@ -310,13 +310,13 @@ export default function ReviewsPage() {
           <table className="w-full text-left border-collapse">
             <thead className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-700">
               <tr>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Customer</th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Product</th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Rating</th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Review</th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right pr-6">Actions</th>
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Customer</th>
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Product</th>
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Rating</th>
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Review</th>
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right pr-6">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -344,7 +344,7 @@ export default function ReviewsPage() {
                           className="w-8 h-8 rounded-full object-cover shrink-0"
                           alt=""
                         />
-                        <span className="text-sm font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap">
+                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap">
                           {review.user?.name || "Anonymous"}
                         </span>
                       </div>
@@ -365,7 +365,7 @@ export default function ReviewsPage() {
                     {/* Review Snippet */}
                     <td className="p-4 max-w-[260px]">
                       {review.title && (
-                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate mb-0.5">{review.title}</p>
+                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate mb-0.5">{review.title}</p>
                       )}
                       <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
                         {review.review || review.body || "—"}

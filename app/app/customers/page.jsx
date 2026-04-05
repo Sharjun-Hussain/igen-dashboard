@@ -506,22 +506,22 @@ export default function CustomersPage() {
                     className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                   />
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Customer
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Location
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Joined
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Spent
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right pr-6"></th>
+                <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right pr-6"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -552,7 +552,7 @@ export default function CustomersPage() {
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-900 dark:text-white text-sm">
+                            <span className="font-semibold text-slate-900 dark:text-white text-sm">
                               {customer.name}
                             </span>
                           </div>
@@ -564,7 +564,7 @@ export default function CustomersPage() {
                     </td>
                     <td className="p-4">
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${getStatusColor(customer.status)}`}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${getStatusColor(customer.status)}`}
                       >
                         {customer.status}
                       </span>
@@ -575,7 +575,7 @@ export default function CustomersPage() {
                     <td className="p-4 text-sm text-slate-500 dark:text-slate-400">
                       {customer.joinedDateStr}
                     </td>
-                    <td className="p-4 text-sm font-bold text-slate-900 dark:text-white">
+                    <td className="p-4 text-sm font-semibold text-slate-900 dark:text-white">
                       {symbol}{customer.totalSpent}
                     </td>
                     <td className="p-4 pr-6 text-right">

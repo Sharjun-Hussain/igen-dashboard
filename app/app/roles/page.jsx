@@ -435,7 +435,7 @@ export default function RolesPage() {
             <div className="flex items-center gap-2 w-full sm:w-auto p-1 bg-slate-100/50 dark:bg-slate-900/50 rounded-xl">
               <div className="flex items-center gap-1 px-2 border-r border-slate-200 dark:border-slate-700 mr-1">
                 <Filter className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sort By</span>
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Sort By</span>
               </div>
               <select
                 value={sortBy}
@@ -514,7 +514,7 @@ export default function RolesPage() {
 
                       {/* Text Area */}
                       <div className="flex-1">
-                        <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">
+                        <h3 className="font-semibold text-lg text-slate-900 dark:text-white mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">
                           {role.name}
                         </h3>
                         <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 mb-4">
@@ -524,7 +524,7 @@ export default function RolesPage() {
 
                       {/* Footer / Actions */}
                       <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-700/50 mt-auto">
-                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
+                        <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
                           {new Date(role.created_at).toLocaleDateString()}
                         </span>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
@@ -566,13 +566,13 @@ export default function RolesPage() {
                   <table className="w-full text-left">
                     <thead className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
                       <tr>
-                        <th className="p-5 pl-8 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                        <th className="p-5 pl-8 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                           Role
                         </th>
-                        <th className="p-5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                        <th className="p-5 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                           Guard Name
                         </th>
-                        <th className="p-5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                        <th className="p-5 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                           Created At
                         </th>
                         <th className="p-5 pr-8"></th>
@@ -590,7 +590,7 @@ export default function RolesPage() {
                               <div className="w-12 h-12 rounded-xl bg-linear-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700 p-2 flex items-center justify-center">
                                 <Shield className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                               </div>
-                              <div className="font-bold text-slate-900 dark:text-white">
+                              <div className="font-semibold text-slate-900 dark:text-white">
                                 {role.name}
                               </div>
                             </div>

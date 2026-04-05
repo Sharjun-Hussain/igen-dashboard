@@ -176,12 +176,12 @@ export default function ActivityLogsPage() {
           <table className="w-full text-left border-collapse" ref={tableRef}>
             <thead className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
               <tr>
-                <th className="p-4 pl-6 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-40">Date</th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">User</th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Module</th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Action</th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Description</th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right pr-6">Details</th>
+                <th className="p-4 pl-6 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-40">Date</th>
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">User</th>
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Module</th>
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Action</th>
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Description</th>
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right pr-6">Details</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -203,7 +203,7 @@ export default function ActivityLogsPage() {
                   >
                     <td className="p-4 pl-6 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
                       <div className="flex flex-col">
-                        <span className="font-bold text-slate-700 dark:text-slate-300">
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">
                           {new Date(log.created_at).toLocaleDateString("en-US", {
                             month: "short",
                             day: "numeric",
@@ -225,7 +225,7 @@ export default function ActivityLogsPage() {
                           />
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                             {log.user?.name || "System"}
                           </span>
                           <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-tight">
@@ -235,12 +235,12 @@ export default function ActivityLogsPage() {
                       </div>
                     </td>
                     <td className="p-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 uppercase">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 uppercase">
                         {log.module}
                       </span>
                     </td>
                     <td className="p-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${
                         log.action.toLowerCase().includes('delete') || log.action.toLowerCase().includes('cancel') 
                           ? 'bg-rose-50 text-rose-600 border-rose-100' 
                           : log.action.toLowerCase().includes('create') || log.action.toLowerCase().includes('verify')

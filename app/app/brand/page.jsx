@@ -641,11 +641,11 @@ function BrandContent() {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-slate-50 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
-                        <th className="p-4 pl-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Brand</th>
-                        <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Website</th>
-                        <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                        <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Products</th>
-                        <th className="p-4 pr-8 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest">Actions</th>
+                        <th className="p-4 pl-8 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Brand</th>
+                        <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Website</th>
+                        <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                        <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Products</th>
+                        <th className="p-4 pr-8 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -660,18 +660,18 @@ function BrandContent() {
                                   <ImageIcon className="w-5 h-5 text-slate-300" />
                                 )}
                               </div>
-                              <div className="font-bold text-slate-900 dark:text-white">{brand.name}</div>
+                              <div className="font-semibold text-slate-900 dark:text-white">{brand.name}</div>
                             </div>
                           </td>
                           <td className="p-4 text-sm text-slate-500 dark:text-slate-400 font-medium">
                             {brand.website}
                           </td>
                           <td className="p-4">
-                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${brand.is_active ? "bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400" : "bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400"}`}>
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider ${brand.is_active ? "bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400" : "bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400"}`}>
                               {brand.is_active ? "Active" : "Inactive"}
                             </span>
                           </td>
-                          <td className="p-4 text-sm text-slate-500 dark:text-slate-400 font-bold">
+                          <td className="p-4 text-sm text-slate-500 dark:text-slate-400 font-semibold">
                             {brand.products_count || 0}
                           </td>
                            <td className="p-4 pr-8 text-right">

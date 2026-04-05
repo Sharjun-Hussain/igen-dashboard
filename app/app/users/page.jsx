@@ -469,20 +469,20 @@ export default function UsersPage() {
                     />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
                       {user.name}
                     </h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 truncate">{user.email}</p>
                     <div className="flex flex-wrap gap-2 mb-4">
                       {user.roles?.map((role) => (
-                        <span key={role.id} className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold uppercase tracking-wider border border-indigo-100 dark:border-indigo-900/50">
+                        <span key={role.id} className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-semibold uppercase tracking-wider border border-indigo-100 dark:border-indigo-900/50">
                           {role.name}
                         </span>
                       ))}
                     </div>
                   </div>
                   <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-700/50">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
                       Joined {new Date(user.created_at).toLocaleDateString()}
                     </span>
                     <div className="flex gap-1">
@@ -506,10 +506,10 @@ export default function UsersPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-50 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
-                    <th className="p-4 pl-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest">User</th>
-                    <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Roles</th>
-                    <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Joined Date</th>
-                    <th className="p-4 pr-8 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest">Actions</th>
+                    <th className="p-4 pl-8 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">User</th>
+                    <th className="p-4 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Roles</th>
+                    <th className="p-4 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Joined Date</th>
+                    <th className="p-4 pr-8 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -522,7 +522,7 @@ export default function UsersPage() {
                             className="w-10 h-10 rounded-xl object-cover"
                           />
                           <div>
-                            <div className="font-bold text-slate-900 dark:text-white">{user.name}</div>
+                            <div className="font-semibold text-slate-900 dark:text-white">{user.name}</div>
                             <div className="text-xs text-slate-500 dark:text-slate-400">{user.email}</div>
                           </div>
                         </div>
@@ -754,7 +754,7 @@ export default function UsersPage() {
                   <button onClick={closeFormWithAnim} className="flex-1 py-3.5 px-4 rounded-2xl font-bold text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                     Cancel
                   </button>
-                  <button onClick={handleSubmit} className="flex-[2] py-3.5 px-4 rounded-2xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-600/20 transition-all transform active:scale-95">
+                  <button onClick={handleSubmit} type="button" className="flex-2 py-3.5 px-4 rounded-2xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-600/20 transition-all transform active:scale-95">
                     {formMode === "invite" ? "Send Invitation" : "Update User"}
                   </button>
                 </div>

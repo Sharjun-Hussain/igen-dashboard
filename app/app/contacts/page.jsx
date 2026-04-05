@@ -331,16 +331,16 @@ export default function ContactsPage() {
           <table className="w-full text-left border-collapse" ref={tableRef}>
             <thead className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-700">
               <tr>
-                <th className="p-4 pl-6 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 pl-6 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Customer
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Subject
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Received At
                 </th>
                 <th className="p-4 pr-6 text-right"></th>
@@ -360,7 +360,7 @@ export default function ContactsPage() {
                           <User className="w-5 h-5 text-slate-400" />
                         </div>
                         <div>
-                          <div className="font-bold text-slate-900 dark:text-white text-sm">
+                          <div className="font-semibold text-slate-900 dark:text-white text-sm">
                             {contact.name}
                           </div>
                           <div className="text-xs text-slate-400 dark:text-slate-500">
@@ -376,7 +376,7 @@ export default function ContactsPage() {
                     </td>
                     <td className="p-4">
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border capitalize ${getStatusColor(contact.status)}`}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border capitalize ${getStatusColor(contact.status)}`}
                       >
                         {contact.status}
                       </span>

@@ -1168,22 +1168,22 @@ export default function ProductsPage() {
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
                       <tr>
-                        <th className="p-4 pl-6 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        <th className="p-4 pl-6 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                           Product
                         </th>
-                        <th className="p-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                        <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                           Code
                         </th>
-                        <th className="p-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                        <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                           Stock
                         </th>
-                        <th className="p-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                        <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                           Price
                         </th>
-                         <th className="p-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                         <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                           Condition
                         </th>
-                        <th className="p-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                        <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                           Status
                         </th>
                         <th className="p-4 pr-6 text-right"></th>
@@ -1216,7 +1216,7 @@ export default function ProductsPage() {
                                 )}
                               </div>
                               <div>
-                                <div className="font-bold text-slate-900 dark:text-white text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                <div className="font-semibold text-slate-900 dark:text-white text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                                   {product.name}
                                 </div>
                                 <div className="text-xs text-slate-500 dark:text-slate-400">
@@ -1247,20 +1247,20 @@ export default function ProductsPage() {
                               </div>
                             </div>
                           </td>
-                           <td className="p-4 text-sm text-slate-900 dark:text-white">
-                            Rs {formatPrice(product.price)}
-                          </td>
+                           <td className="p-4 text-sm font-medium text-slate-900 dark:text-white">
+                             Rs {formatPrice(product.price)}
+                           </td>
                           <td className="p-4">
-                            <span className={`px-2 py-1 rounded-lg text-[10px] font-bold border capitalize ${getConditionColor(product.condition)}`}>
+                             <span className={`px-2 py-1 rounded-lg text-[10px] font-semibold border capitalize ${getConditionColor(product.condition)}`}>
                                 {product.condition || "N/A"}
                             </span>
                           </td>
                           <td className="p-4">
                             <span
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${getStatusColor(
-                                product.status
-                              )}`}
-                            >
+                               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusColor(
+                                 product.status
+                               )}`}
+                             >
                               {product.is_local_draft ? (
                                 <>
                                   <Clock className="w-3 h-3" />

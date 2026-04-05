@@ -421,7 +421,7 @@ function CouponsContent() {
             <Ticket className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">
+            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase">
               Active Coupons
             </p>
             <h4 className="text-2xl font-bold text-slate-900 dark:text-white">
@@ -434,7 +434,7 @@ function CouponsContent() {
             <Scissors className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">
+            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase">
               Total Redemptions
             </p>
             <h4 className="text-2xl font-bold text-slate-900 dark:text-white">1,443</h4>
@@ -445,7 +445,7 @@ function CouponsContent() {
             <BarChart3 className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">
+            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase">
               Discount Volume
             </p>
             <h4 className="text-2xl font-bold text-slate-900 dark:text-white">Rs. 1.2M</h4>
@@ -471,7 +471,7 @@ function CouponsContent() {
         <div className="flex items-center gap-2 w-full sm:w-auto p-1 bg-slate-100/50 dark:bg-slate-900/50 rounded-xl">
           <div className="flex items-center gap-2 px-3 border-r border-slate-200 dark:border-slate-700">
             <Filter className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Filters</span>
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Filters</span>
           </div>
           
           <div className="flex items-center gap-1 px-2">
@@ -520,7 +520,7 @@ function CouponsContent() {
               <div className="p-5 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 flex justify-between items-start">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-xl font-black text-slate-900 dark:text-white font-mono tracking-wide">
+                    <h3 className="text-xl font-semibold text-slate-900 dark:text-white font-mono tracking-wide">
                       {coupon.code}
                     </h3>
                     <button
@@ -539,7 +539,7 @@ function CouponsContent() {
                   </p>
                 </div>
                 <div
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${getStatusColor(coupon.status)}`}
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border ${getStatusColor(coupon.status)}`}
                 >
                   {coupon.status}
                 </div>
@@ -552,7 +552,7 @@ function CouponsContent() {
                     <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">
                       Discount
                     </p>
-                    <p className="text-lg font-bold text-indigo-600">
+                    <p className="text-lg font-semibold text-indigo-600">
                       {coupon.type === "Percentage"
                         ? `${coupon.value}% OFF`
                         : (coupon.type === "Tiered" ? coupon.value : `Rs. ${coupon.value} OFF`)}
@@ -580,8 +580,8 @@ function CouponsContent() {
                 {/* Usage Bar */}
                 <div>
                   <div className="flex justify-between text-xs mb-1.5">
-                    <span className="font-bold text-slate-500 dark:text-slate-400">Usage</span>
-                    <span className="font-bold text-slate-900 dark:text-white">
+                    <span className="font-semibold text-slate-500 dark:text-slate-400">Usage</span>
+                    <span className="font-semibold text-slate-900 dark:text-white">
                       {coupon.usage} / {coupon.limit}
                     </span>
                   </div>
@@ -597,7 +597,7 @@ function CouponsContent() {
 
                 <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-50 dark:border-slate-700">
                   <Clock className="w-3.5 h-3.5" /> Expires:{" "}
-                  <span className="font-bold text-slate-700 dark:text-slate-300">
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">
                     {coupon.expiry}
                   </span>
                 </div>
